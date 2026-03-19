@@ -18,11 +18,13 @@ from .reporting import (
     format_evidence_report,
     format_events_summary,
     format_events_timeline,
+    format_snapshot_exports_report,
     format_snapshots_report,
     format_snapshots_summary,
     format_sessions_report,
     format_status_summary,
     load_events_timeline,
+    load_snapshot_exports_manifest,
     load_snapshots_index,
     summarize_snapshots,
     summarize_events,
@@ -383,6 +385,32 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional directory for an auto-named snapshots export file.",
     )
 
+    snapshots_exports_parser = subparsers.add_parser(
+        "snapshots-exports",
+        help="Inspect archived snapshots query exports from manifest.json.",
+    )
+    snapshots_exports_parser.add_argument(
+        "--exports-dir",
+        default="./snapshot-reports",
+        help="Directory containing snapshots query manifest.json.",
+    )
+    snapshots_exports_parser.add_argument(
+        "--latest",
+        action="store_true",
+        help="Only emit the latest archived export entry.",
+    )
+    snapshots_exports_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum number of archived exports to print.",
+    )
+    snapshots_exports_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
+    )
+
     doctor_parser = subparsers.add_parser("doctor", help="Validate local loop files.")
     doctor_parser.add_argument(
         "--project-dir",
@@ -717,6 +745,24 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "doctor":
             report = run_doctor(project_dir, repair=args.repair)
             print(render_doctor_report(report))
+            return 0
+
+        if args.command == "snapshots-exports":
+            exports_dir = Path(args.exports_dir).resolve()
+            payload = load_snapshot_exports_manifest(
+                exports_dir,
+                latest=args.latest,
+                limit=args.limit,
+            )
+            if args.json:
+                rendered = json.dumps(payload, indent=2, ensure_ascii=False)
+            else:
+                rendered = format_snapshot_exports_report(
+                    exports_dir,
+                    latest=args.latest,
+                    limit=args.limit,
+                )
+            print(rendered)
             return 0
 
         if args.command == "events":

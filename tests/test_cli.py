@@ -1233,6 +1233,79 @@ class CliTests(unittest.TestCase):
             self.assertEqual(stdout.getvalue(), "")
             self.assertIn("Use either --latest or --latest-blocked", stderr.getvalue())
 
+    def test_snapshots_exports_command_can_render_latest_json_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exports_dir = Path(tmpdir) / "snapshot-reports"
+            exports_dir.mkdir(parents=True, exist_ok=True)
+            (exports_dir / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "exports": [
+                            {
+                                "generated_at": "2026-03-21T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-list-a.json"),
+                                "source_snapshot_dir": str(exports_dir / "source-a"),
+                                "snapshot_count": 1,
+                                "summary": False,
+                                "group_by": None,
+                                "render_format": "json",
+                                "filters": {
+                                    "task_id": "001-foundation",
+                                    "status": None,
+                                    "blocker_code": None,
+                                    "latest": False,
+                                    "latest_blocked": False,
+                                    "sort_order": "oldest",
+                                    "since": None,
+                                    "until": None,
+                                },
+                            },
+                            {
+                                "generated_at": "2026-03-22T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-summary-b.txt"),
+                                "source_snapshot_dir": str(exports_dir / "source-b"),
+                                "snapshot_count": 2,
+                                "summary": True,
+                                "group_by": "status",
+                                "render_format": "text",
+                                "filters": {
+                                    "task_id": None,
+                                    "status": "blocked",
+                                    "blocker_code": "no_progress_limit",
+                                    "latest": False,
+                                    "latest_blocked": True,
+                                    "sort_order": "newest",
+                                    "since": "2026-03-22T00:00:00+00:00",
+                                    "until": None,
+                                },
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "snapshots-exports",
+                        "--exports-dir",
+                        str(exports_dir),
+                        "--latest",
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(len(payload), 1)
+            self.assertEqual(payload[0]["render_format"], "text")
+            self.assertEqual(payload[0]["export_path"], str(exports_dir / "snapshots-summary-b.txt"))
+
     def test_events_command_uses_config_default_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

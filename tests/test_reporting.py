@@ -8,12 +8,14 @@ from pathlib import Path
 from codex_loop.reporting import (
     build_session_inventory,
     build_evidence_bundle,
+    format_snapshot_exports_report,
     format_snapshots_report,
     format_snapshots_summary,
     format_events_summary,
     format_evidence_report,
     format_events_timeline,
     format_sessions_report,
+    load_snapshot_exports_manifest,
     load_snapshots_index,
     load_events_timeline,
     summarize_snapshots,
@@ -724,6 +726,67 @@ class ReportingTests(unittest.TestCase):
 
             self.assertEqual(len(filtered), 1)
             self.assertEqual(filtered[0]["task_id"], "002-polish")
+
+    def test_snapshot_exports_manifest_can_select_latest_and_render(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exports_dir = Path(tmpdir)
+            (exports_dir / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "exports": [
+                            {
+                                "generated_at": "2026-03-21T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-list-a.json"),
+                                "source_snapshot_dir": str(exports_dir / "source-a"),
+                                "snapshot_count": 1,
+                                "summary": False,
+                                "group_by": None,
+                                "render_format": "json",
+                                "filters": {
+                                    "task_id": "001-foundation",
+                                    "status": None,
+                                    "blocker_code": None,
+                                    "latest": False,
+                                    "latest_blocked": False,
+                                    "sort_order": "oldest",
+                                    "since": None,
+                                    "until": None,
+                                },
+                            },
+                            {
+                                "generated_at": "2026-03-22T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-summary-b.txt"),
+                                "source_snapshot_dir": str(exports_dir / "source-b"),
+                                "snapshot_count": 2,
+                                "summary": True,
+                                "group_by": "status",
+                                "render_format": "text",
+                                "filters": {
+                                    "task_id": None,
+                                    "status": "blocked",
+                                    "blocker_code": "no_progress_limit",
+                                    "latest": False,
+                                    "latest_blocked": True,
+                                    "sort_order": "newest",
+                                    "since": "2026-03-22T00:00:00+00:00",
+                                    "until": None,
+                                },
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            latest = load_snapshot_exports_manifest(exports_dir, latest=True)
+            rendered = format_snapshot_exports_report(exports_dir, limit=2)
+
+            self.assertEqual(len(latest), 1)
+            self.assertEqual(latest[0]["export_path"], str(exports_dir / "snapshots-summary-b.txt"))
+            self.assertIn(f"exports_dir: {exports_dir.resolve()}", rendered)
+            self.assertIn("count: 2", rendered)
+            self.assertIn("render=text", rendered)
+            self.assertIn("snapshot_count=2", rendered)
 
 
 if __name__ == "__main__":

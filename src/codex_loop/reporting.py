@@ -97,6 +97,57 @@ def _snapshot_group_value(snapshot: dict[str, Any], group_by: str) -> str:
     raise ValueError(msg)
 
 
+def load_snapshot_exports_manifest(
+    exports_dir: Path,
+    *,
+    latest: bool = False,
+    limit: int | None = None,
+) -> list[dict[str, Any]]:
+    manifest_path = exports_dir.resolve() / "manifest.json"
+    if not manifest_path.exists():
+        msg = f"No snapshot export manifest found at {manifest_path}"
+        raise FileNotFoundError(msg)
+    manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    exports = manifest_data.get("exports", [])
+    if not isinstance(exports, list):
+        return []
+    filtered = [item for item in exports if isinstance(item, dict)]
+    filtered.sort(key=lambda item: str(item.get("generated_at", "")))
+    if latest:
+        return filtered[-1:] if filtered else []
+    if limit is not None:
+        return filtered[-limit:]
+    return filtered
+
+
+def format_snapshot_exports_report(
+    exports_dir: Path,
+    *,
+    latest: bool = False,
+    limit: int | None = None,
+) -> str:
+    exports = load_snapshot_exports_manifest(exports_dir, latest=latest, limit=limit)
+    if not exports:
+        return "No snapshot exports recorded."
+    lines = [f"exports_dir: {exports_dir.resolve()}", f"count: {len(exports)}", "exports:"]
+    for entry in exports:
+        filters = entry.get("filters")
+        if not isinstance(filters, dict):
+            filters = {}
+        lines.append(
+            f"{entry.get('generated_at', '')} "
+            f"render={entry.get('render_format', '')} "
+            f"summary={entry.get('summary', False)} "
+            f"group_by={entry.get('group_by') or 'none'} "
+            f"snapshot_count={entry.get('snapshot_count', 0)} "
+            f"task={filters.get('task_id') or 'all'} "
+            f"status={filters.get('status') or 'all'} "
+            f"blocker={filters.get('blocker_code') or 'none'} "
+            f"path={entry.get('export_path', '')}"
+        )
+    return "\n".join(lines)
+
+
 def load_snapshots_index(
     snapshot_dir: Path,
     *,
