@@ -24,8 +24,10 @@
 - `codex-loop doctor --repair`:
   - recreates a missing agent result schema
   - reconciles task files with `.codex-loop/state.json`
-- `codex-loop status --summary` and `codex-loop logs tail`:
+- `codex-loop status --summary`, `codex-loop events`, and `codex-loop logs tail`:
   - provide concise operator-facing visibility during unattended runs
+- `codex-loop cleanup`:
+  - prunes old local logs, prompts, runs, and stale non-active worktrees
 
 ## Why This Exists
 
@@ -61,7 +63,10 @@ codex-loop init --prompt "Build a local autonomous loop that edits code until te
 codex-loop doctor --repair
 codex-loop run
 codex-loop status --summary
+codex-loop events --limit 20
 codex-loop logs tail --lines 20
+codex-loop cleanup --keep 10
+codex-loop cleanup --apply --keep 10
 ```
 
 ## Generated Project Layout
@@ -130,6 +135,8 @@ The loop stops with `blocked` when:
 ## Operator Notes
 
 - `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks.
+- `events --limit N` merges `.codex-loop/state.json` history with hook execution logs into a readable timeline.
+- `cleanup` defaults to dry-run mode so operators can review what would be deleted before using `--apply`.
 - `.codex-loop/metrics.json` includes blocker aggregates keyed by blocker code.
 
 ## Known Limits

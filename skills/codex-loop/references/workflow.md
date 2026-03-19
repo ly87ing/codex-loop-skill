@@ -50,6 +50,8 @@ When repair is enabled, it can recreate the schema and realign task state with t
 - hook `failure_policy` can block `post_init`, `pre_iteration`, and `post_iteration`
 - `.codex-loop/metrics.json` for aggregate runtime counters
 - `status --summary` for the latest blocker code and reason
+- `events --limit N` for a merged timeline across loop history and hook logs
+- `cleanup [--apply] --keep N` for conservative local artifact and stale worktree pruning
 
 ## Task Semantics
 

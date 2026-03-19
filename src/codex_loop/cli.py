@@ -5,12 +5,13 @@ import json
 from pathlib import Path
 import sys
 
+from .cleanup import render_cleanup_report, run_cleanup
 from .codex_runner import CodexRunner
 from .config import CodexLoopConfig
 from .doctor import render_doctor_report, run_doctor
 from .hooks import HookRunner
 from .init_flow import initialize_project
-from .reporting import format_status_summary, tail_log_lines
+from .reporting import format_events_timeline, format_status_summary, tail_log_lines
 from .run_flow import run_project
 from .state_store import StateStore
 
@@ -58,6 +59,42 @@ def _build_parser() -> argparse.ArgumentParser:
         "--repair",
         action="store_true",
         help="Repair schema/state/task drift where possible.",
+    )
+
+    events_parser = subparsers.add_parser("events", help="Render a concise loop timeline.")
+    events_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing .codex-loop/state.json.",
+    )
+    events_parser.add_argument(
+        "--limit",
+        type=int,
+        default=20,
+        help="Maximum number of timeline entries to print.",
+    )
+
+    cleanup_parser = subparsers.add_parser("cleanup", help="Prune old local loop artifacts.")
+    cleanup_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing .codex-loop/ state.",
+    )
+    cleanup_parser.add_argument(
+        "--keep",
+        type=int,
+        default=10,
+        help="Number of most recent files to keep in each artifact directory.",
+    )
+    cleanup_parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Delete files instead of running in dry-run mode.",
+    )
+    cleanup_parser.add_argument(
+        "--no-worktrees",
+        action="store_true",
+        help="Do not remove stale .codex-loop worktrees.",
     )
 
     logs_parser = subparsers.add_parser("logs", help="Inspect persisted loop logs.")
@@ -130,6 +167,23 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "doctor":
             report = run_doctor(project_dir, repair=args.repair)
             print(render_doctor_report(report))
+            return 0
+
+        if args.command == "events":
+            print(format_events_timeline(project_dir, limit=args.limit))
+            return 0
+
+        if args.command == "cleanup":
+            print(
+                render_cleanup_report(
+                    run_cleanup(
+                        project_dir,
+                        apply=args.apply,
+                        keep=args.keep,
+                        remove_worktrees=not args.no_worktrees,
+                    )
+                )
+            )
             return 0
 
         if args.command == "logs" and args.logs_command == "tail":

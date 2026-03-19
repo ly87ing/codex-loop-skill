@@ -63,6 +63,63 @@ class CliTests(unittest.TestCase):
             self.assertEqual(stderr.getvalue(), "")
             self.assertEqual(stdout.getvalue().strip().splitlines(), ["two", "three"])
 
+    def test_events_command_prints_timeline(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            store.record_runner_failure(
+                task_id="001-foundation",
+                reason="runner failed once",
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(["events", "--project-dir", str(root), "--limit", "10"])
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertIn("runner_failure", stdout.getvalue())
+
+    def test_cleanup_command_invokes_apply_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                patch("codex_loop.cli.run_cleanup") as cleanup_mock,
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                cleanup_mock.return_value = type(
+                    "CleanupReportStub",
+                    (),
+                    {
+                        "dry_run": False,
+                        "removed": [".codex-loop/logs/0001-old.txt"],
+                        "kept": [".codex-loop/logs/0002-new.txt"],
+                        "removed_worktrees": ["stale-worktree"],
+                        "warnings": [],
+                    },
+                )()
+                exit_code = main(
+                    [
+                        "cleanup",
+                        "--project-dir",
+                        str(root),
+                        "--apply",
+                        "--keep",
+                        "1",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertIn("removed: 1", stdout.getvalue())
+            cleanup_mock.assert_called_once()
+
     def test_init_fails_when_post_init_hook_policy_is_block(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

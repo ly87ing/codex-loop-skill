@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+import shutil
 import subprocess
 
 
@@ -89,3 +90,18 @@ def create_worktree(
         text=True,
     )
     return WorktreeInfo(repo_root=repo_root, branch_name=branch_name, path=path)
+
+
+def remove_worktree(repo_root: Path, path: Path) -> None:
+    if not path.exists():
+        return
+    try:
+        subprocess.run(
+            ["git", "worktree", "remove", "--force", str(path)],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError:
+        shutil.rmtree(path, ignore_errors=True)

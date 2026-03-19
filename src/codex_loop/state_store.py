@@ -180,6 +180,7 @@ class StateStore:
         state["history"].append(
             {
                 "event_type": "blocked",
+                "timestamp": _now(),
                 "iteration": state["meta"].get("iteration", 0),
                 "task_id": task_id,
                 "summary": reason,
@@ -222,6 +223,7 @@ class StateStore:
         state["history"].append(
             {
                 "event_type": "runner_failure",
+                "timestamp": _now(),
                 "iteration": meta["iteration"],
                 "task_id": task_id,
                 "summary": reason,
@@ -294,6 +296,7 @@ class StateStore:
         state["history"].append(
             {
                 "event_type": "iteration",
+                "timestamp": _now(),
                 "iteration": meta["iteration"],
                 "task_id": task_id,
                 "summary": summary,

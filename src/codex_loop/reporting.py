@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 
 def format_status_summary(project_dir: Path) -> str:
@@ -65,3 +66,67 @@ def tail_log_lines(project_dir: Path, *, lines: int, task_id: str | None = None)
         raise FileNotFoundError(msg)
     content = candidates[-1].read_text(encoding="utf-8").splitlines()
     return "\n".join(content[-lines:])
+
+
+def _format_history_event(entry: dict[str, Any]) -> str:
+    event_type = entry.get("event_type", "event")
+    if event_type == "blocked":
+        label = f"blocked:{entry.get('blocker_code', 'blocked')}"
+    elif event_type == "iteration":
+        agent_status = entry.get("agent_status")
+        label = f"iteration:{agent_status}" if agent_status else "iteration"
+    else:
+        label = event_type
+    timestamp = entry.get("timestamp", "unknown-time")
+    task_id = entry.get("task_id", "unknown-task")
+    summary = str(entry.get("summary", "")).strip()
+    return f"{timestamp} {label} task={task_id} {summary}".rstrip()
+
+
+def _iter_hook_events(project_dir: Path) -> list[dict[str, str]]:
+    hooks_dir = project_dir / ".codex-loop" / "hooks"
+    if not hooks_dir.exists():
+        return []
+    events: list[dict[str, str]] = []
+    for path in sorted(hooks_dir.glob("*.jsonl")):
+        event_name = path.stem
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            payload = json.loads(line)
+            command = str(payload.get("command", "")).strip()
+            success = bool(payload.get("success", False))
+            exit_code = payload.get("exit_code")
+            summary = f"{command} success={success} exit_code={exit_code}".strip()
+            events.append(
+                {
+                    "timestamp": str(payload.get("timestamp", "unknown-time")),
+                    "label": f"hook:{event_name}",
+                    "summary": summary,
+                }
+            )
+    return events
+
+
+def format_events_timeline(project_dir: Path, *, limit: int = 20) -> str:
+    state_path = project_dir / ".codex-loop" / "state.json"
+    if not state_path.exists():
+        msg = f"No state file found at {state_path}"
+        raise FileNotFoundError(msg)
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    combined: list[tuple[str, str, str]] = []
+    for entry in state.get("history", []):
+        combined.append((str(entry.get("timestamp", "")), "history", _format_history_event(entry)))
+    for hook_event in _iter_hook_events(project_dir):
+        combined.append(
+            (
+                hook_event["timestamp"],
+                "hook",
+                f"{hook_event['timestamp']} {hook_event['label']} {hook_event['summary']}".rstrip(),
+            )
+        )
+    if not combined:
+        return "No events recorded."
+    combined.sort(key=lambda item: (item[0], item[1], item[2]))
+    rendered = [entry for _, _, entry in combined[-limit:]]
+    return "\n".join(rendered)
