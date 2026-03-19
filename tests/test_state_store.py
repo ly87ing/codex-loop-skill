@@ -84,6 +84,39 @@ class StateStoreTests(unittest.TestCase):
             self.assertEqual(state["history"][-1]["event_type"], "blocked")
             self.assertEqual(state["history"][-1]["blocker_code"], "no_progress_limit")
 
+    def test_can_requeue_blocked_tasks_for_retry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            state = store.create_initial(
+                project_name="demo",
+                source_prompt="Build it",
+                tasks=["001-foundation", "002-loop"],
+            )
+            state["meta"]["no_progress_iterations"] = 3
+            state["meta"]["consecutive_runner_failures"] = 2
+            state["meta"]["consecutive_verification_failures"] = 1
+            store.save(state)
+            store.mark_blocked(
+                "001-foundation",
+                reason="Reached no-progress limit.",
+                code="no_progress_limit",
+            )
+
+            updated = store.requeue_blocked_tasks()
+
+            self.assertEqual(updated["tasks"]["001-foundation"]["status"], "ready")
+            self.assertIsNone(updated["tasks"]["001-foundation"]["blocker_code"])
+            self.assertIsNone(updated["tasks"]["001-foundation"]["blocker_reason"])
+            self.assertEqual(updated["tasks"]["002-loop"]["status"], "pending")
+            self.assertEqual(updated["meta"]["overall_status"], "running")
+            self.assertEqual(updated["meta"]["no_progress_iterations"], 0)
+            self.assertEqual(updated["meta"]["consecutive_runner_failures"], 0)
+            self.assertEqual(updated["meta"]["consecutive_verification_failures"], 0)
+            self.assertIsNone(updated["meta"]["last_blocker"])
+            self.assertEqual(updated["history"][-1]["event_type"], "requeued")
+            self.assertEqual(updated["history"][-1]["task_id"], "001-foundation")
+
 
 if __name__ == "__main__":
     unittest.main()

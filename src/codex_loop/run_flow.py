@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import time
+from typing import Callable
 
 from .codex_runner import CodexRunner
 from .config import CodexLoopConfig
@@ -42,6 +44,16 @@ class LoopTaskRunner:
             working_directory=self.working_directory,
             resume_session=resume_session,
         )
+
+
+def retry_blocked_tasks_for_retry(project_dir: Path) -> bool:
+    store = StateStore(project_dir / ".codex-loop" / "state.json")
+    state = store.load()
+    tasks = state.get("tasks", {})
+    if not any(task.get("status") == "blocked" for task in tasks.values()):
+        return False
+    store.requeue_blocked_tasks()
+    return True
 
 
 def run_project(project_dir: Path) -> LoopOutcome:
@@ -101,3 +113,29 @@ def run_project(project_dir: Path) -> LoopOutcome:
             hook_runner=HookRunner(project_dir / ".codex-loop" / "hooks"),
         )
         return supervisor.run()
+
+
+def run_project_continuously(
+    project_dir: Path,
+    *,
+    retry_blocked: bool = False,
+    cycle_sleep_seconds: float = 60.0,
+    max_cycles: int | None = None,
+    sleep_fn: Callable[[float], None] | None = None,
+    run_once: Callable[[Path], LoopOutcome] | None = None,
+) -> LoopOutcome:
+    sleep = sleep_fn or time.sleep
+    run_single = run_once or run_project
+    cycles = 0
+    while True:
+        if retry_blocked:
+            retry_blocked_tasks_for_retry(project_dir)
+        outcome = run_single(project_dir)
+        cycles += 1
+        if outcome == LoopOutcome.COMPLETED:
+            return outcome
+        if not retry_blocked:
+            return outcome
+        if max_cycles is not None and cycles >= max_cycles:
+            return outcome
+        sleep(cycle_sleep_seconds)

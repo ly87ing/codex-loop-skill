@@ -191,6 +191,55 @@ class StateStore:
         self.save(state)
         return state
 
+    def requeue_blocked_tasks(self, task_id: str | None = None) -> dict[str, Any]:
+        state = self.load()
+        tasks = state.get("tasks", {})
+        target_ids = [
+            current_task_id
+            for current_task_id, task_state in tasks.items()
+            if task_state.get("status") == "blocked"
+            and (task_id is None or current_task_id == task_id)
+        ]
+        if not target_ids:
+            return state
+
+        timestamp = _now()
+        for current_task_id in target_ids:
+            task_state = tasks[current_task_id]
+            previous_code = task_state.get("blocker_code")
+            previous_reason = task_state.get("blocker_reason")
+            task_state["status"] = "pending"
+            task_state["blocker_code"] = None
+            task_state["blocker_reason"] = None
+            task_state["last_error"] = None
+            task_state["updated_at"] = timestamp
+            state["history"].append(
+                {
+                    "event_type": "requeued",
+                    "timestamp": timestamp,
+                    "iteration": state["meta"].get("iteration", 0),
+                    "task_id": current_task_id,
+                    "summary": "Requeued blocked task for retry.",
+                    "blocker_code": previous_code,
+                    "blocker_reason": previous_reason,
+                }
+            )
+
+        _normalize_task_statuses(tasks)
+        state["meta"]["no_progress_iterations"] = 0
+        state["meta"]["consecutive_runner_failures"] = 0
+        state["meta"]["consecutive_verification_failures"] = 0
+        state["meta"]["last_error"] = None
+        state["meta"]["last_blocker"] = None
+        state["meta"]["overall_status"] = (
+            "completed"
+            if tasks and all(task.get("status") == "done" for task in tasks.values())
+            else "running"
+        )
+        state["meta"]["updated_at"] = timestamp
+        self.save(state)
+        return state
+
     def record_runner_failure(
         self,
         *,

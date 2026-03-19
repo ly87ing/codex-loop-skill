@@ -12,6 +12,7 @@ from codex_loop.cli import main
 from codex_loop.config import CodexLoopConfig
 from codex_loop.init_flow import InitResult, TaskDraft
 from codex_loop.state_store import StateStore
+from codex_loop.supervisor import LoopOutcome
 
 
 class CliTests(unittest.TestCase):
@@ -44,6 +45,52 @@ class CliTests(unittest.TestCase):
             self.assertIn("demo", stdout.getvalue())
             self.assertIn("001-foundation", stdout.getvalue())
             self.assertIn("current_task_session: session-001", stdout.getvalue())
+
+    def test_run_command_can_use_continuous_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "codex-loop.yaml").write_text(
+                json.dumps(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                        "verification": {"commands": ["python -m unittest"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                patch("codex_loop.cli.run_project_continuously") as continuous_mock,
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                continuous_mock.return_value = LoopOutcome.COMPLETED
+                exit_code = main(
+                    [
+                        "run",
+                        "--project-dir",
+                        str(root),
+                        "--continuous",
+                        "--retry-blocked",
+                        "--cycle-sleep-seconds",
+                        "5",
+                        "--max-cycles",
+                        "3",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            continuous_mock.assert_called_once_with(
+                root.resolve(),
+                retry_blocked=True,
+                cycle_sleep_seconds=5.0,
+                max_cycles=3,
+            )
+            self.assertIn("completed", stdout.getvalue())
 
     def test_logs_tail_prints_latest_log_lines(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -32,7 +32,7 @@ from .reporting import (
     summarize_events,
     tail_log_lines,
 )
-from .run_flow import run_project
+from .run_flow import run_project, run_project_continuously, retry_blocked_tasks_for_retry
 from .state_store import StateStore
 
 
@@ -287,6 +287,28 @@ def _build_parser() -> argparse.ArgumentParser:
         "--project-dir",
         default=".",
         help="Project directory containing codex-loop.yaml.",
+    )
+    run_parser.add_argument(
+        "--continuous",
+        action="store_true",
+        help="Keep re-running the loop until completion or max cycle limit.",
+    )
+    run_parser.add_argument(
+        "--retry-blocked",
+        action="store_true",
+        help="Requeue blocked tasks before running so transient blockers can be retried.",
+    )
+    run_parser.add_argument(
+        "--cycle-sleep-seconds",
+        type=float,
+        default=60.0,
+        help="Sleep duration between continuous run cycles.",
+    )
+    run_parser.add_argument(
+        "--max-cycles",
+        type=int,
+        default=None,
+        help="Optional maximum number of continuous run cycles before returning.",
     )
 
     status_parser = subparsers.add_parser("status", help="Print local loop state.")
@@ -694,7 +716,23 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "run":
-            outcome = run_project(project_dir)
+            if args.max_cycles is not None and not args.continuous:
+                raise ValueError("Use --max-cycles only with --continuous.")
+            if args.cycle_sleep_seconds < 0:
+                raise ValueError("--cycle-sleep-seconds must not be negative.")
+            if args.max_cycles is not None and args.max_cycles <= 0:
+                raise ValueError("--max-cycles must be greater than zero.")
+            if args.continuous:
+                outcome = run_project_continuously(
+                    project_dir,
+                    retry_blocked=args.retry_blocked,
+                    cycle_sleep_seconds=args.cycle_sleep_seconds,
+                    max_cycles=args.max_cycles,
+                )
+            else:
+                if args.retry_blocked:
+                    retry_blocked_tasks_for_retry(project_dir)
+                outcome = run_project(project_dir)
             print(outcome.value)
             return 0 if outcome.value == "completed" else 2
 
