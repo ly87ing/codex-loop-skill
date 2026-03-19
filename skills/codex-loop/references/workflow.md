@@ -56,6 +56,7 @@ Those warnings now include concrete remediation guidance so operators can tighte
 - `sessions` for a workspace-scoped inventory of known task session ids and their latest prompt/log/run artifacts
 - `evidence` for a read-only prompt/log/run bundle tied to the current task, a specific task, or the latest session, including recent watchdog restart/exhausted history for debugging long-running failures
 - evidence snapshot index entries now also persist watchdog phase, restart count, and last restart reason so `snapshots --summary` can expose long-running recovery context without opening each snapshot file
+- `snapshots --watchdog-phase exhausted --json` for snapshots generated while the watchdog was already in a degraded recovery state
 - `events --limit N` for a merged timeline across loop history and hook logs
 - `events --summary` for grouped counts across the filtered event set
 - `events --summary` includes blocker-code counts, blocked task ids, the latest blocked event, the latest runner or verification failure, and the latest watchdog restart or exhausted event when those events exist

@@ -294,6 +294,7 @@ def load_snapshots_index(
     task_id: str | None = None,
     status: str | None = None,
     blocker_code: str | None = None,
+    watchdog_phase: str | None = None,
     since: str | None = None,
     until: str | None = None,
     sort_order: str = "oldest",
@@ -319,6 +320,8 @@ def load_snapshots_index(
         filtered = [item for item in filtered if item.get("overall_status") == status]
     if blocker_code is not None:
         filtered = [item for item in filtered if item.get("last_blocker_code") == blocker_code]
+    if watchdog_phase is not None:
+        filtered = [item for item in filtered if item.get("watchdog_phase") == watchdog_phase]
     if since is not None or until is not None:
         since_ts = _parse_timestamp(since) if since is not None else None
         until_ts = _parse_timestamp(until) if until is not None else None
@@ -353,6 +356,7 @@ def format_snapshots_report(
     task_id: str | None = None,
     status: str | None = None,
     blocker_code: str | None = None,
+    watchdog_phase: str | None = None,
     since: str | None = None,
     until: str | None = None,
     sort_order: str = "oldest",
@@ -365,6 +369,7 @@ def format_snapshots_report(
         task_id=task_id,
         status=status,
         blocker_code=blocker_code,
+        watchdog_phase=watchdog_phase,
         since=since,
         until=until,
         sort_order=sort_order,
@@ -382,6 +387,7 @@ def format_snapshots_report(
             f"selection={snapshot.get('selection', '')} "
             f"status={snapshot.get('overall_status', '')} "
             f"blocker={snapshot.get('last_blocker_code') or 'none'} "
+            f"watchdog={snapshot.get('watchdog_phase') or 'none'} "
             f"path={snapshot.get('snapshot_path', '')}"
         )
     return "\n".join(lines)

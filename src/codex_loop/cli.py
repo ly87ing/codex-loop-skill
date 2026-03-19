@@ -113,6 +113,7 @@ def _update_snapshots_manifest(
     task_id: str | None,
     status: str | None,
     blocker_code: str | None,
+    watchdog_phase: str | None,
     latest: bool,
     latest_blocked: bool,
     sort_order: str,
@@ -140,6 +141,7 @@ def _update_snapshots_manifest(
                 "task_id": task_id,
                 "status": status,
                 "blocker_code": blocker_code,
+                "watchdog_phase": watchdog_phase,
                 "latest": latest,
                 "latest_blocked": latest_blocked,
                 "sort_order": sort_order,
@@ -183,6 +185,7 @@ def _snapshots_output_path(
     latest_blocked: bool,
     status: str | None,
     blocker_code: str | None,
+    watchdog_phase: str | None,
     sort_order: str,
 ) -> Path:
     parts = ["snapshots", "summary" if summary else "list"]
@@ -196,6 +199,8 @@ def _snapshots_output_path(
         parts.append(f"status-{_slugify_file_component(status)}")
     if blocker_code:
         parts.append(f"blocker-{_slugify_file_component(blocker_code)}")
+    if watchdog_phase:
+        parts.append(f"watchdog-{_slugify_file_component(watchdog_phase)}")
     if sort_order != "oldest":
         parts.append(f"sort-{_slugify_file_component(sort_order)}")
     timestamp = _slugify_file_component(
@@ -473,6 +478,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--blocker-code",
         default=None,
         help="Optional blocker code filter, for example no_progress_limit.",
+    )
+    snapshots_parser.add_argument(
+        "--watchdog-phase",
+        default=None,
+        help="Optional watchdog phase filter, for example exhausted or restarting.",
     )
     snapshots_parser.add_argument(
         "--sort",
@@ -1244,6 +1254,7 @@ def main(argv: list[str] | None = None) -> int:
                 task_id=args.task_id,
                 status=args.status,
                 blocker_code=args.blocker_code,
+                watchdog_phase=args.watchdog_phase,
                 since=args.since,
                 until=args.until,
                 sort_order=args.sort,
@@ -1266,6 +1277,7 @@ def main(argv: list[str] | None = None) -> int:
                         task_id=args.task_id,
                         status=args.status,
                         blocker_code=args.blocker_code,
+                        watchdog_phase=args.watchdog_phase,
                         since=args.since,
                         until=args.until,
                         sort_order=args.sort,
@@ -1287,6 +1299,7 @@ def main(argv: list[str] | None = None) -> int:
                     latest_blocked=bool(args.latest_blocked),
                     status=args.status,
                     blocker_code=args.blocker_code,
+                    watchdog_phase=args.watchdog_phase,
                     sort_order=args.sort,
                 )
                 _write_output_file(output_path, rendered)
@@ -1301,6 +1314,7 @@ def main(argv: list[str] | None = None) -> int:
                     task_id=args.task_id,
                     status=args.status,
                     blocker_code=args.blocker_code,
+                    watchdog_phase=args.watchdog_phase,
                     latest=bool(args.latest),
                     latest_blocked=bool(args.latest_blocked),
                     sort_order=args.sort,
