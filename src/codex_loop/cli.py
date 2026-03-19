@@ -35,6 +35,7 @@ from .reporting import (
     tail_log_lines,
 )
 from .run_flow import run_project, run_project_continuously, retry_blocked_tasks_for_retry
+from .service_manager import install_service, service_status, uninstall_service
 from .state_store import StateStore
 
 
@@ -620,6 +621,74 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Emit structured JSON instead of formatted text.",
     )
 
+    service_parser = subparsers.add_parser(
+        "service",
+        help="Manage a launchd-backed macOS service for codex-loop.",
+    )
+    service_subparsers = service_parser.add_subparsers(dest="service_command", required=True)
+
+    service_install_parser = service_subparsers.add_parser(
+        "install",
+        help="Install or refresh a launchd service.",
+    )
+    service_install_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing codex-loop.yaml.",
+    )
+    service_install_parser.add_argument(
+        "--retry-blocked",
+        action="store_true",
+        help="Requeue blocked tasks between continuous cycles.",
+    )
+    service_install_parser.add_argument(
+        "--cycle-sleep-seconds",
+        type=float,
+        default=60.0,
+        help="Sleep duration between continuous run cycles.",
+    )
+    service_install_parser.add_argument(
+        "--max-cycles",
+        type=int,
+        default=None,
+        help="Optional maximum number of continuous run cycles before returning.",
+    )
+    service_install_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
+    )
+
+    service_status_parser = service_subparsers.add_parser(
+        "status",
+        help="Show launchd service status.",
+    )
+    service_status_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing .codex-loop.",
+    )
+    service_status_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
+    )
+
+    service_uninstall_parser = service_subparsers.add_parser(
+        "uninstall",
+        help="Remove the launchd service.",
+    )
+    service_uninstall_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing .codex-loop.",
+    )
+    service_uninstall_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
+    )
+
     doctor_parser = subparsers.add_parser("doctor", help="Validate local loop files.")
     doctor_parser.add_argument(
         "--project-dir",
@@ -871,6 +940,51 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(
                     f"Stopped daemon pid={payload['pid']} signal={payload['signal']}"
+                )
+            return 0
+
+        if args.command == "service" and args.service_command == "install":
+            if args.cycle_sleep_seconds < 0:
+                raise ValueError("--cycle-sleep-seconds must not be negative.")
+            if args.max_cycles is not None and args.max_cycles <= 0:
+                raise ValueError("--max-cycles must be greater than zero.")
+            payload = install_service(
+                project_dir,
+                retry_blocked=args.retry_blocked,
+                cycle_sleep_seconds=args.cycle_sleep_seconds,
+                max_cycles=args.max_cycles,
+            )
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(
+                    f"Installed service label={payload['label']} plist={payload['plist_path']}"
+                )
+            return 0
+
+        if args.command == "service" and args.service_command == "status":
+            payload = service_status(project_dir)
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(
+                    f"installed={payload.get('installed')} "
+                    f"loaded={payload.get('loaded')} "
+                    f"stale_heartbeat={payload.get('stale_heartbeat')} "
+                    f"label={payload.get('label')} "
+                    f"phase={payload.get('phase')} "
+                    f"cycle={payload.get('cycle')} "
+                    f"log={payload.get('log_path')}"
+                )
+            return 0
+
+        if args.command == "service" and args.service_command == "uninstall":
+            payload = uninstall_service(project_dir)
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(
+                    f"Removed service label={payload['label']} plist={payload['plist_path']}"
                 )
             return 0
 

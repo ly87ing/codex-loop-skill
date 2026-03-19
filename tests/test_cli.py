@@ -129,6 +129,76 @@ class CliTests(unittest.TestCase):
             )
             self.assertIn("pid=43210", stdout.getvalue())
 
+    def test_service_install_command_can_install_launch_agent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                patch("codex_loop.cli.install_service") as install_mock,
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                install_mock.return_value = {
+                    "label": "com.codex-loop.demo",
+                    "plist_path": str(root / "Library" / "LaunchAgents" / "demo.plist"),
+                }
+                exit_code = main(
+                    [
+                        "service",
+                        "install",
+                        "--project-dir",
+                        str(root),
+                        "--retry-blocked",
+                        "--cycle-sleep-seconds",
+                        "60",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            install_mock.assert_called_once_with(
+                root.resolve(),
+                retry_blocked=True,
+                cycle_sleep_seconds=60.0,
+                max_cycles=None,
+            )
+            self.assertIn("com.codex-loop.demo", stdout.getvalue())
+
+    def test_service_status_command_can_emit_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                patch("codex_loop.cli.service_status") as status_mock,
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                status_mock.return_value = {
+                    "installed": True,
+                    "loaded": True,
+                    "label": "com.codex-loop.demo",
+                }
+                exit_code = main(
+                    [
+                        "service",
+                        "status",
+                        "--project-dir",
+                        str(root),
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            status_mock.assert_called_once_with(root.resolve())
+            payload = json.loads(stdout.getvalue())
+            self.assertTrue(payload["loaded"])
+            self.assertEqual(payload["label"], "com.codex-loop.demo")
+
     def test_logs_tail_prints_latest_log_lines(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

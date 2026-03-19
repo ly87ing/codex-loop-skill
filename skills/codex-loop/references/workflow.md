@@ -64,6 +64,9 @@ Those warnings now include concrete remediation guidance so operators can tighte
 - `daemon start --retry-blocked --cycle-sleep-seconds 60 [--max-cycles N]` for launching that continuous worker in the background with runtime-error retries enabled
 - `daemon status [--json]` for checking pid, heartbeat phase, cycle, stale/dead detection, and log path
 - `daemon stop [--json]` for sending `SIGTERM` to the detached worker and clearing local daemon metadata
+- `service install --retry-blocked --cycle-sleep-seconds 60 [--max-cycles N]` for installing a `launchd` agent that survives shell exits and future logins on macOS
+- `service status [--json]` for checking whether that `launchd` agent is installed, loaded, and still producing fresh heartbeats
+- `service uninstall [--json]` for removing the `launchd` plist and clearing local service metadata
 - `sessions --latest --json` for the most recent session seen by the loop
 - `sessions --task-id ... --json` for the latest task-specific session and artifact pointers
 - `evidence --task-id ... --json` for the latest evidence bundle of a task without manually opening multiple files

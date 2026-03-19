@@ -64,12 +64,15 @@ For longer unattended runs, `codex-loop run --continuous --retry-blocked --cycle
 
 For a detached local worker, `codex-loop daemon start --retry-blocked --cycle-sleep-seconds 60` launches that same continuous mode in the background, records daemon metadata plus a heartbeat file under `.codex-loop/`, and retries recoverable runtime errors without exiting immediately.
 
+For a real macOS login service, `codex-loop service install --retry-blocked --cycle-sleep-seconds 60` installs a `launchd` agent under `~/Library/LaunchAgents`, records service metadata plus a separate heartbeat file under `.codex-loop/`, and keeps the loop alive across terminal exits and future logins.
+
 ### 5. Inspect status when needed
 
 Run:
 
 ```bash
 codex-loop status --summary
+codex-loop service status --json
 codex-loop sessions
 codex-loop sessions --latest --json
 codex-loop sessions --task-id 001-foundation --json
@@ -104,6 +107,7 @@ codex-loop cleanup --logs-keep 20 --prompts-older-than-days 30
 When blocked, it also surfaces the latest `blocker_code` and reason, and when a task has an active session it shows that too.
 `run --continuous --retry-blocked` is the fastest current path to a long-lived local worker: it wraps the normal run loop, requeues blocked tasks between cycles, and keeps going until completion or a configured cycle limit.
 `daemon start|status|stop` adds a lightweight detached supervisor layer on top of `run --continuous`, with `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, and `.codex-loop/daemon.log` for local operator visibility, plus dead-process and stale-heartbeat detection in `status`.
+`service install|status|uninstall` is the macOS path for longer unattended persistence: it installs a `launchd` agent, writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, and `.codex-loop/service.log`, and preserves enough environment for the loop to keep finding Codex after shell sessions end.
 `sessions` gives a workspace-scoped inventory of known task session ids, their latest prompt/log/run artifacts, and a `--latest` shortcut for the most recent session seen by the loop.
 `evidence` gives a read-only prompt/log/run bundle for the current task, a selected task, or the latest session, embeds bounded task event snapshots plus status/session metadata, and can export that bundle to disk or an auto-named snapshot directory with an index file.
 `snapshots` reads that index file back as a filtered list or JSON payload, supports status, blocker-code, time-window, newest/oldest sort control, and a `--latest-blocked` shortcut, can export the rendered result with `--output` or auto-name it with `--output-dir`, and `--summary` turns it into a grouped operator view across task, status, selection, blocker code, and latest snapshot markers; `--group-by` focuses that summary onto one chosen dimension, and `--output-dir` writes a `manifest.json` alongside the exported files.
