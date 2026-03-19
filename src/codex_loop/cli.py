@@ -240,6 +240,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional blocker code filter, for example no_progress_limit.",
     )
     snapshots_parser.add_argument(
+        "--sort",
+        choices=("oldest", "newest"),
+        default="oldest",
+        help="Optional snapshot output order.",
+    )
+    snapshots_parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -535,6 +541,7 @@ def main(argv: list[str] | None = None) -> int:
                 blocker_code=args.blocker_code,
                 since=args.since,
                 until=args.until,
+                sort_order=args.sort,
                 limit=args.limit,
                 latest=args.latest,
             )
@@ -555,6 +562,7 @@ def main(argv: list[str] | None = None) -> int:
                         blocker_code=args.blocker_code,
                         since=args.since,
                         until=args.until,
+                        sort_order=args.sort,
                         limit=args.limit,
                         latest=args.latest,
                     )

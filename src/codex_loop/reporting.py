@@ -86,6 +86,7 @@ def load_snapshots_index(
     blocker_code: str | None = None,
     since: str | None = None,
     until: str | None = None,
+    sort_order: str = "oldest",
     limit: int | None = None,
     latest: bool = False,
 ) -> list[dict[str, Any]]:
@@ -124,6 +125,8 @@ def load_snapshots_index(
         filtered = filtered[-1:] if filtered else []
     elif limit is not None:
         filtered = filtered[-limit:]
+    if sort_order == "newest":
+        filtered = list(reversed(filtered))
     return filtered
 
 
@@ -135,6 +138,7 @@ def format_snapshots_report(
     blocker_code: str | None = None,
     since: str | None = None,
     until: str | None = None,
+    sort_order: str = "oldest",
     limit: int | None = None,
     latest: bool = False,
 ) -> str:
@@ -145,6 +149,7 @@ def format_snapshots_report(
         blocker_code=blocker_code,
         since=since,
         until=until,
+        sort_order=sort_order,
         limit=limit,
         latest=latest,
     )
