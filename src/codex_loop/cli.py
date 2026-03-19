@@ -98,13 +98,19 @@ def main(argv: list[str] | None = None) -> int:
                 force=args.force,
             )
             config = CodexLoopConfig.from_file(project_dir / "codex-loop.yaml")
-            HookRunner(project_dir / ".codex-loop" / "hooks").run(
+            hook_runner = HookRunner(project_dir / ".codex-loop" / "hooks")
+            hook_results = hook_runner.run(
                 event_name="post_init",
                 commands=config.hooks.post_init,
                 cwd=project_dir,
                 env={"CODEX_LOOP_PROJECT_DIR": str(project_dir)},
                 timeout_seconds=config.hooks.timeout_seconds,
             )
+            if config.hooks.failure_policy == "block":
+                failure = hook_runner.first_failure(hook_results)
+                reason = hook_runner.failure_reason("post_init", failure)
+                if reason is not None:
+                    raise RuntimeError(reason)
             print(f"Initialized codex-loop files in {project_dir}")
             return 0
 

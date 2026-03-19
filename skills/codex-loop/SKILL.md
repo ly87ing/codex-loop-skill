@@ -78,6 +78,7 @@ codex-loop logs tail --lines 20
 - Prefer fixing bad task decomposition at `init` time instead of hoping the loop self-corrects.
 - Use `doctor --repair` before reruns if tasks or state have been edited manually.
 - Keep hooks local and explicit in `codex-loop.yaml`; do not hide operational behavior in prompts alone.
+- Use hook `failure_policy=block` only for operational checks that should genuinely stop the loop.
 - If the loop reports `blocked`, inspect the blocker instead of retrying blindly.
 
 ## References

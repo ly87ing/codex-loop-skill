@@ -51,6 +51,28 @@ class HookRunner:
         return results
 
     @staticmethod
+    def first_failure(results: list[dict[str, Any]]) -> dict[str, Any] | None:
+        for result in results:
+            if not bool(result.get("success", False)):
+                return result
+        return None
+
+    @staticmethod
+    def failure_reason(
+        event_name: str,
+        result: dict[str, Any] | None,
+    ) -> str | None:
+        if result is None:
+            return None
+        command = str(result.get("command", ""))
+        if result.get("timed_out"):
+            return f"Hook failure during {event_name}: timed out running `{command}`."
+        exit_code = result.get("exit_code")
+        return (
+            f"Hook failure during {event_name}: command `{command}` exited with {exit_code}."
+        )
+
+    @staticmethod
     def _run_one(
         *,
         command: str,

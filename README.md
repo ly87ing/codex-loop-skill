@@ -16,7 +16,7 @@
   - calls `codex exec` / `codex exec resume`
   - falls back to a fresh `codex exec` if a saved resume session is no longer valid
   - blocks on configurable runner-failure or verification-failure circuit breakers
-  - can run local `pre_iteration` and `post_iteration` hooks
+  - can run local `pre_iteration`, `post_iteration`, `on_completed`, and `on_blocked` hooks
   - runs local verification commands after each iteration
   - stops only on `completed` or `blocked`
 - `.codex-loop/metrics.json`:
@@ -123,6 +123,7 @@ The loop stops with `blocked` when:
 - The supervisor keeps `.codex-loop/` local state outside normal task files
 - The supervisor can repair a missing schema and task/state drift before entering the loop
 - Hook execution is local and explicit through `codex-loop.yaml`; it is never inferred from prompts
+- `post_init`, `pre_iteration`, and `post_iteration` can be configured to block on hook failure; terminal hooks are notification-oriented and do not rewrite the final outcome
 - The default finish mode is conservative: keep the worktree and branch
 
 ## Known Limits

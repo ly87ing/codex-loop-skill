@@ -117,6 +117,9 @@ def initialize_project(
             "post_init": [],
             "pre_iteration": [],
             "post_iteration": [],
+            "on_completed": [],
+            "on_blocked": [],
+            "failure_policy": "ignore",
             "timeout_seconds": 300,
         },
     }

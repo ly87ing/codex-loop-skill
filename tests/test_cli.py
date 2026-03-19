@@ -6,8 +6,11 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from codex_loop.cli import main
+from codex_loop.config import CodexLoopConfig
+from codex_loop.init_flow import InitResult, TaskDraft
 from codex_loop.state_store import StateStore
 
 
@@ -59,6 +62,61 @@ class CliTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             self.assertEqual(stderr.getvalue(), "")
             self.assertEqual(stdout.getvalue().strip().splitlines(), ["two", "three"])
+
+    def test_init_fails_when_post_init_hook_policy_is_block(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "verification": {"commands": ["python -m unittest"]},
+                    "hooks": {
+                        "post_init": ["echo fail"],
+                        "failure_policy": "block",
+                    },
+                },
+                root,
+            )
+
+            with (
+                patch(
+                    "codex_loop.cli.CodexRunner.initialize_from_prompt",
+                    return_value=InitResult(
+                        project_name="demo",
+                        goal_summary="Build demo",
+                        done_when=["Tests pass"],
+                        spec_markdown="# Spec\n",
+                        plan_markdown="# Plan\n",
+                        tasks=[
+                            TaskDraft(
+                                slug="foundation",
+                                title="Foundation",
+                                markdown="# Foundation\n",
+                            )
+                        ],
+                        verification_commands=["python -m unittest"],
+                    ),
+                ),
+                patch("codex_loop.cli.CodexLoopConfig.from_file", return_value=config),
+                patch("codex_loop.cli.HookRunner.run") as run_mock,
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                run_mock.return_value = [
+                    {
+                        "success": False,
+                        "command": "echo fail",
+                        "exit_code": 1,
+                        "timed_out": False,
+                    }
+                ]
+                exit_code = main(["init", "--project-dir", str(root), "--prompt", "demo"])
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("post_init", stderr.getvalue())
 
 
 if __name__ == "__main__":

@@ -79,6 +79,20 @@ class ConfigTests(unittest.TestCase):
                     },
                     root,
                 )
+
+    def test_rejects_unsupported_hook_failure_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            with self.assertRaises(ValueError):
+                CodexLoopConfig.from_dict(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["tests pass"]},
+                        "verification": {"commands": ["python -m unittest"]},
+                        "hooks": {"failure_policy": "explode"},
+                    },
+                    root,
+                )
             with self.assertRaises(ValueError):
                 CodexLoopConfig.from_dict(
                     {

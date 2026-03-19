@@ -45,6 +45,9 @@
 - `post_init`: local commands run after `codex-loop init`
 - `pre_iteration`: local commands run before each task iteration
 - `post_iteration`: local commands run after each task iteration
+- `on_completed`: local commands run after the loop reaches `completed`
+- `on_blocked`: local commands run after the loop reaches `blocked`
+- `failure_policy`: `ignore` or `block` for `post_init`, `pre_iteration`, and `post_iteration`
 - `timeout_seconds`: timeout for each hook command
 
 ## Format Note

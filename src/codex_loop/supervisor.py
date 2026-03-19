@@ -39,10 +39,12 @@ class Supervisor:
         for _ in range(self.config.execution.max_iterations):
             task = self._select_task()
             if task is None:
-                return self._terminal_outcome_without_selectable_task()
+                outcome = self._terminal_outcome_without_selectable_task()
+                self._run_terminal_hooks(outcome=outcome, task=None)
+                return outcome
             state = self.state_store.load()
             task_state = state["tasks"][task.task_id]
-            self._run_hooks(
+            hook_failure = self._run_hooks(
                 event_name="pre_iteration",
                 task=task,
                 extra_env={
@@ -50,6 +52,14 @@ class Supervisor:
                     "CODEX_LOOP_LOOP_ITERATION": state["meta"].get("iteration", 0) + 1,
                 },
             )
+            if hook_failure is not None:
+                self.state_store.mark_blocked(task.task_id, hook_failure)
+                self._run_terminal_hooks(
+                    outcome=LoopOutcome.BLOCKED,
+                    task=task,
+                    extra_env={"CODEX_LOOP_ERROR": hook_failure},
+                )
+                return LoopOutcome.BLOCKED
             try:
                 result = self.runner.run_task(
                     task=task,
@@ -65,7 +75,7 @@ class Supervisor:
                         else None
                     ),
                 )
-                self._run_hooks(
+                hook_failure = self._run_hooks(
                     event_name="post_iteration",
                     task=task,
                     extra_env={
@@ -74,6 +84,14 @@ class Supervisor:
                         "CODEX_LOOP_ERROR": str(exc),
                     },
                 )
+                if hook_failure is not None:
+                    self.state_store.mark_blocked(task.task_id, hook_failure)
+                    self._run_terminal_hooks(
+                        outcome=LoopOutcome.BLOCKED,
+                        task=task,
+                        extra_env={"CODEX_LOOP_ERROR": hook_failure},
+                    )
+                    return LoopOutcome.BLOCKED
                 if (
                     self.config.execution.max_consecutive_runner_failures > 0
                     and updated["meta"]["consecutive_runner_failures"]
@@ -83,12 +101,22 @@ class Supervisor:
                         task.task_id,
                         "Reached runner failure circuit breaker.",
                     )
+                    self._run_terminal_hooks(
+                        outcome=LoopOutcome.BLOCKED,
+                        task=task,
+                        extra_env={"CODEX_LOOP_ERROR": "Reached runner failure circuit breaker."},
+                    )
                     return LoopOutcome.BLOCKED
                 if (
                     updated["meta"]["no_progress_iterations"]
                     >= self.config.execution.max_no_progress_iterations
                 ):
                     self.state_store.mark_blocked(task.task_id, "Reached no-progress limit.")
+                    self._run_terminal_hooks(
+                        outcome=LoopOutcome.BLOCKED,
+                        task=task,
+                        extra_env={"CODEX_LOOP_ERROR": "Reached no-progress limit."},
+                    )
                     return LoopOutcome.BLOCKED
                 if self.config.execution.iteration_backoff_seconds > 0:
                     time.sleep(self.config.execution.iteration_backoff_seconds)
@@ -127,7 +155,7 @@ class Supervisor:
                     else None
                 ),
             )
-            self._run_hooks(
+            hook_failure = self._run_hooks(
                 event_name="post_iteration",
                 task=task,
                 extra_env={
@@ -136,11 +164,28 @@ class Supervisor:
                     "CODEX_LOOP_SUMMARY": str(result.get("summary", "")),
                 },
             )
+            if hook_failure is not None:
+                self.state_store.mark_blocked(task.task_id, hook_failure)
+                self._run_terminal_hooks(
+                    outcome=LoopOutcome.BLOCKED,
+                    task=task,
+                    extra_env={"CODEX_LOOP_ERROR": hook_failure},
+                )
+                return LoopOutcome.BLOCKED
             if str(result.get("status")) == "blocked":
+                self._run_terminal_hooks(
+                    outcome=LoopOutcome.BLOCKED,
+                    task=task,
+                    extra_env={"CODEX_LOOP_ERROR": "Agent returned blocked."},
+                )
                 return LoopOutcome.BLOCKED
             if passed:
                 updated = self.state_store.mark_task_done(task.task_id)
                 if updated["meta"]["overall_status"] == "completed":
+                    self._run_terminal_hooks(
+                        outcome=LoopOutcome.COMPLETED,
+                        task=task,
+                    )
                     return LoopOutcome.COMPLETED
             if (
                 self.config.execution.max_consecutive_verification_failures > 0
@@ -151,12 +196,22 @@ class Supervisor:
                     task.task_id,
                     "Reached verification failure circuit breaker.",
                 )
+                self._run_terminal_hooks(
+                    outcome=LoopOutcome.BLOCKED,
+                    task=task,
+                    extra_env={"CODEX_LOOP_ERROR": "Reached verification failure circuit breaker."},
+                )
                 return LoopOutcome.BLOCKED
             if (
                 updated["meta"]["no_progress_iterations"]
                 >= self.config.execution.max_no_progress_iterations
             ):
                 self.state_store.mark_blocked(task.task_id, "Reached no-progress limit.")
+                self._run_terminal_hooks(
+                    outcome=LoopOutcome.BLOCKED,
+                    task=task,
+                    extra_env={"CODEX_LOOP_ERROR": "Reached no-progress limit."},
+                )
                 return LoopOutcome.BLOCKED
             if self.config.execution.iteration_backoff_seconds > 0:
                 time.sleep(self.config.execution.iteration_backoff_seconds)
@@ -171,6 +226,12 @@ class Supervisor:
                 remaining[0],
                 "Reached max iterations before completion.",
             )
+        terminal_task = self._select_task()
+        self._run_terminal_hooks(
+            outcome=LoopOutcome.BLOCKED,
+            task=terminal_task,
+            extra_env={"CODEX_LOOP_ERROR": "Reached max iterations before completion."},
+        )
         return LoopOutcome.BLOCKED
 
     def _terminal_outcome_without_selectable_task(self) -> LoopOutcome:
@@ -221,18 +282,52 @@ class Supervisor:
         event_name: str,
         task: Task,
         extra_env: dict[str, object] | None = None,
-    ) -> None:
+    ) -> str | None:
         if self.hook_runner is None:
-            return
+            return None
         commands = getattr(self.config.hooks, event_name, [])
         if not commands:
-            return
+            return None
         env = {
             "CODEX_LOOP_PROJECT_DIR": str(self.config.project_dir),
             "CODEX_LOOP_WORKING_DIR": str(self.working_directory),
             "CODEX_LOOP_TASK_ID": task.task_id,
             "CODEX_LOOP_TASK_TITLE": task.title,
         }
+        env.update(extra_env or {})
+        results = self.hook_runner.run(
+            event_name=event_name,
+            commands=commands,
+            cwd=self.working_directory,
+            env=env,
+            timeout_seconds=self.config.hooks.timeout_seconds,
+        )
+        if self.config.hooks.failure_policy != "block":
+            return None
+        failure = self.hook_runner.first_failure(results)
+        return self.hook_runner.failure_reason(event_name, failure)
+
+    def _run_terminal_hooks(
+        self,
+        *,
+        outcome: LoopOutcome,
+        task: Task | None,
+        extra_env: dict[str, object] | None = None,
+    ) -> None:
+        if self.hook_runner is None:
+            return
+        event_name = "on_completed" if outcome == LoopOutcome.COMPLETED else "on_blocked"
+        commands = getattr(self.config.hooks, event_name, [])
+        if not commands:
+            return
+        env: dict[str, object] = {
+            "CODEX_LOOP_PROJECT_DIR": str(self.config.project_dir),
+            "CODEX_LOOP_WORKING_DIR": str(self.working_directory),
+            "CODEX_LOOP_OUTCOME": outcome.value,
+        }
+        if task is not None:
+            env["CODEX_LOOP_TASK_ID"] = task.task_id
+            env["CODEX_LOOP_TASK_TITLE"] = task.title
         env.update(extra_env or {})
         self.hook_runner.run(
             event_name=event_name,

@@ -250,6 +250,144 @@ class SupervisorTests(unittest.TestCase):
             self.assertEqual(pre_file.read_text(), "001-foundation")
             self.assertEqual(post_file.read_text(), "continue")
 
+    def test_blocks_when_hook_failure_policy_is_block(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "verification": {"commands": ["python -m unittest"]},
+                    "tasks": {"source_dir": "tasks"},
+                    "hooks": {
+                        "failure_policy": "block",
+                        "pre_iteration": ["python3 -c \"raise SystemExit(7)\""],
+                    },
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=StubRunner(
+                    [
+                        {
+                            "status": "continue",
+                            "summary": "Changed code",
+                            "files_changed": ["src/a.py"],
+                            "session_id": "s1",
+                        }
+                    ]
+                ),
+                verifier=StubVerifier([True]),
+                hook_runner=HookRunner(root / ".codex-loop" / "hooks"),
+            )
+
+            outcome = supervisor.run()
+
+            state = store.load()
+            self.assertEqual(outcome, LoopOutcome.BLOCKED)
+            self.assertEqual(state["tasks"]["001-foundation"]["status"], "blocked")
+            self.assertIn("hook failure", state["tasks"]["001-foundation"]["blocker_reason"].lower())
+
+    def test_ignores_hook_failure_when_policy_is_ignore(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+            complete_file = root / "completed.txt"
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "verification": {"commands": ["python -m unittest"]},
+                    "tasks": {"source_dir": "tasks"},
+                    "hooks": {
+                        "failure_policy": "ignore",
+                        "pre_iteration": ["python3 -c \"raise SystemExit(9)\""],
+                        "on_completed": [
+                            f"python3 -c \"from pathlib import Path; Path(r'{complete_file}').write_text('done')\""
+                        ],
+                    },
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=StubRunner(
+                    [
+                        {
+                            "status": "continue",
+                            "summary": "Changed code",
+                            "files_changed": ["src/a.py"],
+                            "session_id": "s1",
+                        }
+                    ]
+                ),
+                verifier=StubVerifier([True]),
+                hook_runner=HookRunner(root / ".codex-loop" / "hooks"),
+            )
+
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.COMPLETED)
+            self.assertEqual(complete_file.read_text(), "done")
+
+    def test_runs_on_blocked_hook(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+            blocked_file = root / "blocked.txt"
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {"max_consecutive_runner_failures": 1},
+                    "verification": {"commands": ["python -m unittest"]},
+                    "tasks": {"source_dir": "tasks"},
+                    "hooks": {
+                        "on_blocked": [
+                            f"python3 -c \"from pathlib import Path; import os; Path(r'{blocked_file}').write_text(os.environ['CODEX_LOOP_OUTCOME'])\""
+                        ]
+                    },
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=FailingRunner(["runner failed"]),
+                verifier=StubVerifier([]),
+                hook_runner=HookRunner(root / ".codex-loop" / "hooks"),
+            )
+
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.BLOCKED)
+            self.assertEqual(blocked_file.read_text(), "blocked")
+
     def test_blocks_when_state_has_incomplete_tasks_but_no_selectable_task(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

@@ -45,6 +45,8 @@ When repair is enabled, it can recreate the schema and realign task state with t
 - `post_init` after scaffolding
 - `pre_iteration` before each task iteration
 - `post_iteration` after each task iteration
+- `on_completed` and `on_blocked` after terminal outcomes
+- hook `failure_policy` can block `post_init`, `pre_iteration`, and `post_iteration`
 - `.codex-loop/metrics.json` for aggregate runtime counters
 
 ## Task Semantics

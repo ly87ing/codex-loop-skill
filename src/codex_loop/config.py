@@ -84,6 +84,9 @@ class HooksConfig:
     post_init: list[str] = field(default_factory=list)
     pre_iteration: list[str] = field(default_factory=list)
     post_iteration: list[str] = field(default_factory=list)
+    on_completed: list[str] = field(default_factory=list)
+    on_blocked: list[str] = field(default_factory=list)
+    failure_policy: str = "ignore"
     timeout_seconds: int = 300
 
 
@@ -190,6 +193,9 @@ class CodexLoopConfig:
             raise ValueError(msg)
         if self.hooks.timeout_seconds <= 0:
             msg = "hooks.timeout_seconds must be greater than zero."
+            raise ValueError(msg)
+        if self.hooks.failure_policy not in {"ignore", "block"}:
+            msg = f"Unsupported hooks.failure_policy: {self.hooks.failure_policy}"
             raise ValueError(msg)
         if self.tasks.strategy != "sequential":
             msg = f"Unsupported tasks.strategy: {self.tasks.strategy}"
