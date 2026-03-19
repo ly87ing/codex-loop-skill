@@ -64,9 +64,10 @@ codex-loop doctor --repair
 codex-loop run
 codex-loop status --summary
 codex-loop events --limit 20
+codex-loop events --task-id 001-foundation --event-type iteration:continue --json
 codex-loop logs tail --lines 20
 codex-loop cleanup --keep 10
-codex-loop cleanup --apply --keep 10
+codex-loop cleanup --apply --keep 10 --older-than-days 14
 ```
 
 ## Generated Project Layout
@@ -135,8 +136,8 @@ The loop stops with `blocked` when:
 ## Operator Notes
 
 - `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks.
-- `events --limit N` merges `.codex-loop/state.json` history with hook execution logs into a readable timeline.
-- `cleanup` defaults to dry-run mode so operators can review what would be deleted before using `--apply`.
+- `events --limit N` merges `.codex-loop/state.json` history with hook execution logs into a readable timeline, and supports `--task-id`, `--event-type`, and `--json` for focused inspection or export.
+- `cleanup` defaults to dry-run mode so operators can review what would be deleted before using `--apply`; `--older-than-days N` keeps recent artifacts and stale worktrees even when they exceed count-based retention.
 - `.codex-loop/metrics.json` includes blocker aggregates keyed by blocker code.
 
 ## Known Limits

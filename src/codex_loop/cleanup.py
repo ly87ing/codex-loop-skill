@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 import subprocess
 
@@ -30,27 +31,56 @@ def _relative_to_project(project_dir: Path, path: Path) -> str:
     return str(path.relative_to(project_dir))
 
 
+def _is_older_than(
+    path: Path,
+    *,
+    older_than_days: int | None,
+    now_timestamp: float | None,
+) -> bool:
+    if older_than_days is None:
+        return True
+    current_timestamp = (
+        float(now_timestamp)
+        if now_timestamp is not None
+        else datetime.now(UTC).timestamp()
+    )
+    age_seconds = current_timestamp - path.stat().st_mtime
+    threshold_seconds = older_than_days * 24 * 60 * 60
+    return age_seconds >= threshold_seconds
+
+
 def _cleanup_directory(
     project_dir: Path,
     directory: Path,
     *,
     keep: int,
+    older_than_days: int | None,
+    now_timestamp: float | None,
     apply: bool,
     report: CleanupReport,
 ) -> None:
     if not directory.exists():
         return
-    files = sorted(path for path in directory.iterdir() if path.is_file())
+    files = sorted(
+        (path for path in directory.iterdir() if path.is_file()),
+        key=lambda path: (path.stat().st_mtime, path.name),
+    )
     if len(files) <= keep:
         report.kept.extend(_relative_to_project(project_dir, path) for path in files)
         return
-    removable = files[:-keep] if keep > 0 else files
-    surviving = files[-keep:] if keep > 0 else []
-    for path in removable:
-        report.removed.append(_relative_to_project(project_dir, path))
+    protected = set(files[-keep:] if keep > 0 else [])
+    for path in files:
+        relative_path = _relative_to_project(project_dir, path)
+        if path in protected or not _is_older_than(
+            path,
+            older_than_days=older_than_days,
+            now_timestamp=now_timestamp,
+        ):
+            report.kept.append(relative_path)
+            continue
+        report.removed.append(relative_path)
         if apply:
             path.unlink(missing_ok=True)
-    report.kept.extend(_relative_to_project(project_dir, path) for path in surviving)
 
 
 def run_cleanup(
@@ -58,7 +88,9 @@ def run_cleanup(
     *,
     apply: bool,
     keep: int,
+    older_than_days: int | None = None,
     remove_worktrees: bool,
+    now_timestamp: float | None = None,
 ) -> CleanupReport:
     report = CleanupReport(dry_run=not apply)
     for directory in _artifact_directories(project_dir):
@@ -66,6 +98,8 @@ def run_cleanup(
             project_dir,
             directory,
             keep=keep,
+            older_than_days=older_than_days,
+            now_timestamp=now_timestamp,
             apply=apply,
             report=report,
         )
@@ -88,6 +122,12 @@ def run_cleanup(
     active_path = Path(active_worktree).resolve() if active_worktree else None
     for path in sorted(candidate for candidate in worktree_root.iterdir() if candidate.is_dir()):
         if active_path is not None and path.resolve() == active_path:
+            continue
+        if not _is_older_than(
+            path,
+            older_than_days=older_than_days,
+            now_timestamp=now_timestamp,
+        ):
             continue
         report.removed_worktrees.append(path)
         if apply:

@@ -67,13 +67,16 @@ Run:
 ```bash
 codex-loop status --summary
 codex-loop events --limit 20
+codex-loop events --task-id 001-foundation --event-type iteration:continue --json
 codex-loop logs tail --lines 20
 codex-loop cleanup --keep 10
+codex-loop cleanup --apply --keep 10 --older-than-days 14
 ```
 
 `status --summary` now includes key runtime counters from `.codex-loop/metrics.json`.
 When blocked, it also surfaces the latest `blocker_code` and reason.
-`events` merges loop history with hook logs, and `cleanup` defaults to dry-run so old artifacts can be pruned safely.
+`events` merges loop history with hook logs and can filter or export structured JSON.
+`cleanup` defaults to dry-run and can combine count-based retention with age thresholds.
 
 ## Key Rules
 

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from codex_loop.reporting import format_events_timeline
+from codex_loop.reporting import format_events_timeline, load_events_timeline
 from codex_loop.state_store import StateStore
 
 
@@ -44,6 +44,57 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("runner_failure", rendered)
             self.assertIn("hook:post_iteration", rendered)
             self.assertIn("blocked:no_progress_limit", rendered)
+
+    def test_events_timeline_can_filter_and_export_structured_events(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            store.record_runner_failure(
+                task_id="001-foundation",
+                reason="runner failed once",
+            )
+            store.record_iteration(
+                task_id="002-polish",
+                summary="Updated polish layer",
+                fingerprint="002|continue",
+                files_changed=["src/polish.py"],
+                verification_passed=False,
+                agent_status="continue",
+            )
+            hooks_dir = root / ".codex-loop" / "hooks"
+            hooks_dir.mkdir(parents=True, exist_ok=True)
+            (hooks_dir / "post_iteration.jsonl").write_text(
+                json.dumps(
+                    {
+                        "timestamp": "2026-03-19T00:00:00+00:00",
+                        "command": "echo hi",
+                        "success": True,
+                        "exit_code": 0,
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            events = load_events_timeline(
+                root,
+                limit=10,
+                task_id="002-polish",
+                event_type="iteration:continue",
+            )
+            rendered = format_events_timeline(
+                root,
+                limit=10,
+                task_id="002-polish",
+                event_type="iteration:continue",
+            )
+
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0]["task_id"], "002-polish")
+            self.assertEqual(events[0]["label"], "iteration:continue")
+            self.assertIn("iteration:continue", rendered)
+            self.assertNotIn("runner_failure", rendered)
 
 
 if __name__ == "__main__":

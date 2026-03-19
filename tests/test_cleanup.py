@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -50,6 +51,37 @@ class CleanupTests(unittest.TestCase):
             self.assertFalse((logs_dir / "0001-old.txt").exists())
             self.assertTrue((logs_dir / "0002-new.txt").exists())
             self.assertEqual(removed_worktrees, [stale_worktree])
+
+    def test_cleanup_can_preserve_recent_files_with_age_threshold(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            state_store = StateStore(root / ".codex-loop" / "state.json")
+            state_store.create_initial("demo", "Build demo", ["001-foundation"])
+
+            logs_dir = root / ".codex-loop" / "logs"
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            old_log = logs_dir / "0001-old.txt"
+            new_log = logs_dir / "0002-new.txt"
+            old_log.write_text("old", encoding="utf-8")
+            new_log.write_text("new", encoding="utf-8")
+            old_timestamp = 1_700_000_000
+            new_timestamp = 1_800_000_000
+            os.utime(old_log, (old_timestamp, old_timestamp))
+            os.utime(new_log, (new_timestamp, new_timestamp))
+
+            report = run_cleanup(
+                root,
+                apply=True,
+                keep=0,
+                older_than_days=365,
+                remove_worktrees=False,
+                now_timestamp=1_800_000_000,
+            )
+
+            self.assertIn(".codex-loop/logs/0001-old.txt", report.removed)
+            self.assertIn(".codex-loop/logs/0002-new.txt", report.kept)
+            self.assertFalse(old_log.exists())
+            self.assertTrue(new_log.exists())
 
 
 if __name__ == "__main__":

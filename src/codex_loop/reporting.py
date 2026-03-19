@@ -68,26 +68,30 @@ def tail_log_lines(project_dir: Path, *, lines: int, task_id: str | None = None)
     return "\n".join(content[-lines:])
 
 
-def _format_history_event(entry: dict[str, Any]) -> str:
+def _history_label(entry: dict[str, Any]) -> str:
     event_type = entry.get("event_type", "event")
     if event_type == "blocked":
-        label = f"blocked:{entry.get('blocker_code', 'blocked')}"
-    elif event_type == "iteration":
+        return f"blocked:{entry.get('blocker_code', 'blocked')}"
+    if event_type == "iteration":
         agent_status = entry.get("agent_status")
-        label = f"iteration:{agent_status}" if agent_status else "iteration"
-    else:
-        label = event_type
-    timestamp = entry.get("timestamp", "unknown-time")
-    task_id = entry.get("task_id", "unknown-task")
-    summary = str(entry.get("summary", "")).strip()
-    return f"{timestamp} {label} task={task_id} {summary}".rstrip()
+        return f"iteration:{agent_status}" if agent_status else "iteration"
+    return str(event_type)
 
 
-def _iter_hook_events(project_dir: Path) -> list[dict[str, str]]:
+def _format_event(event: dict[str, Any]) -> str:
+    timestamp = str(event.get("timestamp", "unknown-time"))
+    label = str(event.get("label", "event"))
+    task_id = event.get("task_id")
+    task_fragment = f" task={task_id}" if task_id else ""
+    summary = str(event.get("summary", "")).strip()
+    return f"{timestamp} {label}{task_fragment} {summary}".rstrip()
+
+
+def _iter_hook_events(project_dir: Path) -> list[dict[str, Any]]:
     hooks_dir = project_dir / ".codex-loop" / "hooks"
     if not hooks_dir.exists():
         return []
-    events: list[dict[str, str]] = []
+    events: list[dict[str, Any]] = []
     for path in sorted(hooks_dir.glob("*.jsonl")):
         event_name = path.stem
         for line in path.read_text(encoding="utf-8").splitlines():
@@ -102,31 +106,77 @@ def _iter_hook_events(project_dir: Path) -> list[dict[str, str]]:
                 {
                     "timestamp": str(payload.get("timestamp", "unknown-time")),
                     "label": f"hook:{event_name}",
+                    "event_type": "hook",
+                    "task_id": payload.get("task_id"),
                     "summary": summary,
+                    "source": "hook",
                 }
             )
     return events
 
 
-def format_events_timeline(project_dir: Path, *, limit: int = 20) -> str:
+def load_events_timeline(
+    project_dir: Path,
+    *,
+    limit: int = 20,
+    task_id: str | None = None,
+    event_type: str | None = None,
+) -> list[dict[str, Any]]:
     state_path = project_dir / ".codex-loop" / "state.json"
     if not state_path.exists():
         msg = f"No state file found at {state_path}"
         raise FileNotFoundError(msg)
     state = json.loads(state_path.read_text(encoding="utf-8"))
-    combined: list[tuple[str, str, str]] = []
+    combined: list[dict[str, Any]] = []
     for entry in state.get("history", []):
-        combined.append((str(entry.get("timestamp", "")), "history", _format_history_event(entry)))
-    for hook_event in _iter_hook_events(project_dir):
         combined.append(
             (
-                hook_event["timestamp"],
-                "hook",
-                f"{hook_event['timestamp']} {hook_event['label']} {hook_event['summary']}".rstrip(),
+                {
+                    "timestamp": str(entry.get("timestamp", "")),
+                    "label": _history_label(entry),
+                    "event_type": str(entry.get("event_type", "event")),
+                    "task_id": entry.get("task_id"),
+                    "summary": str(entry.get("summary", "")).strip(),
+                    "source": "history",
+                }
             )
         )
+    combined.extend(_iter_hook_events(project_dir))
+    if task_id is not None:
+        combined = [entry for entry in combined if entry.get("task_id") == task_id]
+    if event_type is not None:
+        combined = [
+            entry
+            for entry in combined
+            if entry.get("label") == event_type or entry.get("event_type") == event_type
+        ]
     if not combined:
+        return []
+    combined.sort(
+        key=lambda entry: (
+            str(entry.get("timestamp", "")),
+            str(entry.get("source", "")),
+            str(entry.get("label", "")),
+            str(entry.get("summary", "")),
+        )
+    )
+    return combined[-limit:]
+
+
+def format_events_timeline(
+    project_dir: Path,
+    *,
+    limit: int = 20,
+    task_id: str | None = None,
+    event_type: str | None = None,
+) -> str:
+    events = load_events_timeline(
+        project_dir,
+        limit=limit,
+        task_id=task_id,
+        event_type=event_type,
+    )
+    if not events:
         return "No events recorded."
-    combined.sort(key=lambda item: (item[0], item[1], item[2]))
-    rendered = [entry for _, _, entry in combined[-limit:]]
+    rendered = [_format_event(event) for event in events]
     return "\n".join(rendered)

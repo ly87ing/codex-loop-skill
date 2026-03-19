@@ -11,7 +11,12 @@ from .config import CodexLoopConfig
 from .doctor import render_doctor_report, run_doctor
 from .hooks import HookRunner
 from .init_flow import initialize_project
-from .reporting import format_events_timeline, format_status_summary, tail_log_lines
+from .reporting import (
+    format_events_timeline,
+    format_status_summary,
+    load_events_timeline,
+    tail_log_lines,
+)
 from .run_flow import run_project
 from .state_store import StateStore
 
@@ -73,6 +78,21 @@ def _build_parser() -> argparse.ArgumentParser:
         default=20,
         help="Maximum number of timeline entries to print.",
     )
+    events_parser.add_argument(
+        "--task-id",
+        default=None,
+        help="Optional task id filter, for example 001-foundation.",
+    )
+    events_parser.add_argument(
+        "--event-type",
+        default=None,
+        help="Optional event label filter, for example iteration:continue or hook:post_iteration.",
+    )
+    events_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
+    )
 
     cleanup_parser = subparsers.add_parser("cleanup", help="Prune old local loop artifacts.")
     cleanup_parser.add_argument(
@@ -85,6 +105,12 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=10,
         help="Number of most recent files to keep in each artifact directory.",
+    )
+    cleanup_parser.add_argument(
+        "--older-than-days",
+        type=int,
+        default=None,
+        help="Only remove artifacts or stale worktrees older than this many days.",
     )
     cleanup_parser.add_argument(
         "--apply",
@@ -170,7 +196,28 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "events":
-            print(format_events_timeline(project_dir, limit=args.limit))
+            if args.json:
+                print(
+                    json.dumps(
+                        load_events_timeline(
+                            project_dir,
+                            limit=args.limit,
+                            task_id=args.task_id,
+                            event_type=args.event_type,
+                        ),
+                        indent=2,
+                        ensure_ascii=False,
+                    )
+                )
+            else:
+                print(
+                    format_events_timeline(
+                        project_dir,
+                        limit=args.limit,
+                        task_id=args.task_id,
+                        event_type=args.event_type,
+                    )
+                )
             return 0
 
         if args.command == "cleanup":
@@ -180,6 +227,7 @@ def main(argv: list[str] | None = None) -> int:
                         project_dir,
                         apply=args.apply,
                         keep=args.keep,
+                        older_than_days=args.older_than_days,
                         remove_worktrees=not args.no_worktrees,
                     )
                 )
