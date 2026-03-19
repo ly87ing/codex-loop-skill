@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "project": {
+    "name": "simple-local-project"
+  },
+  "goal": {
+    "summary": "Build a local file-driven Codex loop project.",
+    "done_when": [
+      "All task documents are completed in order.",
+      "All verification commands pass."
+    ]
+  },
+  "execution": {
+    "sandbox": "workspace-write",
+    "approval": "never",
+    "max_iterations": 20,
+    "max_no_progress_iterations": 4,
+    "worktree": {
+      "enabled": true,
+      "branch_prefix": "codex-loop/"
+    }
+  },
+  "codex": {
+    "model": "gpt-5.4",
+    "use_json": true,
+    "output_schema": ".codex-loop/agent_result.schema.json"
+  },
+  "verification": {
+    "commands": [
+      "PYTHONPATH=src python3 -m unittest discover -s tests"
+    ],
+    "pass_requires_all": true
+  },
+  "tasks": {
+    "strategy": "sequential",
+    "source_dir": "tasks"
+  },
+  "logging": {
+    "save_prompts": true,
+    "save_jsonl": true
+  }
+}
+

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Loop"
+  short_description: "Autonomous Codex loop for file-driven local projects"
+  default_prompt: "Use Codex Loop to initialize or run a local autonomous implementation workflow."

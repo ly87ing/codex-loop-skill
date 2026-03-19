@@ -1,0 +1,126 @@
+# codex-loop-skill
+
+`codex-loop` is a local, file-driven autonomous loop for Codex CLI. It turns a prompt into durable project documents, then keeps running Codex against one task at a time until verification passes or the loop blocks on a real limit.
+
+## What It Builds
+
+- `codex-loop init --prompt "..."` generates:
+  - `codex-loop.yaml`
+  - `spec/`
+  - `plan/`
+  - `tasks/`
+  - `.codex-loop/state.json`
+- `codex-loop run`:
+  - creates a temporary worktree by default
+  - calls `codex exec` / `codex exec resume`
+  - runs local verification commands after each iteration
+  - stops only on `completed` or `blocked`
+
+## Why This Exists
+
+Codex can plan and act, but long-running work needs an external supervisor:
+
+- prompts alone drift across iterations
+- interactive approvals break unattended runs
+- progress needs durable local state
+- completion claims need verification gates
+
+This project keeps the source of truth on disk and treats Codex as a resumable worker.
+
+## Install
+
+From the repository root:
+
+```bash
+python3 -m pip install -e .
+```
+
+Optional:
+
+```bash
+python3 -m codex_loop status --project-dir /path/to/project
+```
+
+## Quick Start
+
+Inside a local Git repository:
+
+```bash
+codex-loop init --prompt "Build a local autonomous loop that edits code until tests pass."
+codex-loop run
+codex-loop status
+```
+
+## Generated Project Layout
+
+```text
+your-project/
+  codex-loop.yaml
+  spec/
+    001-project-spec.md
+  plan/
+    001-implementation-plan.md
+  tasks/
+    001-*.md
+  .codex-loop/
+    state.json
+    agent_result.schema.json
+    logs/
+    runs/
+    artifacts/
+```
+
+## How Run Works
+
+1. Load `codex-loop.yaml`
+2. Read `tasks/` in filename order
+3. Pick the next `ready` or `in_progress` task from `.codex-loop/state.json`
+4. Create or reuse a temporary worktree
+5. Ask Codex to work only on that task
+6. Run every command in `verification.commands`
+7. Record progress, files changed, session id, and verification results
+8. Continue until all tasks are done or a blocking threshold is reached
+
+## Verification Model
+
+The loop only stops with success when:
+
+- every task is `done`
+- all verification commands pass
+
+The loop stops with `blocked` when:
+
+- Codex returns `blocked`
+- `max_iterations` is reached
+- `max_no_progress_iterations` is reached
+
+## Safety Model
+
+- The generated config targets `sandbox_mode="workspace-write"`
+- The runner requests `approval_policy="never"` through Codex config overrides
+- The supervisor keeps `.codex-loop/` local state outside normal task files
+- The default finish mode is conservative: keep the worktree and branch
+
+## Known Limits
+
+- The generated `codex-loop.yaml` is JSON-compatible YAML. It works today without a YAML dependency, but full YAML editing is only supported when `PyYAML` is installed.
+- Codex CLI approval behavior can vary by CLI version. This project asks for `approval_policy="never"`, but some Codex releases have known approval edge cases.
+- Task execution is sequential in the first version. There is no parallel task scheduler yet.
+
+## Skill
+
+This repository also ships a Codex skill at `skills/codex-loop/SKILL.md`. The skill tells Codex when to use `codex-loop` and how to move between `init`, review, and `run`.
+
+## Development
+
+Run tests:
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests
+```
+
+Compile check:
+
+```bash
+python3 -m compileall src
+```
