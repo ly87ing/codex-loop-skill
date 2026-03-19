@@ -120,6 +120,8 @@ def run_project_continuously(
     project_dir: Path,
     *,
     retry_blocked: bool = False,
+    retry_errors: bool = False,
+    max_error_retries: int | None = None,
     cycle_sleep_seconds: float = 60.0,
     max_cycles: int | None = None,
     heartbeat_path: Path | None = None,
@@ -129,6 +131,7 @@ def run_project_continuously(
     sleep = sleep_fn or time.sleep
     run_single = run_once or run_project
     cycles = 0
+    error_count = 0
     while True:
         next_cycle = cycles + 1
         if heartbeat_path is not None:
@@ -136,10 +139,29 @@ def run_project_continuously(
                 heartbeat_path,
                 phase="running",
                 cycle=next_cycle,
+                error_count=error_count,
             )
         if retry_blocked:
             retry_blocked_tasks_for_retry(project_dir)
-        outcome = run_single(project_dir)
+        try:
+            outcome = run_single(project_dir)
+        except (FileNotFoundError, RuntimeError, ValueError) as exc:
+            error_count += 1
+            if heartbeat_path is not None:
+                write_daemon_heartbeat(
+                    heartbeat_path,
+                    phase="error",
+                    cycle=next_cycle,
+                    outcome="error",
+                    error_count=error_count,
+                    last_error=str(exc),
+                )
+            if not retry_errors:
+                raise
+            if max_error_retries is not None and error_count >= max_error_retries:
+                return LoopOutcome.BLOCKED
+            sleep(cycle_sleep_seconds)
+            continue
         cycles += 1
         if heartbeat_path is not None:
             write_daemon_heartbeat(
@@ -147,6 +169,7 @@ def run_project_continuously(
                 phase="completed" if outcome == LoopOutcome.COMPLETED else "blocked",
                 cycle=cycles,
                 outcome=outcome.value,
+                error_count=error_count,
             )
         if outcome == LoopOutcome.COMPLETED:
             return outcome

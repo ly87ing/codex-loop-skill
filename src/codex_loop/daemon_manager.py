@@ -21,6 +21,16 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     tmp_path.replace(path)
 
 
+def _parse_timestamp(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    normalized = value.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+
 def _pid_alive(pid: int) -> bool:
     if pid <= 0:
         return False
@@ -64,6 +74,7 @@ def start_daemon(
         "--project-dir",
         str(project_dir),
         "--continuous",
+        "--retry-errors",
         "--cycle-sleep-seconds",
         str(cycle_sleep_seconds),
     ]
@@ -97,6 +108,7 @@ def start_daemon(
         "retry_blocked": retry_blocked,
         "cycle_sleep_seconds": cycle_sleep_seconds,
         "max_cycles": max_cycles,
+        "heartbeat_stale_seconds": 300,
     }
     _write_json(paths["metadata"], metadata)
     return metadata
@@ -127,8 +139,15 @@ def daemon_status(
         if heartbeat_path.exists()
         else {}
     )
+    heartbeat_stale_seconds = metadata.get("heartbeat_stale_seconds")
+    heartbeat_ts = _parse_timestamp(heartbeat.get("updated_at"))
+    stale_heartbeat = False
+    if isinstance(heartbeat_stale_seconds, (int, float)) and heartbeat_ts is not None:
+        age_seconds = (datetime.now(UTC) - heartbeat_ts).total_seconds()
+        stale_heartbeat = age_seconds > float(heartbeat_stale_seconds)
+    running = pid_alive_fn(pid)
     return {
-        "running": pid_alive_fn(pid),
+        "running": running,
         "pid": pid,
         "project_dir": metadata.get("project_dir", str(project_dir)),
         "started_at": metadata.get("started_at"),
@@ -138,9 +157,15 @@ def daemon_status(
         "retry_blocked": metadata.get("retry_blocked", False),
         "cycle_sleep_seconds": metadata.get("cycle_sleep_seconds"),
         "max_cycles": metadata.get("max_cycles"),
+        "heartbeat_stale_seconds": heartbeat_stale_seconds,
+        "stale_heartbeat": stale_heartbeat,
+        "dead_process": not running,
         "phase": heartbeat.get("phase"),
         "cycle": heartbeat.get("cycle"),
         "updated_at": heartbeat.get("updated_at"),
+        "outcome": heartbeat.get("outcome"),
+        "error_count": heartbeat.get("error_count"),
+        "last_error": heartbeat.get("last_error"),
     }
 
 
@@ -176,13 +201,18 @@ def write_daemon_heartbeat(
     phase: str,
     cycle: int,
     outcome: str | None = None,
+    error_count: int = 0,
+    last_error: str | None = None,
 ) -> None:
     payload: dict[str, Any] = {
         "pid": os.getpid(),
         "phase": phase,
         "cycle": cycle,
         "updated_at": _now(),
+        "error_count": error_count,
     }
     if outcome is not None:
         payload["outcome"] = outcome
+    if last_error is not None:
+        payload["last_error"] = last_error
     _write_json(path, payload)

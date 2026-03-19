@@ -22,7 +22,8 @@
 - `codex-loop daemon start|status|stop`:
   - starts a detached local background worker around `run --continuous`
   - writes `.codex-loop/daemon.json` metadata and `.codex-loop/daemon-heartbeat.json`
-  - reports pid, phase, cycle, and log path for operator inspection
+  - retries recoverable runtime errors inside the long-lived loop process
+  - reports pid, phase, cycle, heartbeat staleness, and log path for operator inspection
 - `.codex-loop/metrics.json`:
   - persists aggregate counters such as iterations, runner failures, verification failures, resume fallbacks, and blocker summaries
 - `codex-loop doctor --repair`:
@@ -142,7 +143,7 @@ your-project/
 
 For longer unattended runs, `codex-loop run --continuous --retry-blocked` adds an outer retry loop around the normal supervisor run. When a cycle blocks, it requeues blocked tasks, sleeps, and starts the next cycle until completion or `--max-cycles` is reached.
 
-For a detached local worker, `codex-loop daemon start --retry-blocked --cycle-sleep-seconds 60` launches that same continuous mode in the background and records daemon metadata plus a heartbeat file under `.codex-loop/`.
+For a detached local worker, `codex-loop daemon start --retry-blocked --cycle-sleep-seconds 60` launches that same continuous mode in the background, records daemon metadata plus a heartbeat file under `.codex-loop/`, and now retries recoverable runtime errors without exiting immediately.
 
 ## Verification Model
 
@@ -174,7 +175,7 @@ The loop stops with `blocked` when:
 
 - `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks, plus the current task session id when one exists.
 - `run --continuous --retry-blocked` is the current fastest path to a long-lived local worker: it wraps the normal run loop, requeues blocked tasks between cycles, and keeps going until completed or a cycle limit is reached.
-- `daemon start|status|stop` adds a lightweight detached supervisor layer on top of `run --continuous`, with `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, and `.codex-loop/daemon.log` for local operator visibility.
+- `daemon start|status|stop` adds a lightweight detached supervisor layer on top of `run --continuous`, with `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, and `.codex-loop/daemon.log` for local operator visibility, plus dead-process and stale-heartbeat detection in `status`.
 - `sessions` provides a workspace-scoped inventory of known Codex session ids per task, the latest `prompt/log/run` artifacts for each task, and a `--latest` view for the most recent resumable session seen by the loop.
 - `evidence` turns a selected task or latest session into a read-only evidence bundle with selection metadata, status/session snapshots, prompt preview, log tail, parsed run payload, recent task events, and optional `--output` or auto-named `--output-dir` export; directory exports also maintain a snapshot `index.json`.
 - `snapshots` reads that directory-level `index.json` back as an operator view, with task filtering, status filtering, blocker-code filtering, sort control via `--sort newest|oldest`, `--latest`, the `--latest-blocked` shortcut for the newest blocked snapshot, ISO time windows via `--since/--until`, raw JSON output, file export via `--output`, auto-named archive export via `--output-dir`, and a `--summary` aggregation over task, status, selection, blocker code, and latest snapshot markers; `--group-by task|status|blocker|selection` narrows that summary to one chosen view, and `--output-dir` now maintains a sibling `manifest.json` for exported query results.

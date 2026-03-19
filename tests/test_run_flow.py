@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -65,6 +66,41 @@ class RunFlowTests(unittest.TestCase):
             self.assertEqual(outcome, LoopOutcome.BLOCKED)
             self.assertEqual(len(calls), 2)
             self.assertEqual(sleeps, [3.5])
+
+    def test_continuous_run_can_retry_runtime_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+
+            calls: list[int] = []
+            sleeps: list[float] = []
+            heartbeat_path = root / ".codex-loop" / "daemon-heartbeat.json"
+
+            def fake_run_once(_project_dir: Path) -> LoopOutcome:
+                calls.append(1)
+                if len(calls) == 1:
+                    raise RuntimeError("transient runner crash")
+                return LoopOutcome.COMPLETED
+
+            outcome = run_project_continuously(
+                root,
+                retry_blocked=True,
+                retry_errors=True,
+                max_error_retries=2,
+                cycle_sleep_seconds=2.0,
+                heartbeat_path=heartbeat_path,
+                sleep_fn=sleeps.append,
+                run_once=fake_run_once,
+            )
+
+            self.assertEqual(outcome, LoopOutcome.COMPLETED)
+            self.assertEqual(len(calls), 2)
+            self.assertEqual(sleeps, [2.0])
+            heartbeat = json.loads(heartbeat_path.read_text(encoding="utf-8"))
+            self.assertEqual(heartbeat["phase"], "completed")
+            self.assertEqual(heartbeat["outcome"], "completed")
+            self.assertEqual(heartbeat["error_count"], 1)
 
 
 if __name__ == "__main__":

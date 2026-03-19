@@ -317,6 +317,17 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help=argparse.SUPPRESS,
     )
+    run_parser.add_argument(
+        "--retry-errors",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
+    run_parser.add_argument(
+        "--max-error-retries",
+        type=int,
+        default=None,
+        help=argparse.SUPPRESS,
+    )
 
     status_parser = subparsers.add_parser("status", help="Print local loop state.")
     status_parser.add_argument(
@@ -791,6 +802,10 @@ def main(argv: list[str] | None = None) -> int:
                     "cycle_sleep_seconds": args.cycle_sleep_seconds,
                     "max_cycles": args.max_cycles,
                 }
+                if args.retry_errors:
+                    continuous_kwargs["retry_errors"] = True
+                if args.max_error_retries is not None:
+                    continuous_kwargs["max_error_retries"] = args.max_error_retries
                 heartbeat_path = (
                     Path(args.heartbeat_path).resolve()
                     if args.heartbeat_path
@@ -839,9 +854,12 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(
                     f"running={payload.get('running')} "
+                    f"dead_process={payload.get('dead_process')} "
+                    f"stale_heartbeat={payload.get('stale_heartbeat')} "
                     f"pid={payload.get('pid')} "
                     f"phase={payload.get('phase')} "
                     f"cycle={payload.get('cycle')} "
+                    f"error_count={payload.get('error_count')} "
                     f"log={payload.get('log_path')}"
                 )
             return 0
