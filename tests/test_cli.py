@@ -991,6 +991,16 @@ class CliTests(unittest.TestCase):
             payload = json.loads(export_files[0].read_text(encoding="utf-8"))
             self.assertEqual(len(payload), 1)
             self.assertEqual(payload[0]["task_id"], "002-polish")
+            manifest_path = output_dir / "manifest.json"
+            self.assertTrue(manifest_path.exists())
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(manifest["exports"]), 1)
+            export_entry = manifest["exports"][0]
+            self.assertEqual(export_entry["summary"], False)
+            self.assertEqual(export_entry["render_format"], "json")
+            self.assertEqual(export_entry["snapshot_count"], 1)
+            self.assertEqual(export_entry["source_snapshot_dir"], str(snapshot_dir.resolve()))
+            self.assertEqual(export_entry["export_path"], str(export_files[0].resolve()))
             self.assertIn("Wrote snapshots to", stdout.getvalue())
 
     def test_snapshots_command_can_write_summary_to_output_directory(self) -> None:
@@ -1038,6 +1048,15 @@ class CliTests(unittest.TestCase):
             self.assertEqual(len(export_files), 1)
             rendered = export_files[0].read_text(encoding="utf-8")
             self.assertIn("total_snapshots: 1", rendered)
+            manifest_path = output_dir / "manifest.json"
+            self.assertTrue(manifest_path.exists())
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(manifest["exports"]), 1)
+            export_entry = manifest["exports"][0]
+            self.assertEqual(export_entry["summary"], True)
+            self.assertEqual(export_entry["render_format"], "text")
+            self.assertEqual(export_entry["snapshot_count"], 1)
+            self.assertEqual(export_entry["export_path"], str(export_files[0].resolve()))
             self.assertIn("Wrote snapshots to", stdout.getvalue())
 
     def test_snapshots_command_rejects_output_and_output_dir(self) -> None:

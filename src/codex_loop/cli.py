@@ -77,6 +77,57 @@ def _update_evidence_index(output_dir: Path, snapshot_path: Path, payload: dict[
     _write_output_file(index_path, json.dumps(index_data, indent=2, ensure_ascii=False))
 
 
+def _update_snapshots_manifest(
+    output_dir: Path,
+    export_path: Path,
+    *,
+    source_snapshot_dir: Path,
+    snapshot_count: int,
+    summary: bool,
+    group_by: str | None,
+    json_output: bool,
+    task_id: str | None,
+    status: str | None,
+    blocker_code: str | None,
+    latest: bool,
+    latest_blocked: bool,
+    sort_order: str,
+    since: str | None,
+    until: str | None,
+) -> None:
+    manifest_path = output_dir.resolve() / "manifest.json"
+    if manifest_path.exists():
+        manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    else:
+        manifest_data = {"exports": []}
+    exports = manifest_data.get("exports")
+    if not isinstance(exports, list):
+        exports = []
+    exports.append(
+        {
+            "generated_at": datetime.now(UTC).isoformat(),
+            "export_path": str(export_path.resolve()),
+            "source_snapshot_dir": str(source_snapshot_dir.resolve()),
+            "snapshot_count": snapshot_count,
+            "summary": summary,
+            "group_by": group_by,
+            "render_format": "json" if json_output else "text",
+            "filters": {
+                "task_id": task_id,
+                "status": status,
+                "blocker_code": blocker_code,
+                "latest": latest,
+                "latest_blocked": latest_blocked,
+                "sort_order": sort_order,
+                "since": since,
+                "until": until,
+            },
+        }
+    )
+    manifest_data["exports"] = exports
+    _write_output_file(manifest_path, json.dumps(manifest_data, indent=2, ensure_ascii=False))
+
+
 def _slugify_file_component(value: str) -> str:
     cleaned = "".join(char if char.isalnum() or char in {"-", "_"} else "-" for char in value)
     return cleaned.strip("-_") or "snapshot"
@@ -641,6 +692,23 @@ def main(argv: list[str] | None = None) -> int:
                     sort_order=args.sort,
                 )
                 _write_output_file(output_path, rendered)
+                _update_snapshots_manifest(
+                    output_path.parent,
+                    output_path,
+                    source_snapshot_dir=snapshot_dir,
+                    snapshot_count=len(payload),
+                    summary=bool(args.summary),
+                    group_by=args.group_by,
+                    json_output=bool(args.json),
+                    task_id=args.task_id,
+                    status=args.status,
+                    blocker_code=args.blocker_code,
+                    latest=bool(args.latest),
+                    latest_blocked=bool(args.latest_blocked),
+                    sort_order=args.sort,
+                    since=args.since,
+                    until=args.until,
+                )
                 print(f"Wrote snapshots to {output_path}")
             else:
                 print(rendered)
