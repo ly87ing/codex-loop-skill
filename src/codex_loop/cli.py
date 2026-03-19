@@ -634,6 +634,34 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Emit structured JSON instead of formatted text.",
     )
+    daemon_restart_parser = daemon_subparsers.add_parser("restart", help="Restart the daemon worker.")
+    daemon_restart_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing .codex-loop.",
+    )
+    daemon_restart_parser.add_argument(
+        "--retry-blocked",
+        action="store_true",
+        help="Requeue blocked tasks between cycles in the background worker.",
+    )
+    daemon_restart_parser.add_argument(
+        "--cycle-sleep-seconds",
+        type=float,
+        default=60.0,
+        help="Sleep duration between continuous run cycles.",
+    )
+    daemon_restart_parser.add_argument(
+        "--max-cycles",
+        type=int,
+        default=None,
+        help="Optional maximum number of continuous run cycles before returning.",
+    )
+    daemon_restart_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
+    )
 
     service_parser = subparsers.add_parser(
         "service",
@@ -698,6 +726,37 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Project directory containing .codex-loop.",
     )
     service_uninstall_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
+    )
+    service_reinstall_parser = service_subparsers.add_parser(
+        "reinstall",
+        help="Reinstall or refresh the launchd service.",
+    )
+    service_reinstall_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing codex-loop.yaml.",
+    )
+    service_reinstall_parser.add_argument(
+        "--retry-blocked",
+        action="store_true",
+        help="Requeue blocked tasks between continuous cycles.",
+    )
+    service_reinstall_parser.add_argument(
+        "--cycle-sleep-seconds",
+        type=float,
+        default=60.0,
+        help="Sleep duration between continuous run cycles.",
+    )
+    service_reinstall_parser.add_argument(
+        "--max-cycles",
+        type=int,
+        default=None,
+        help="Optional maximum number of continuous run cycles before returning.",
+    )
+    service_reinstall_parser.add_argument(
         "--json",
         action="store_true",
         help="Emit structured JSON instead of formatted text.",
@@ -990,6 +1049,26 @@ def main(argv: list[str] | None = None) -> int:
                 )
             return 0
 
+        if args.command == "daemon" and args.daemon_command == "restart":
+            if args.cycle_sleep_seconds < 0:
+                raise ValueError("--cycle-sleep-seconds must not be negative.")
+            if args.max_cycles is not None and args.max_cycles <= 0:
+                raise ValueError("--max-cycles must be greater than zero.")
+            stop_daemon(project_dir)
+            payload = start_daemon(
+                project_dir,
+                retry_blocked=args.retry_blocked,
+                cycle_sleep_seconds=args.cycle_sleep_seconds,
+                max_cycles=args.max_cycles,
+            )
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(
+                    f"Restarted daemon pid={payload['pid']} log={payload['log_path']}"
+                )
+            return 0
+
         if args.command == "service" and args.service_command == "install":
             if args.cycle_sleep_seconds < 0:
                 raise ValueError("--cycle-sleep-seconds must not be negative.")
@@ -1038,6 +1117,25 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(
                     f"Removed service label={payload['label']} plist={payload['plist_path']}"
+                )
+            return 0
+
+        if args.command == "service" and args.service_command == "reinstall":
+            if args.cycle_sleep_seconds < 0:
+                raise ValueError("--cycle-sleep-seconds must not be negative.")
+            if args.max_cycles is not None and args.max_cycles <= 0:
+                raise ValueError("--max-cycles must be greater than zero.")
+            payload = install_service(
+                project_dir,
+                retry_blocked=args.retry_blocked,
+                cycle_sleep_seconds=args.cycle_sleep_seconds,
+                max_cycles=args.max_cycles,
+            )
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(
+                    f"Reinstalled service label={payload['label']} plist={payload['plist_path']}"
                 )
             return 0
 

@@ -129,6 +129,46 @@ class CliTests(unittest.TestCase):
             )
             self.assertIn("pid=43210", stdout.getvalue())
 
+    def test_daemon_restart_command_stops_then_starts_worker(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                patch("codex_loop.cli.stop_daemon") as stop_mock,
+                patch("codex_loop.cli.start_daemon") as start_mock,
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                stop_mock.return_value = {"pid": 43210, "signal": "SIGTERM"}
+                start_mock.return_value = {
+                    "pid": 54321,
+                    "log_path": str(root / ".codex-loop" / "daemon.log"),
+                }
+                exit_code = main(
+                    [
+                        "daemon",
+                        "restart",
+                        "--project-dir",
+                        str(root),
+                        "--retry-blocked",
+                        "--cycle-sleep-seconds",
+                        "45",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            stop_mock.assert_called_once_with(root.resolve())
+            start_mock.assert_called_once_with(
+                root.resolve(),
+                retry_blocked=True,
+                cycle_sleep_seconds=45.0,
+                max_cycles=None,
+            )
+            self.assertIn("pid=54321", stdout.getvalue())
+
     def test_service_install_command_can_install_launch_agent(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -148,6 +188,43 @@ class CliTests(unittest.TestCase):
                     [
                         "service",
                         "install",
+                        "--project-dir",
+                        str(root),
+                        "--retry-blocked",
+                        "--cycle-sleep-seconds",
+                        "60",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            install_mock.assert_called_once_with(
+                root.resolve(),
+                retry_blocked=True,
+                cycle_sleep_seconds=60.0,
+                max_cycles=None,
+            )
+            self.assertIn("com.codex-loop.demo", stdout.getvalue())
+
+    def test_service_reinstall_command_reinstalls_launch_agent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                patch("codex_loop.cli.install_service") as install_mock,
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                install_mock.return_value = {
+                    "label": "com.codex-loop.demo",
+                    "plist_path": str(root / "Library" / "LaunchAgents" / "demo.plist"),
+                }
+                exit_code = main(
+                    [
+                        "service",
+                        "reinstall",
                         "--project-dir",
                         str(root),
                         "--retry-blocked",

@@ -49,6 +49,18 @@ def _append_operator_cleanup_warnings(report: DoctorReport, config: CodexLoopCon
             )
 
 
+def _append_watchdog_warnings(report: DoctorReport, project_dir: Path) -> None:
+    for name in ("daemon-watchdog.json", "service-watchdog.json"):
+        path = project_dir / ".codex-loop" / name
+        if not path.exists():
+            continue
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if payload.get("phase") == "exhausted":
+            report.warnings.append(
+                f"{path.relative_to(project_dir)} watchdog is exhausted and requires operator intervention before unattended execution can continue safely."
+            )
+
+
 def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
     report = DoctorReport()
     config_path = project_dir / "codex-loop.yaml"
@@ -82,6 +94,7 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
         report.errors.append(str(exc))
         return report
     _append_operator_cleanup_warnings(report, config)
+    _append_watchdog_warnings(report, project_dir)
 
     tasks_dir = project_dir / config.tasks.source_dir
     task_graph = TaskGraph(tasks_dir)

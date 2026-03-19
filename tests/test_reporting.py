@@ -7,7 +7,9 @@ from pathlib import Path
 
 from codex_loop.reporting import (
     build_session_inventory,
+    build_status_snapshot,
     build_evidence_bundle,
+    format_status_summary,
     format_snapshot_exports_report,
     format_snapshot_exports_summary,
     format_snapshots_report,
@@ -27,6 +29,31 @@ from codex_loop.state_store import StateStore
 
 
 class ReportingTests(unittest.TestCase):
+    def test_status_snapshot_includes_exhausted_watchdog(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            (root / ".codex-loop" / "daemon-watchdog.json").write_text(
+                json.dumps(
+                    {
+                        "phase": "exhausted",
+                        "restart_count": 10,
+                        "last_restart_reason": "exit_code:2",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            snapshot = build_status_snapshot(root)
+            rendered = format_status_summary(root)
+
+            self.assertEqual(snapshot["watchdog_phase"], "exhausted")
+            self.assertEqual(snapshot["watchdog_restart_count"], 10)
+            self.assertEqual(snapshot["watchdog_last_restart_reason"], "exit_code:2")
+            self.assertIn("watchdog_phase: exhausted", rendered)
+            self.assertIn("watchdog_restart_count: 10", rendered)
+
     def test_events_timeline_includes_hook_and_blocked_events(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

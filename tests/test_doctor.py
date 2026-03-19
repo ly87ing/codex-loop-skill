@@ -121,6 +121,40 @@ class DoctorTests(unittest.TestCase):
             self.assertTrue(any("directory_keep.logs=0" in item for item in report.warnings))
             self.assertTrue(any("Suggested remediation" in item for item in report.warnings))
 
+    def test_doctor_warns_when_watchdog_is_exhausted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "tasks").mkdir(parents=True)
+            (root / "tasks" / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+            (root / "codex-loop.yaml").write_text(
+                json.dumps(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                        "verification": {"commands": ["python -m unittest"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            (root / ".codex-loop" / "daemon-watchdog.json").write_text(
+                json.dumps(
+                    {
+                        "phase": "exhausted",
+                        "restart_count": 10,
+                        "last_restart_reason": "exit_code:2",
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            report = run_doctor(root, repair=False)
+
+            self.assertTrue(
+                any("watchdog is exhausted" in item for item in report.warnings)
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -80,8 +80,10 @@ codex-loop run
 codex-loop run --continuous --retry-blocked --cycle-sleep-seconds 60
 codex-loop daemon start --retry-blocked --cycle-sleep-seconds 60
 codex-loop daemon status --json
+codex-loop daemon restart --retry-blocked --cycle-sleep-seconds 60
 codex-loop daemon stop
 codex-loop service install --retry-blocked --cycle-sleep-seconds 60
+codex-loop service reinstall --retry-blocked --cycle-sleep-seconds 60
 codex-loop service status --json
 codex-loop service uninstall
 codex-loop status --summary
@@ -187,10 +189,14 @@ The loop stops with `blocked` when:
 ## Operator Notes
 
 - `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks, plus the current task session id when one exists.
+- `status --summary` now also surfaces watchdog exhaustion and the latest watchdog restart reason so an operator can see when unattended recovery has stopped succeeding.
 - `run --continuous --retry-blocked` is the current fastest path to a long-lived local worker: it wraps the normal run loop, requeues blocked tasks between cycles, and keeps going until completed or a cycle limit is reached.
 - `daemon start|status|stop` now runs through a detached watchdog parent, with `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, `.codex-loop/daemon-watchdog.json`, and `.codex-loop/daemon.log`; `status` surfaces dead-process and stale-heartbeat detection plus restart counters and restart policy, while `stop` waits for the watchdog to really exit before deleting metadata.
+- `daemon restart` is the operator shortcut for an explicit stop-then-start cycle without manually sequencing both commands.
 - `service install|status|uninstall` is the macOS path for real unattended persistence: it installs a `launchd` agent, writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, `.codex-loop/service-watchdog.json`, and `.codex-loop/service.log`, preserves enough environment for the loop to keep finding the local Codex CLI after terminal sessions end, reports `healthy` plus `missing_heartbeat`, tracks watchdog restart counters and restart policy, and now waits for `launchctl` unload confirmation before cleaning local metadata.
+- `service reinstall` is the operator shortcut for refreshing the launchd registration and watchdog configuration in one step.
 - `daemon` and `service` are now intentionally mutually exclusive for the same project root; starting one while the other is active returns an error instead of risking conflicting writes into `.codex-loop/`.
+- `doctor` now warns when a daemon or service watchdog is in `exhausted` phase, which means unattended retries have stopped and human intervention is required.
 - `sessions` provides a workspace-scoped inventory of known Codex session ids per task, the latest `prompt/log/run` artifacts for each task, and a `--latest` view for the most recent resumable session seen by the loop.
 - `evidence` turns a selected task or latest session into a read-only evidence bundle with selection metadata, status/session snapshots, prompt preview, log tail, parsed run payload, recent task events, and optional `--output` or auto-named `--output-dir` export; directory exports also maintain a snapshot `index.json`.
 - `snapshots` reads that directory-level `index.json` back as an operator view, with task filtering, status filtering, blocker-code filtering, sort control via `--sort newest|oldest`, `--latest`, the `--latest-blocked` shortcut for the newest blocked snapshot, ISO time windows via `--since/--until`, raw JSON output, file export via `--output`, auto-named archive export via `--output-dir`, and a `--summary` aggregation over task, status, selection, blocker code, and latest snapshot markers; `--group-by task|status|blocker|selection` narrows that summary to one chosen view, and `--output-dir` now maintains a sibling `manifest.json` for exported query results.

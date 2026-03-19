@@ -502,6 +502,15 @@ def build_status_snapshot(project_dir: Path) -> dict[str, Any]:
     current_task_id = _current_task_id(tasks)
     current_task_state = tasks.get(current_task_id, {}) if current_task_id != "none" else {}
     last_history = state.get("history", [])[-1] if state.get("history") else None
+    watchdog_candidates = [
+        project_dir / ".codex-loop" / "daemon-watchdog.json",
+        project_dir / ".codex-loop" / "service-watchdog.json",
+    ]
+    watchdog: dict[str, Any] = {}
+    for candidate in watchdog_candidates:
+        if candidate.exists():
+            watchdog = json.loads(candidate.read_text(encoding="utf-8"))
+            break
     return {
         "project": project_name,
         "overall_status": overall_status,
@@ -518,6 +527,9 @@ def build_status_snapshot(project_dir: Path) -> dict[str, Any]:
         "last_blocker_code": metrics.get("last_blocker_code"),
         "last_blocker_reason": metrics.get("last_blocker_reason"),
         "last_summary": last_history.get("summary", "") if last_history else "",
+        "watchdog_phase": watchdog.get("phase"),
+        "watchdog_restart_count": watchdog.get("restart_count"),
+        "watchdog_last_restart_reason": watchdog.get("last_restart_reason"),
     }
 
 
@@ -551,6 +563,17 @@ def format_status_summary(project_dir: Path) -> str:
         lines.append(f"last_blocker_reason: {snapshot.get('last_blocker_reason')}")
     if snapshot.get("last_summary"):
         lines.append(f"last_summary: {snapshot.get('last_summary')}")
+    if snapshot.get("watchdog_phase"):
+        lines.append(f"watchdog_phase: {snapshot.get('watchdog_phase')}")
+    if snapshot.get("watchdog_restart_count") is not None:
+        lines.append(
+            f"watchdog_restart_count: {snapshot.get('watchdog_restart_count')}"
+        )
+    if snapshot.get("watchdog_last_restart_reason"):
+        lines.append(
+            "watchdog_last_restart_reason: "
+            f"{snapshot.get('watchdog_last_restart_reason')}"
+        )
     return "\n".join(lines)
 
 
