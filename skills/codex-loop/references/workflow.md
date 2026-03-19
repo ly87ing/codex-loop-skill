@@ -89,6 +89,7 @@ Those warnings now include concrete remediation guidance so operators can tighte
 - `snapshots --snapshot-dir <dir> ... --output <path>` for exporting a filtered list or summary after operator-side triage
 - `snapshots --snapshot-dir <dir> ... --output-dir <dir>` for auto-named archive exports of filtered list or summary views, plus a `manifest.json` describing the archived query exports
 - `snapshots-exports --exports-dir <dir> [--task-id ...] [--status ...] [--blocker-code ...] [--latest] [--limit N] [--json]` for reading that query-export `manifest.json` back as a saved operator inventory
+- `snapshots-exports --exports-dir <dir> --watchdog-phase exhausted [--json]` for archived snapshot queries that were already focused on degraded watchdog states
 - `snapshots-exports --exports-dir <dir> --summary --group-by render [--json]` for a grouped digest of archived snapshot queries by render format, task, status, blocker, or summary/list shape
 - `snapshots-exports --exports-dir <dir> ... --output <path>` for exporting a filtered archive query result directly to disk
 - `snapshots-exports --exports-dir <dir> ... --output-dir <dir>` for auto-named archive-query exports plus a directory-level `index.json`

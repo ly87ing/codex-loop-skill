@@ -221,6 +221,7 @@ def _snapshots_exports_output_path(
     task_id: str | None,
     status: str | None,
     blocker_code: str | None,
+    watchdog_phase: str | None,
 ) -> Path:
     parts = ["snapshot-exports", "summary" if summary else "list"]
     if group_by:
@@ -233,6 +234,8 @@ def _snapshots_exports_output_path(
         parts.append(f"status-{_slugify_file_component(status)}")
     if blocker_code:
         parts.append(f"blocker-{_slugify_file_component(blocker_code)}")
+    if watchdog_phase:
+        parts.append(f"watchdog-{_slugify_file_component(watchdog_phase)}")
     timestamp = _slugify_file_component(
         datetime.now(UTC).isoformat().replace(":", "-").replace("+", "-").replace(".", "-")
     )
@@ -253,6 +256,7 @@ def _update_snapshots_exports_index(
     task_id: str | None,
     status: str | None,
     blocker_code: str | None,
+    watchdog_phase: str | None,
     latest: bool,
     limit: int | None,
 ) -> None:
@@ -277,6 +281,7 @@ def _update_snapshots_exports_index(
                 "task_id": task_id,
                 "status": status,
                 "blocker_code": blocker_code,
+                "watchdog_phase": watchdog_phase,
                 "latest": latest,
                 "limit": limit,
             },
@@ -571,6 +576,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--blocker-code",
         default=None,
         help="Optional archived export blocker code filter, for example no_progress_limit.",
+    )
+    snapshots_exports_parser.add_argument(
+        "--watchdog-phase",
+        default=None,
+        help="Optional archived export watchdog phase filter, for example exhausted.",
     )
     snapshots_exports_parser.add_argument(
         "--summary",
@@ -1344,6 +1354,7 @@ def main(argv: list[str] | None = None) -> int:
                 task_id=args.task_id,
                 status=args.status,
                 blocker_code=args.blocker_code,
+                watchdog_phase=args.watchdog_phase,
                 latest=args.latest,
                 limit=args.limit,
             )
@@ -1365,6 +1376,7 @@ def main(argv: list[str] | None = None) -> int:
                         task_id=args.task_id,
                         status=args.status,
                         blocker_code=args.blocker_code,
+                        watchdog_phase=args.watchdog_phase,
                         latest=args.latest,
                         limit=args.limit,
                     )
@@ -1382,6 +1394,7 @@ def main(argv: list[str] | None = None) -> int:
                     task_id=args.task_id,
                     status=args.status,
                     blocker_code=args.blocker_code,
+                    watchdog_phase=args.watchdog_phase,
                 )
                 _write_output_file(output_path, rendered)
                 _update_snapshots_exports_index(
@@ -1395,6 +1408,7 @@ def main(argv: list[str] | None = None) -> int:
                     task_id=args.task_id,
                     status=args.status,
                     blocker_code=args.blocker_code,
+                    watchdog_phase=args.watchdog_phase,
                     latest=bool(args.latest),
                     limit=args.limit,
                 )

@@ -124,6 +124,7 @@ def load_snapshot_exports_manifest(
     task_id: str | None = None,
     status: str | None = None,
     blocker_code: str | None = None,
+    watchdog_phase: str | None = None,
     latest: bool = False,
     limit: int | None = None,
 ) -> list[dict[str, Any]]:
@@ -150,6 +151,12 @@ def load_snapshot_exports_manifest(
             for item in filtered
             if _snapshot_export_filters(item).get("blocker_code") == blocker_code
         ]
+    if watchdog_phase is not None:
+        filtered = [
+            item
+            for item in filtered
+            if _snapshot_export_filters(item).get("watchdog_phase") == watchdog_phase
+        ]
     filtered.sort(key=lambda item: str(item.get("generated_at", "")))
     if latest:
         return filtered[-1:] if filtered else []
@@ -164,6 +171,7 @@ def format_snapshot_exports_report(
     task_id: str | None = None,
     status: str | None = None,
     blocker_code: str | None = None,
+    watchdog_phase: str | None = None,
     latest: bool = False,
     limit: int | None = None,
 ) -> str:
@@ -172,6 +180,7 @@ def format_snapshot_exports_report(
         task_id=task_id,
         status=status,
         blocker_code=blocker_code,
+        watchdog_phase=watchdog_phase,
         latest=latest,
         limit=limit,
     )
@@ -189,6 +198,7 @@ def format_snapshot_exports_report(
             f"task={filters.get('task_id') or 'all'} "
             f"status={filters.get('status') or 'all'} "
             f"blocker={filters.get('blocker_code') or 'none'} "
+            f"watchdog={filters.get('watchdog_phase') or 'none'} "
             f"path={entry.get('export_path', '')}"
         )
     return "\n".join(lines)
@@ -200,6 +210,7 @@ def _base_snapshot_exports_summary(exports: list[dict[str, Any]]) -> dict[str, A
         "by_task": {},
         "by_status": {},
         "by_blocker_code": {},
+        "by_watchdog_phase": {},
         "by_render_format": {},
         "by_summary": {},
         "latest_export": None,
@@ -209,6 +220,7 @@ def _base_snapshot_exports_summary(exports: list[dict[str, Any]]) -> dict[str, A
         task_key = str(filters.get("task_id") or "all")
         status_key = str(filters.get("status") or "all")
         blocker_key = str(filters.get("blocker_code") or "none")
+        watchdog_key = str(filters.get("watchdog_phase") or "none")
         render_key = str(entry.get("render_format") or "unknown")
         summary_key = "summary" if bool(entry.get("summary")) else "list"
         timestamp = str(entry.get("generated_at", ""))
@@ -216,6 +228,9 @@ def _base_snapshot_exports_summary(exports: list[dict[str, Any]]) -> dict[str, A
         summary["by_status"][status_key] = int(summary["by_status"].get(status_key, 0)) + 1
         summary["by_blocker_code"][blocker_key] = (
             int(summary["by_blocker_code"].get(blocker_key, 0)) + 1
+        )
+        summary["by_watchdog_phase"][watchdog_key] = (
+            int(summary["by_watchdog_phase"].get(watchdog_key, 0)) + 1
         )
         summary["by_render_format"][render_key] = (
             int(summary["by_render_format"].get(render_key, 0)) + 1
@@ -231,6 +246,7 @@ def _base_snapshot_exports_summary(exports: list[dict[str, Any]]) -> dict[str, A
                 "task_id": filters.get("task_id"),
                 "status": filters.get("status"),
                 "blocker_code": filters.get("blocker_code"),
+                "watchdog_phase": filters.get("watchdog_phase"),
             }
     return summary
 
@@ -273,6 +289,7 @@ def format_snapshot_exports_summary(
             "by_task",
             "by_status",
             "by_blocker_code",
+            "by_watchdog_phase",
             "by_render_format",
             "by_summary",
         ):

@@ -1545,6 +1545,7 @@ class CliTests(unittest.TestCase):
                                     "task_id": "001-foundation",
                                     "status": None,
                                     "blocker_code": None,
+                                    "watchdog_phase": None,
                                     "latest": False,
                                     "latest_blocked": False,
                                     "sort_order": "oldest",
@@ -1564,6 +1565,7 @@ class CliTests(unittest.TestCase):
                                     "task_id": None,
                                     "status": "blocked",
                                     "blocker_code": "no_progress_limit",
+                                    "watchdog_phase": "exhausted",
                                     "latest": False,
                                     "latest_blocked": True,
                                     "sort_order": "newest",
@@ -1597,6 +1599,81 @@ class CliTests(unittest.TestCase):
             self.assertEqual(len(payload), 1)
             self.assertEqual(payload[0]["render_format"], "text")
             self.assertEqual(payload[0]["export_path"], str(exports_dir / "snapshots-summary-b.txt"))
+
+    def test_snapshots_exports_command_can_filter_by_watchdog_phase(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exports_dir = Path(tmpdir) / "snapshot-reports"
+            exports_dir.mkdir(parents=True, exist_ok=True)
+            (exports_dir / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "exports": [
+                            {
+                                "generated_at": "2026-03-22T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-summary-b.txt"),
+                                "source_snapshot_dir": str(exports_dir / "source-b"),
+                                "snapshot_count": 2,
+                                "summary": True,
+                                "group_by": "status",
+                                "render_format": "text",
+                                "filters": {
+                                    "task_id": None,
+                                    "status": "blocked",
+                                    "blocker_code": "no_progress_limit",
+                                    "watchdog_phase": "exhausted",
+                                    "latest": False,
+                                    "latest_blocked": True,
+                                    "sort_order": "newest",
+                                    "since": "2026-03-22T00:00:00+00:00",
+                                    "until": None,
+                                },
+                            },
+                            {
+                                "generated_at": "2026-03-23T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-summary-c.json"),
+                                "source_snapshot_dir": str(exports_dir / "source-c"),
+                                "snapshot_count": 3,
+                                "summary": True,
+                                "group_by": "blocker",
+                                "render_format": "json",
+                                "filters": {
+                                    "task_id": "003-release",
+                                    "status": "blocked",
+                                    "blocker_code": "runner_failure_limit",
+                                    "watchdog_phase": "restarting",
+                                    "latest": False,
+                                    "latest_blocked": False,
+                                    "sort_order": "newest",
+                                    "since": None,
+                                    "until": None,
+                                },
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "snapshots-exports",
+                        "--exports-dir",
+                        str(exports_dir),
+                        "--watchdog-phase",
+                        "exhausted",
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(len(payload), 1)
+            self.assertEqual(payload[0]["render_format"], "text")
 
     def test_snapshots_exports_command_can_filter_and_render_summary_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

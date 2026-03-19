@@ -958,6 +958,7 @@ class ReportingTests(unittest.TestCase):
                                     "task_id": "001-foundation",
                                     "status": "running",
                                     "blocker_code": None,
+                                    "watchdog_phase": None,
                                     "latest": False,
                                     "latest_blocked": False,
                                     "sort_order": "oldest",
@@ -977,6 +978,7 @@ class ReportingTests(unittest.TestCase):
                                     "task_id": None,
                                     "status": "blocked",
                                     "blocker_code": "no_progress_limit",
+                                    "watchdog_phase": "exhausted",
                                     "latest": False,
                                     "latest_blocked": True,
                                     "sort_order": "newest",
@@ -996,6 +998,7 @@ class ReportingTests(unittest.TestCase):
                                     "task_id": "003-release",
                                     "status": "blocked",
                                     "blocker_code": "runner_failure_limit",
+                                    "watchdog_phase": "restarting",
                                     "latest": False,
                                     "latest_blocked": False,
                                     "sort_order": "newest",
@@ -1024,6 +1027,67 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("total_exports: 2", rendered)
             self.assertIn("group_by: render", rendered)
             self.assertIn("json: 1", rendered)
+
+    def test_snapshot_exports_manifest_can_filter_by_watchdog_phase(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exports_dir = Path(tmpdir)
+            (exports_dir / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "exports": [
+                            {
+                                "generated_at": "2026-03-22T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-summary-b.txt"),
+                                "source_snapshot_dir": str(exports_dir / "source-b"),
+                                "snapshot_count": 2,
+                                "summary": True,
+                                "group_by": "status",
+                                "render_format": "text",
+                                "filters": {
+                                    "task_id": None,
+                                    "status": "blocked",
+                                    "blocker_code": "no_progress_limit",
+                                    "watchdog_phase": "exhausted",
+                                    "latest": False,
+                                    "latest_blocked": True,
+                                    "sort_order": "newest",
+                                    "since": "2026-03-22T00:00:00+00:00",
+                                    "until": None,
+                                },
+                            },
+                            {
+                                "generated_at": "2026-03-23T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-summary-c.json"),
+                                "source_snapshot_dir": str(exports_dir / "source-c"),
+                                "snapshot_count": 3,
+                                "summary": True,
+                                "group_by": "blocker",
+                                "render_format": "json",
+                                "filters": {
+                                    "task_id": "003-release",
+                                    "status": "blocked",
+                                    "blocker_code": "runner_failure_limit",
+                                    "watchdog_phase": "restarting",
+                                    "latest": False,
+                                    "latest_blocked": False,
+                                    "sort_order": "newest",
+                                    "since": None,
+                                    "until": None,
+                                },
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            filtered = load_snapshot_exports_manifest(
+                exports_dir,
+                watchdog_phase="exhausted",
+            )
+
+            self.assertEqual(len(filtered), 1)
+            self.assertEqual(filtered[0]["render_format"], "text")
 
 
 if __name__ == "__main__":
