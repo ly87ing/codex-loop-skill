@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import UTC, datetime
 import json
 from pathlib import Path
 import sys
@@ -95,6 +96,39 @@ def _evidence_output_path(
     )
     suffix = ".json" if json_output else ".txt"
     return output_dir.resolve() / f"evidence-{task_id}-{selection}-{timestamp}{suffix}"
+
+
+def _snapshots_output_path(
+    output_dir: Path,
+    *,
+    json_output: bool,
+    summary: bool,
+    group_by: str | None,
+    latest: bool,
+    latest_blocked: bool,
+    status: str | None,
+    blocker_code: str | None,
+    sort_order: str,
+) -> Path:
+    parts = ["snapshots", "summary" if summary else "list"]
+    if group_by:
+        parts.append(group_by)
+    if latest_blocked:
+        parts.append("latest-blocked")
+    elif latest:
+        parts.append("latest")
+    if status:
+        parts.append(f"status-{_slugify_file_component(status)}")
+    if blocker_code:
+        parts.append(f"blocker-{_slugify_file_component(blocker_code)}")
+    if sort_order != "oldest":
+        parts.append(f"sort-{_slugify_file_component(sort_order)}")
+    timestamp = _slugify_file_component(
+        datetime.now(UTC).isoformat().replace(":", "-").replace("+", "-").replace(".", "-")
+    )
+    parts.append(timestamp)
+    suffix = ".json" if json_output else ".txt"
+    return output_dir.resolve() / f"{'-'.join(parts)}{suffix}"
 
 
 def _load_optional_config(project_dir: Path) -> CodexLoopConfig | None:
@@ -291,6 +325,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output",
         default=None,
         help="Optional file path to write the rendered snapshots payload.",
+    )
+    snapshots_parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Optional directory for an auto-named snapshots export file.",
     )
 
     doctor_parser = subparsers.add_parser("doctor", help="Validate local loop files.")
@@ -548,6 +587,8 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError("Use either --latest or --latest-blocked, not both.")
             if args.group_by and not args.summary:
                 raise ValueError("Use --group-by only with --summary.")
+            if args.output and args.output_dir:
+                raise ValueError("Use either --output or --output-dir for snapshots, not both.")
             snapshot_dir = Path(args.snapshot_dir).resolve()
             payload = load_snapshots_index(
                 snapshot_dir,
@@ -585,6 +626,20 @@ def main(argv: list[str] | None = None) -> int:
                     )
             if args.output:
                 output_path = Path(args.output).resolve()
+                _write_output_file(output_path, rendered)
+                print(f"Wrote snapshots to {output_path}")
+            elif args.output_dir:
+                output_path = _snapshots_output_path(
+                    Path(args.output_dir),
+                    json_output=bool(args.json),
+                    summary=bool(args.summary),
+                    group_by=args.group_by,
+                    latest=bool(args.latest),
+                    latest_blocked=bool(args.latest_blocked),
+                    status=args.status,
+                    blocker_code=args.blocker_code,
+                    sort_order=args.sort,
+                )
                 _write_output_file(output_path, rendered)
                 print(f"Wrote snapshots to {output_path}")
             else:

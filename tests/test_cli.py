@@ -945,6 +945,131 @@ class CliTests(unittest.TestCase):
             self.assertIn("by_blocker_code:", rendered)
             self.assertIn("Wrote snapshots to", stdout.getvalue())
 
+    def test_snapshots_command_can_write_json_to_output_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_dir = Path(tmpdir) / "snapshots"
+            snapshot_dir.mkdir(parents=True, exist_ok=True)
+            (snapshot_dir / "index.json").write_text(
+                json.dumps(
+                    {
+                        "snapshots": [
+                            {
+                                "generated_at": "2026-03-20T00:00:00+00:00",
+                                "task_id": "002-polish",
+                                "selection": "latest_session",
+                                "session_id": "session-002",
+                                "overall_status": "blocked",
+                                "current_task": "002-polish",
+                                "last_blocker_code": "no_progress_limit",
+                                "snapshot_path": str(snapshot_dir / "two.json"),
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output_dir = Path(tmpdir) / "snapshot-exports"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "snapshots",
+                        "--snapshot-dir",
+                        str(snapshot_dir),
+                        "--json",
+                        "--output-dir",
+                        str(output_dir),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            export_files = sorted(output_dir.glob("snapshots-*.json"))
+            self.assertEqual(len(export_files), 1)
+            payload = json.loads(export_files[0].read_text(encoding="utf-8"))
+            self.assertEqual(len(payload), 1)
+            self.assertEqual(payload[0]["task_id"], "002-polish")
+            self.assertIn("Wrote snapshots to", stdout.getvalue())
+
+    def test_snapshots_command_can_write_summary_to_output_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_dir = Path(tmpdir) / "snapshots"
+            snapshot_dir.mkdir(parents=True, exist_ok=True)
+            (snapshot_dir / "index.json").write_text(
+                json.dumps(
+                    {
+                        "snapshots": [
+                            {
+                                "generated_at": "2026-03-20T00:00:00+00:00",
+                                "task_id": "002-polish",
+                                "selection": "latest_session",
+                                "session_id": "session-002",
+                                "overall_status": "blocked",
+                                "current_task": "002-polish",
+                                "last_blocker_code": "no_progress_limit",
+                                "snapshot_path": str(snapshot_dir / "two.json"),
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output_dir = Path(tmpdir) / "snapshot-exports"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "snapshots",
+                        "--snapshot-dir",
+                        str(snapshot_dir),
+                        "--summary",
+                        "--output-dir",
+                        str(output_dir),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            export_files = sorted(output_dir.glob("snapshots-*.txt"))
+            self.assertEqual(len(export_files), 1)
+            rendered = export_files[0].read_text(encoding="utf-8")
+            self.assertIn("total_snapshots: 1", rendered)
+            self.assertIn("Wrote snapshots to", stdout.getvalue())
+
+    def test_snapshots_command_rejects_output_and_output_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_dir = Path(tmpdir) / "snapshots"
+            snapshot_dir.mkdir(parents=True, exist_ok=True)
+            (snapshot_dir / "index.json").write_text(
+                json.dumps({"snapshots": []}),
+                encoding="utf-8",
+            )
+            output_dir = Path(tmpdir) / "snapshot-exports"
+            output_path = Path(tmpdir) / "snapshots.json"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "snapshots",
+                        "--snapshot-dir",
+                        str(snapshot_dir),
+                        "--output",
+                        str(output_path),
+                        "--output-dir",
+                        str(output_dir),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertIn("Use either --output or --output-dir", stderr.getvalue())
+
     def test_snapshots_command_can_sort_newest_first(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             snapshot_dir = Path(tmpdir) / "snapshots"

@@ -82,6 +82,7 @@ codex-loop snapshots --snapshot-dir ./snapshots --sort newest --json
 codex-loop snapshots --snapshot-dir ./snapshots --latest-blocked --json
 codex-loop snapshots --snapshot-dir ./snapshots --summary --group-by blocker --json
 codex-loop snapshots --snapshot-dir ./snapshots --summary --output ./snapshots-summary.txt
+codex-loop snapshots --snapshot-dir ./snapshots --latest-blocked --json --output-dir ./snapshot-reports
 codex-loop events --limit 20
 codex-loop events --summary --json
 codex-loop events --task-id 001-foundation --event-type iteration:continue --json
@@ -96,7 +97,7 @@ codex-loop cleanup --logs-keep 20 --prompts-older-than-days 30
 When blocked, it also surfaces the latest `blocker_code` and reason, and when a task has an active session it shows that too.
 `sessions` gives a workspace-scoped inventory of known task session ids, their latest prompt/log/run artifacts, and a `--latest` shortcut for the most recent session seen by the loop.
 `evidence` gives a read-only prompt/log/run bundle for the current task, a selected task, or the latest session, embeds bounded task event snapshots plus status/session metadata, and can export that bundle to disk or an auto-named snapshot directory with an index file.
-`snapshots` reads that index file back as a filtered list or JSON payload, supports status, blocker-code, time-window, newest/oldest sort control, and a `--latest-blocked` shortcut, can export the rendered result with `--output`, and `--summary` turns it into a grouped operator view across task, status, selection, blocker code, and latest snapshot markers; `--group-by` focuses that summary onto one chosen dimension.
+`snapshots` reads that index file back as a filtered list or JSON payload, supports status, blocker-code, time-window, newest/oldest sort control, and a `--latest-blocked` shortcut, can export the rendered result with `--output` or auto-name it with `--output-dir`, and `--summary` turns it into a grouped operator view across task, status, selection, blocker code, and latest snapshot markers; `--group-by` focuses that summary onto one chosen dimension.
 `events` merges loop history with hook logs, can summarize the filtered set including blocker breakdowns plus latest runner or verification failures, and can export structured JSON to a file.
 `cleanup` defaults to dry-run and can combine config-driven retention, count-based limits, age thresholds, and per-directory overrides.
 `doctor --repair` can backfill missing operator defaults into older loop configs, and `doctor` warnings now suggest safer cleanup settings when defaults are destructive.
