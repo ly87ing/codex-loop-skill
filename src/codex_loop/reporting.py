@@ -82,6 +82,9 @@ def load_snapshots_index(
     snapshot_dir: Path,
     *,
     task_id: str | None = None,
+    status: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
     limit: int | None = None,
     latest: bool = False,
 ) -> list[dict[str, Any]]:
@@ -96,6 +99,23 @@ def load_snapshots_index(
     filtered = [item for item in snapshots if isinstance(item, dict)]
     if task_id is not None:
         filtered = [item for item in filtered if item.get("task_id") == task_id]
+    if status is not None:
+        filtered = [item for item in filtered if item.get("overall_status") == status]
+    if since is not None or until is not None:
+        since_ts = _parse_timestamp(since) if since is not None else None
+        until_ts = _parse_timestamp(until) if until is not None else None
+        time_filtered: list[dict[str, Any]] = []
+        for item in filtered:
+            try:
+                snapshot_ts = _parse_timestamp(str(item.get("generated_at", "")))
+            except ValueError:
+                continue
+            if since_ts is not None and snapshot_ts < since_ts:
+                continue
+            if until_ts is not None and snapshot_ts > until_ts:
+                continue
+            time_filtered.append(item)
+        filtered = time_filtered
     filtered.sort(key=lambda item: str(item.get("generated_at", "")))
     if latest:
         filtered = filtered[-1:] if filtered else []
@@ -108,12 +128,18 @@ def format_snapshots_report(
     snapshot_dir: Path,
     *,
     task_id: str | None = None,
+    status: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
     limit: int | None = None,
     latest: bool = False,
 ) -> str:
     snapshots = load_snapshots_index(
         snapshot_dir,
         task_id=task_id,
+        status=status,
+        since=since,
+        until=until,
         limit=limit,
         latest=latest,
     )

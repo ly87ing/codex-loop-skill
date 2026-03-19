@@ -230,6 +230,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional task id filter, for example 001-foundation.",
     )
     snapshots_parser.add_argument(
+        "--status",
+        default=None,
+        help="Optional snapshot status filter, for example blocked or completed.",
+    )
+    snapshots_parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -244,6 +249,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--summary",
         action="store_true",
         help="Render a grouped summary instead of the raw snapshot list.",
+    )
+    snapshots_parser.add_argument(
+        "--since",
+        default=None,
+        help="Optional lower inclusive ISO timestamp bound for generated_at.",
+    )
+    snapshots_parser.add_argument(
+        "--until",
+        default=None,
+        help="Optional upper inclusive ISO timestamp bound for generated_at.",
     )
     snapshots_parser.add_argument(
         "--json",
@@ -506,6 +521,9 @@ def main(argv: list[str] | None = None) -> int:
             payload = load_snapshots_index(
                 snapshot_dir,
                 task_id=args.task_id,
+                status=args.status,
+                since=args.since,
+                until=args.until,
                 limit=args.limit,
                 latest=args.latest,
             )
@@ -523,6 +541,9 @@ def main(argv: list[str] | None = None) -> int:
                     format_snapshots_report(
                         snapshot_dir,
                         task_id=args.task_id,
+                        status=args.status,
+                        since=args.since,
+                        until=args.until,
                         limit=args.limit,
                         latest=args.latest,
                     )
