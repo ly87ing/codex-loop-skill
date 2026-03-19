@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 import json
 from pathlib import Path
 from typing import Any
@@ -8,6 +9,10 @@ from typing import Any
 
 def _default_task_status(index: int) -> str:
     return "ready" if index == 0 else "pending"
+
+
+def _now() -> str:
+    return datetime.now(UTC).isoformat()
 
 
 @dataclass(slots=True)
@@ -19,7 +24,9 @@ class StateStore:
 
     def save(self, state: dict[str, Any]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        tmp_path = self.path.with_suffix(self.path.suffix + ".tmp")
+        tmp_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        tmp_path.replace(self.path)
 
     def create_initial(
         self,
@@ -35,6 +42,8 @@ class StateStore:
                 "no_progress_iterations": 0,
                 "last_fingerprint": "",
                 "overall_status": "initialized",
+                "created_at": _now(),
+                "updated_at": _now(),
             },
             "tasks": {
                 task_id: {
@@ -43,6 +52,7 @@ class StateStore:
                     "iterations": 0,
                     "last_summary": "",
                     "files_changed": [],
+                    "updated_at": _now(),
                 }
                 for index, task_id in enumerate(tasks)
             },
@@ -54,14 +64,17 @@ class StateStore:
     def mark_task_done(self, task_id: str) -> dict[str, Any]:
         state = self.load()
         state["tasks"][task_id]["status"] = "done"
+        state["tasks"][task_id]["updated_at"] = _now()
         next_pending = next(
             (key for key, task in state["tasks"].items() if task["status"] == "pending"),
             None,
         )
         if next_pending is not None:
             state["tasks"][next_pending]["status"] = "ready"
+            state["tasks"][next_pending]["updated_at"] = _now()
         elif all(task["status"] == "done" for task in state["tasks"].values()):
             state["meta"]["overall_status"] = "completed"
+        state["meta"]["updated_at"] = _now()
         self.save(state)
         return state
 
@@ -69,7 +82,9 @@ class StateStore:
         state = self.load()
         state["tasks"][task_id]["status"] = "blocked"
         state["tasks"][task_id]["blocker_reason"] = reason
+        state["tasks"][task_id]["updated_at"] = _now()
         state["meta"]["overall_status"] = "blocked"
+        state["meta"]["updated_at"] = _now()
         self.save(state)
         return state
 
@@ -90,6 +105,7 @@ class StateStore:
         meta = state["meta"]
         task = state["tasks"][task_id]
         meta["iteration"] += 1
+        meta["updated_at"] = _now()
         task["iterations"] += 1
         if not files_changed and not verification_passed:
             meta["no_progress_iterations"] += 1
@@ -99,6 +115,7 @@ class StateStore:
         task["last_summary"] = summary
         task["files_changed"] = files_changed
         task["session_id"] = session_id
+        task["updated_at"] = _now()
         if agent_status == "blocked":
             task["status"] = "blocked"
             meta["overall_status"] = "blocked"

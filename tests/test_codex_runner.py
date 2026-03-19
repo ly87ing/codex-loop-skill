@@ -26,12 +26,16 @@ class CodexRunnerTests(unittest.TestCase):
                 output_path=root / ".codex-loop" / "runs" / "last.json",
                 session_id=None,
                 model="gpt-5.4",
+                sandbox="workspace-write",
+                approval="never",
             )
 
             self.assertEqual(command[:2], ["codex", "exec"])
             self.assertIn("--json", command)
             self.assertIn("--output-schema", command)
             self.assertIn("--output-last-message", command)
+            self.assertIn('approval_policy="never"', command)
+            self.assertIn('sandbox_mode="workspace-write"', command)
 
     def test_builds_resume_command_for_follow_up_iteration(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -50,12 +54,15 @@ class CodexRunnerTests(unittest.TestCase):
                 output_path=root / ".codex-loop" / "runs" / "last.json",
                 session_id="session-123",
                 model="gpt-5.4",
+                sandbox="read-only",
+                approval="on-request",
             )
 
             self.assertEqual(command[:3], ["codex", "exec", "resume"])
             self.assertIn("session-123", command)
+            self.assertIn('approval_policy="on-request"', command)
+            self.assertIn('sandbox_mode="read-only"', command)
 
 
 if __name__ == "__main__":
     unittest.main()
-

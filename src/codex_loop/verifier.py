@@ -5,9 +5,23 @@ import subprocess
 
 
 class Verifier:
-    def run(self, commands: list[str], cwd: Path) -> tuple[bool, list[dict[str, object]]]:
+    def run(
+        self,
+        commands: list[str],
+        cwd: Path,
+        pass_requires_all: bool = True,
+    ) -> tuple[bool, list[dict[str, object]]]:
+        if not commands:
+            return False, [
+                {
+                    "command": "",
+                    "exit_code": 1,
+                    "stdout": "",
+                    "stderr": "No verification commands configured.",
+                }
+            ]
         results: list[dict[str, object]] = []
-        all_passed = True
+        passed_count = 0
         for command in commands:
             completed = subprocess.run(
                 command,
@@ -24,7 +38,8 @@ class Verifier:
                     "stderr": completed.stderr,
                 }
             )
-            if completed.returncode != 0:
-                all_passed = False
-        return all_passed, results
-
+            if completed.returncode == 0:
+                passed_count += 1
+        if pass_requires_all:
+            return passed_count == len(commands), results
+        return passed_count > 0, results

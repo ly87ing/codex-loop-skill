@@ -4,7 +4,13 @@ from pathlib import Path
 
 from .codex_runner import CodexRunner
 from .config import CodexLoopConfig
-from .git_ops import create_worktree, ensure_local_state_ignored, resolve_repo_root
+from .git_ops import (
+    create_worktree,
+    ensure_local_state_ignored,
+    resolve_project_working_directory,
+    resolve_repo_root,
+)
+from .run_lock import RunLock
 from .state_store import StateStore
 from .supervisor import LoopOutcome, Supervisor
 from .task_graph import TaskGraph
@@ -41,35 +47,50 @@ def run_project(project_dir: Path) -> LoopOutcome:
     state_store = StateStore(project_dir / ".codex-loop" / "state.json")
     repo_root = resolve_repo_root(project_dir)
     ensure_local_state_ignored(repo_root)
+    lock = RunLock(
+        project_dir / ".codex-loop" / "run.lock",
+        stale_seconds=config.execution.lock_stale_seconds,
+    )
+    with lock:
+        working_directory = project_dir
+        state = state_store.load()
+        if config.execution.worktree.enabled:
+            active_task_id = next(
+                (
+                    task_id
+                    for task_id, task_state in state["tasks"].items()
+                    if task_state["status"] in {"ready", "in_progress"}
+                ),
+                next(iter(state["tasks"]), "project"),
+            )
+            worktree = create_worktree(
+                repo_root=repo_root,
+                branch_prefix=config.execution.worktree.branch_prefix,
+                task_id=active_task_id,
+                existing_path=state["meta"].get("worktree_path"),
+                existing_branch=state["meta"].get("worktree_branch"),
+            )
+            working_directory = resolve_project_working_directory(
+                project_dir=project_dir,
+                repo_root=repo_root,
+                worktree_root=worktree.path,
+            )
+            state["meta"]["worktree_path"] = str(worktree.path)
+            state["meta"]["worktree_branch"] = worktree.branch_name
+            state_store.save(state)
 
-    working_directory = project_dir
-    state = state_store.load()
-    if config.execution.worktree.enabled:
-        worktree = create_worktree(
-            repo_root=repo_root,
-            branch_prefix=config.execution.worktree.branch_prefix,
-            task_id=next(iter(state["tasks"])),
-            existing_path=state["meta"].get("worktree_path"),
-            existing_branch=state["meta"].get("worktree_branch"),
+        runner = LoopTaskRunner(
+            codex_runner=CodexRunner(project_dir),
+            config=config,
+            state_store=state_store,
+            working_directory=working_directory,
         )
-        working_directory = worktree.path
-        state["meta"]["worktree_path"] = str(worktree.path)
-        state["meta"]["worktree_branch"] = worktree.branch_name
-        state_store.save(state)
-
-    runner = LoopTaskRunner(
-        codex_runner=CodexRunner(project_dir),
-        config=config,
-        state_store=state_store,
-        working_directory=working_directory,
-    )
-    supervisor = Supervisor(
-        config=config,
-        state_store=state_store,
-        task_graph=TaskGraph(project_dir / config.tasks.source_dir),
-        runner=runner,
-        verifier=Verifier(),
-        working_directory=working_directory,
-    )
-    return supervisor.run()
-
+        supervisor = Supervisor(
+            config=config,
+            state_store=state_store,
+            task_graph=TaskGraph(project_dir / config.tasks.source_dir),
+            runner=runner,
+            verifier=Verifier(),
+            working_directory=working_directory,
+        )
+        return supervisor.run()

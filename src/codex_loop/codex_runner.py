@@ -68,6 +68,9 @@ def _extract_session_id(jsonl: str) -> str | None:
 
 
 def _read_json_file(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        msg = f"Expected output file was not created: {path}"
+        raise FileNotFoundError(msg)
     loaded = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(loaded, dict):
         msg = f"Expected JSON object from {path}"
@@ -88,6 +91,8 @@ class CodexRunner:
         output_path: Path,
         session_id: str | None,
         model: str,
+        sandbox: str,
+        approval: str,
     ) -> list[str]:
         base = ["codex", "exec"]
         if session_id:
@@ -95,9 +100,9 @@ class CodexRunner:
         base.extend(
             [
                 "-c",
-                'approval_policy="never"',
+                f'approval_policy="{approval}"',
                 "-c",
-                'sandbox_mode="workspace-write"',
+                f'sandbox_mode="{sandbox}"',
                 "--json",
                 "--model",
                 model,
@@ -144,6 +149,7 @@ class CodexRunner:
             init_prompt = self._build_init_prompt(prompt)
             self._invoke(command, init_prompt, self.project_dir)
             result = _read_json_file(output_path)
+        self._validate_init_result(result)
         return InitResult(
             project_name=str(result["project_name"]),
             goal_summary=str(result["goal_summary"]),
@@ -175,6 +181,7 @@ class CodexRunner:
         output_path = output_dir / f"{task.task_id}-last.json"
         schema_path = config.project_dir / config.codex.output_schema
         prompt = self._build_run_prompt(config, task, state)
+        self._write_prompt_artifact(config, task.task_id, prompt)
         command = self.build_run_command(
             task=task,
             prompt=prompt,
@@ -182,9 +189,13 @@ class CodexRunner:
             output_path=output_path,
             session_id=resume_session,
             model=config.codex.model,
+            sandbox=config.execution.sandbox,
+            approval=config.execution.approval,
         )
         stdout = self._invoke(command, prompt, working_directory)
+        self._write_stdout_artifact(config, task.task_id, stdout)
         result = _read_json_file(output_path)
+        self._validate_run_result(result, task.task_id)
         if "session_id" not in result:
             session_id = _extract_session_id(stdout)
             if session_id:
@@ -245,3 +256,92 @@ class CodexRunner:
             f"Recent loop history:\n{history_block}\n\n"
             "Return only the structured result matching the provided schema."
         )
+
+    def _write_prompt_artifact(
+        self,
+        config: CodexLoopConfig,
+        task_id: str,
+        prompt: str,
+    ) -> None:
+        if not config.logging.save_prompts:
+            return
+        prompts_dir = config.project_dir / ".codex-loop" / "prompts"
+        prompts_dir.mkdir(parents=True, exist_ok=True)
+        iteration = len(self._safe_history(config.project_dir)) + 1
+        (prompts_dir / f"{iteration:04d}-{task_id}.txt").write_text(
+            prompt,
+            encoding="utf-8",
+        )
+
+    def _write_stdout_artifact(
+        self,
+        config: CodexLoopConfig,
+        task_id: str,
+        stdout: str,
+    ) -> None:
+        if not config.logging.save_jsonl:
+            return
+        logs_dir = config.project_dir / ".codex-loop" / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        iteration = len(self._safe_history(config.project_dir)) + 1
+        (logs_dir / f"{iteration:04d}-{task_id}.jsonl").write_text(
+            stdout,
+            encoding="utf-8",
+        )
+
+    @staticmethod
+    def _safe_history(project_dir: Path) -> list[dict[str, Any]]:
+        state_path = project_dir / ".codex-loop" / "state.json"
+        if not state_path.exists():
+            return []
+        try:
+            state = _read_json_file(state_path)
+        except Exception:
+            return []
+        history = state.get("history", [])
+        return history if isinstance(history, list) else []
+
+    @staticmethod
+    def _validate_init_result(result: dict[str, Any]) -> None:
+        required = [
+            "project_name",
+            "goal_summary",
+            "done_when",
+            "spec_markdown",
+            "plan_markdown",
+            "tasks",
+            "verification_commands",
+        ]
+        missing = [field for field in required if field not in result]
+        if missing:
+            msg = f"Init result missing fields: {missing}"
+            raise ValueError(msg)
+        if not isinstance(result["tasks"], list) or not result["tasks"]:
+            msg = "Init result must include at least one task."
+            raise ValueError(msg)
+        if not isinstance(result["verification_commands"], list) or not result["verification_commands"]:
+            msg = "Init result must include at least one verification command."
+            raise ValueError(msg)
+
+    @staticmethod
+    def _validate_run_result(result: dict[str, Any], expected_task_id: str) -> None:
+        required = [
+            "status",
+            "summary",
+            "task_id",
+            "files_changed",
+            "verification_expected",
+            "needs_resume",
+            "blockers",
+            "next_action",
+        ]
+        missing = [field for field in required if field not in result]
+        if missing:
+            msg = f"Run result missing fields: {missing}"
+            raise ValueError(msg)
+        if result["task_id"] != expected_task_id:
+            msg = (
+                f"Run result task_id mismatch: expected {expected_task_id}, "
+                f"got {result['task_id']}"
+            )
+            raise ValueError(msg)

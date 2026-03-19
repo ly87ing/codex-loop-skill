@@ -45,6 +45,7 @@ class ExecutionConfig:
     approval: str = "never"
     max_iterations: int = 30
     max_no_progress_iterations: int = 5
+    lock_stale_seconds: int = 21600
     worktree: WorktreeConfig = field(default_factory=WorktreeConfig)
 
 
@@ -102,13 +103,14 @@ class CodexLoopConfig:
             max_no_progress_iterations=int(
                 execution_data.get("max_no_progress_iterations", 5)
             ),
+            lock_stale_seconds=int(execution_data.get("lock_stale_seconds", 21600)),
             worktree=worktree,
         )
         codex = CodexConfig(**data.get("codex", {}))
         verification = VerificationConfig(**data.get("verification", {}))
         tasks = TasksConfig(**data.get("tasks", {}))
         logging = LoggingConfig(**data.get("logging", {}))
-        return cls(
+        config = cls(
             project_dir=project_dir,
             project=project,
             goal=goal,
@@ -118,4 +120,34 @@ class CodexLoopConfig:
             tasks=tasks,
             logging=logging,
         )
+        config.validate()
+        return config
 
+    def validate(self) -> None:
+        if not self.project.name.strip():
+            msg = "project.name must not be empty."
+            raise ValueError(msg)
+        if not self.goal.summary.strip():
+            msg = "goal.summary must not be empty."
+            raise ValueError(msg)
+        if not self.goal.done_when:
+            msg = "goal.done_when must include at least one completion criterion."
+            raise ValueError(msg)
+        if not self.verification.commands:
+            msg = "verification.commands must contain at least one command."
+            raise ValueError(msg)
+        if self.execution.max_iterations <= 0:
+            msg = "execution.max_iterations must be greater than zero."
+            raise ValueError(msg)
+        if self.execution.max_no_progress_iterations <= 0:
+            msg = "execution.max_no_progress_iterations must be greater than zero."
+            raise ValueError(msg)
+        if self.execution.lock_stale_seconds <= 0:
+            msg = "execution.lock_stale_seconds must be greater than zero."
+            raise ValueError(msg)
+        if self.tasks.strategy != "sequential":
+            msg = f"Unsupported tasks.strategy: {self.tasks.strategy}"
+            raise ValueError(msg)
+        if not self.tasks.source_dir.strip():
+            msg = "tasks.source_dir must not be empty."
+            raise ValueError(msg)

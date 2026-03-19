@@ -22,7 +22,12 @@ class StubVerifier:
     def __init__(self, outcomes: list[bool]) -> None:
         self.outcomes = outcomes
 
-    def run(self, commands: list[str], cwd: Path) -> tuple[bool, list[dict[str, object]]]:
+    def run(
+        self,
+        commands: list[str],
+        cwd: Path,
+        pass_requires_all: bool = True,
+    ) -> tuple[bool, list[dict[str, object]]]:
         return self.outcomes.pop(0), [{"command": commands[0], "exit_code": 1 if not self.outcomes else 0}]
 
 
@@ -75,6 +80,39 @@ class SupervisorTests(unittest.TestCase):
                 runner=runner,
                 verifier=verifier,
             )
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.BLOCKED)
+
+    def test_blocks_when_state_has_incomplete_tasks_but_no_selectable_task(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "verification": {"commands": ["python -m unittest"]},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            state = store.create_initial("demo", "Build demo", ["001-foundation"])
+            state["tasks"]["001-foundation"]["status"] = "pending"
+            store.save(state)
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=StubRunner([]),
+                verifier=StubVerifier([]),
+            )
+
             outcome = supervisor.run()
 
             self.assertEqual(outcome, LoopOutcome.BLOCKED)

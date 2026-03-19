@@ -46,6 +46,16 @@ def build_worktree_path(repo_root: Path, branch_name: str) -> Path:
     return repo_root.parent / ".codex-loop-worktrees" / repo_root.name / sanitize_branch_name(branch_name)
 
 
+def resolve_project_working_directory(
+    *,
+    project_dir: Path,
+    repo_root: Path,
+    worktree_root: Path,
+) -> Path:
+    relative = project_dir.relative_to(repo_root)
+    return worktree_root / relative
+
+
 def create_worktree(
     repo_root: Path,
     branch_prefix: str,
@@ -57,6 +67,15 @@ def create_worktree(
         path = Path(existing_path)
         if path.exists():
             return WorktreeInfo(repo_root=repo_root, branch_name=existing_branch, path=path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            ["git", "worktree", "add", str(path), existing_branch],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return WorktreeInfo(repo_root=repo_root, branch_name=existing_branch, path=path)
 
     timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
     branch_name = f"{branch_prefix}{task_id}-{timestamp}"
@@ -70,4 +89,3 @@ def create_worktree(
         text=True,
     )
     return WorktreeInfo(repo_root=repo_root, branch_name=branch_name, path=path)
-

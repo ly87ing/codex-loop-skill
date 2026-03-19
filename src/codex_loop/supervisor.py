@@ -35,7 +35,7 @@ class Supervisor:
         for _ in range(self.config.execution.max_iterations):
             task = self._select_task()
             if task is None:
-                return LoopOutcome.COMPLETED
+                return self._terminal_outcome_without_selectable_task()
             state = self.state_store.load()
             task_state = state["tasks"][task.task_id]
             result = self.runner.run_task(
@@ -45,6 +45,7 @@ class Supervisor:
             passed, verification_results = self.verifier.run(
                 self.config.verification.commands,
                 self.working_directory,
+                self.config.verification.pass_requires_all,
             )
             files_changed = [
                 str(path)
@@ -94,6 +95,29 @@ class Supervisor:
             )
         return LoopOutcome.BLOCKED
 
+    def _terminal_outcome_without_selectable_task(self) -> LoopOutcome:
+        state = self.state_store.load()
+        tasks = state.get("tasks", {})
+        if not tasks:
+            return LoopOutcome.BLOCKED
+        statuses = {task_state.get("status") for task_state in tasks.values()}
+        if statuses == {"done"}:
+            return LoopOutcome.COMPLETED
+        first_incomplete = next(
+            (
+                task_id
+                for task_id, task_state in tasks.items()
+                if task_state.get("status") != "done"
+            ),
+            None,
+        )
+        if first_incomplete is not None:
+            self.state_store.mark_blocked(
+                first_incomplete,
+                "No selectable task found while unfinished tasks remain.",
+            )
+        return LoopOutcome.BLOCKED
+
     def _select_task(self) -> Task | None:
         tasks = self.task_graph.discover()
         state = self.state_store.load()
@@ -112,4 +136,3 @@ class Supervisor:
     ) -> str:
         joined = ",".join(files_changed)
         return f"{task_id}|{joined}|{passed}|{result.get('status', 'continue')}"
-

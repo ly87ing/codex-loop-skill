@@ -46,27 +46,31 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     project_dir = Path(args.project_dir).resolve()
 
-    if args.command == "init":
-        runner = CodexRunner(project_dir)
-        result = runner.initialize_from_prompt(prompt=args.prompt, model=args.model)
-        initialize_project(
-            project_dir=project_dir,
-            prompt=args.prompt,
-            result=result,
-            force=args.force,
-        )
-        print(f"Initialized codex-loop files in {project_dir}")
-        return 0
+    try:
+        if args.command == "init":
+            runner = CodexRunner(project_dir)
+            result = runner.initialize_from_prompt(prompt=args.prompt, model=args.model)
+            initialize_project(
+                project_dir=project_dir,
+                prompt=args.prompt,
+                result=result,
+                force=args.force,
+            )
+            print(f"Initialized codex-loop files in {project_dir}")
+            return 0
 
-    if args.command == "run":
-        outcome = run_project(project_dir)
-        print(outcome.value)
-        return 0 if outcome.value == "completed" else 2
+        if args.command == "run":
+            outcome = run_project(project_dir)
+            print(outcome.value)
+            return 0 if outcome.value == "completed" else 2
 
-    if args.command == "status":
-        state = StateStore(project_dir / ".codex-loop" / "state.json").load()
-        print(json.dumps(state, indent=2, ensure_ascii=False))
-        return 0
+        if args.command == "status":
+            state = StateStore(project_dir / ".codex-loop" / "state.json").load()
+            print(json.dumps(state, indent=2, ensure_ascii=False))
+            return 0
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        print(f"codex-loop error: {exc}", file=sys.stderr)
+        return 1
 
     parser.error(f"Unsupported command: {args.command}")
     return 1
@@ -74,4 +78,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
