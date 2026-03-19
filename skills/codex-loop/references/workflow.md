@@ -52,12 +52,14 @@ Those warnings now include concrete remediation guidance so operators can tighte
 - `on_completed` and `on_blocked` after terminal outcomes
 - hook `failure_policy` can block `post_init`, `pre_iteration`, and `post_iteration`
 - `.codex-loop/metrics.json` for aggregate runtime counters
-- `status --summary` for the latest blocker code and reason
+- `status --summary` for the latest blocker code, reason, and current task session id
+- `sessions` for a workspace-scoped inventory of known task session ids
 - `events --limit N` for a merged timeline across loop history and hook logs
 - `events --summary` for grouped counts across the filtered event set
 - `events --summary` includes blocker-code counts, blocked task ids, the latest blocked event, and the latest runner or verification failure when those events exist
 - `events --task-id ... --event-type ... --json` for focused operator queries and export
 - `events --since ... --until ... --output <path>` for time-boxed exports
+- `sessions --latest --json` for the most recent session seen by the loop
 - `cleanup [--apply] --keep N [--older-than-days N]` for conservative local artifact and stale worktree pruning
 - `cleanup --logs-keep ... --runs-keep ... --prompts-older-than-days ...` for per-directory retention overrides
 - `operator.cleanup` in `codex-loop.yaml` for default retention policy, with CLI flags overriding config per invocation

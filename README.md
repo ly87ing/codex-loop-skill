@@ -26,7 +26,7 @@
   - reconciles task files with `.codex-loop/state.json`
   - restores missing `operator.events` and `operator.cleanup` defaults in `codex-loop.yaml`
   - warns when cleanup defaults are aggressive enough to delete all retained artifacts on apply, with concrete remediation guidance
-- `codex-loop status --summary`, `codex-loop events`, and `codex-loop logs tail`:
+- `codex-loop status --summary`, `codex-loop sessions`, `codex-loop events`, and `codex-loop logs tail`:
   - provide concise operator-facing visibility during unattended runs
 - `codex-loop cleanup`:
   - prunes old local logs, prompts, runs, and stale non-active worktrees
@@ -65,6 +65,8 @@ codex-loop init --prompt "Build a local autonomous loop that edits code until te
 codex-loop doctor --repair
 codex-loop run
 codex-loop status --summary
+codex-loop sessions
+codex-loop sessions --latest --json
 codex-loop events --limit 20
 codex-loop events --summary --json
 codex-loop events --task-id 001-foundation --event-type iteration:continue --json
@@ -140,7 +142,8 @@ The loop stops with `blocked` when:
 
 ## Operator Notes
 
-- `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks.
+- `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks, plus the current task session id when one exists.
+- `sessions` provides a workspace-scoped inventory of known Codex session ids per task and a `--latest` view for the most recent resumable session seen by the loop.
 - `events --summary` aggregates the filtered event set by label, task, source, blocker code, blocked task, latest blocked event, latest runner failure, and latest verification failure before optional JSON/export handling.
 - `events --limit N` merges `.codex-loop/state.json` history with hook execution logs into a readable timeline, and supports `--task-id`, `--event-type`, `--since`, `--until`, `--json`, and `--output` for focused inspection or export.
 - `cleanup` defaults to dry-run mode so operators can review what would be deleted before using `--apply`; its default retention policy now comes from `codex-loop.yaml`, and CLI flags such as `--keep`, `--older-than-days`, `--logs-keep`, or `--prompts-older-than-days` override config values per run.

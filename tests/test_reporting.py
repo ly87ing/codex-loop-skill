@@ -6,8 +6,10 @@ import unittest
 from pathlib import Path
 
 from codex_loop.reporting import (
+    build_session_inventory,
     format_events_summary,
     format_events_timeline,
+    format_sessions_report,
     load_events_timeline,
     summarize_events,
 )
@@ -249,6 +251,49 @@ class ReportingTests(unittest.TestCase):
             )
             self.assertIn("latest_runner_failure:", rendered)
             self.assertIn("latest_verification_failure:", rendered)
+
+    def test_session_inventory_tracks_current_and_latest_sessions(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            store.record_iteration(
+                task_id="001-foundation",
+                summary="Foundation iteration.",
+                fingerprint="001|continue",
+                files_changed=["src/foundation.py"],
+                verification_passed=False,
+                agent_status="continue",
+                session_id="session-001",
+            )
+            store.record_iteration(
+                task_id="002-polish",
+                summary="Polish iteration.",
+                fingerprint="002|continue",
+                files_changed=["src/polish.py"],
+                verification_passed=False,
+                agent_status="continue",
+                session_id="session-002",
+            )
+            state = store.load()
+            state["history"][-2]["timestamp"] = "2026-03-19T00:00:00+00:00"
+            state["history"][-1]["timestamp"] = "2026-03-20T00:00:00+00:00"
+            state["tasks"]["001-foundation"]["status"] = "in_progress"
+            state["tasks"]["001-foundation"]["session_id"] = "session-001"
+            state["tasks"]["002-polish"]["status"] = "pending"
+            store.save(state)
+
+            inventory = build_session_inventory(root)
+            rendered = format_sessions_report(root)
+
+            self.assertEqual(inventory["project_name"], "demo")
+            self.assertEqual(inventory["current_task"], "001-foundation")
+            self.assertEqual(inventory["current_task_session"], "session-001")
+            self.assertEqual(inventory["latest_session"]["task_id"], "002-polish")
+            self.assertEqual(inventory["latest_session"]["session_id"], "session-002")
+            self.assertEqual(len(inventory["tasks"]), 2)
+            self.assertIn("current_task_session: session-001", rendered)
+            self.assertIn("latest_session:", rendered)
 
 
 if __name__ == "__main__":

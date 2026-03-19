@@ -6,10 +6,25 @@ from pathlib import Path
 from typing import Any
 
 
-def format_status_summary(project_dir: Path) -> str:
-    state = json.loads(
+def _load_state(project_dir: Path) -> dict[str, Any]:
+    return json.loads(
         (project_dir / ".codex-loop" / "state.json").read_text(encoding="utf-8")
     )
+
+
+def _current_task_id(tasks: dict[str, dict[str, Any]]) -> str:
+    return next(
+        (
+            task_id
+            for task_id, task_state in tasks.items()
+            if task_state.get("status") in {"ready", "in_progress", "blocked"}
+        ),
+        next(iter(tasks), "none"),
+    )
+
+
+def format_status_summary(project_dir: Path) -> str:
+    state = _load_state(project_dir)
     project_name = state.get("meta", {}).get("project_name", project_dir.name)
     overall_status = state.get("meta", {}).get("overall_status", "unknown")
     iteration = state.get("meta", {}).get("iteration", 0)
@@ -21,14 +36,8 @@ def format_status_summary(project_dir: Path) -> str:
         else {}
     )
     tasks = state.get("tasks", {})
-    current_task_id = next(
-        (
-            task_id
-            for task_id, task_state in tasks.items()
-            if task_state.get("status") in {"ready", "in_progress", "blocked"}
-        ),
-        next(iter(tasks), "none"),
-    )
+    current_task_id = _current_task_id(tasks)
+    current_task_state = tasks.get(current_task_id, {}) if current_task_id != "none" else {}
     last_history = state.get("history", [])[-1] if state.get("history") else None
 
     lines = [
@@ -38,6 +47,13 @@ def format_status_summary(project_dir: Path) -> str:
         f"no_progress_iterations: {no_progress}",
         f"current_task: {current_task_id}",
     ]
+    if current_task_state.get("session_id"):
+        lines.append(f"current_task_session: {current_task_state.get('session_id')}")
+    if current_task_state.get("resume_failure_reason"):
+        lines.append(
+            "current_task_resume_failure_reason: "
+            f"{current_task_state.get('resume_failure_reason')}"
+        )
     if metrics:
         lines.extend(
             [
@@ -210,6 +226,119 @@ def format_events_timeline(
         return "No events recorded."
     rendered = [_format_event(event) for event in events]
     return "\n".join(rendered)
+
+
+def _iter_task_session_rows(
+    state: dict[str, Any],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    current_tasks = state.get("tasks", {})
+    archived_tasks = state.get("meta", {}).get("archived_tasks", {})
+    for task_id, task_state in current_tasks.items():
+        rows.append(
+            {
+                "task_id": task_id,
+                "status": task_state.get("status", "unknown"),
+                "session_id": task_state.get("session_id"),
+                "iterations": int(task_state.get("iterations", 0)),
+                "updated_at": task_state.get("updated_at"),
+                "last_summary": task_state.get("last_summary", ""),
+                "resume_fallback_used": bool(
+                    task_state.get("resume_fallback_used", False)
+                ),
+                "resume_failure_reason": task_state.get("resume_failure_reason"),
+                "archived": False,
+            }
+        )
+    for task_id, task_state in archived_tasks.items():
+        rows.append(
+            {
+                "task_id": task_id,
+                "status": task_state.get("status", "unknown"),
+                "session_id": task_state.get("session_id"),
+                "iterations": int(task_state.get("iterations", 0)),
+                "updated_at": task_state.get("updated_at"),
+                "last_summary": task_state.get("last_summary", ""),
+                "resume_fallback_used": bool(
+                    task_state.get("resume_fallback_used", False)
+                ),
+                "resume_failure_reason": task_state.get("resume_failure_reason"),
+                "archived": True,
+            }
+        )
+    rows.sort(key=lambda row: str(row.get("task_id", "")))
+    return rows
+
+
+def build_session_inventory(project_dir: Path) -> dict[str, Any]:
+    state = _load_state(project_dir)
+    tasks = state.get("tasks", {})
+    current_task = _current_task_id(tasks) if tasks else "none"
+    current_task_state = tasks.get(current_task, {}) if current_task != "none" else {}
+    rows = _iter_task_session_rows(state)
+    latest_session: dict[str, Any] | None = None
+    for entry in state.get("history", []):
+        session_id = entry.get("session_id")
+        if not session_id:
+            continue
+        candidate = {
+            "task_id": entry.get("task_id"),
+            "session_id": session_id,
+            "timestamp": entry.get("timestamp"),
+            "event_type": entry.get("event_type"),
+            "agent_status": entry.get("agent_status"),
+            "summary": entry.get("summary"),
+        }
+        if latest_session is None or str(candidate.get("timestamp", "")) >= str(
+            latest_session.get("timestamp", "")
+        ):
+            latest_session = candidate
+    if latest_session is None:
+        session_rows = [row for row in rows if row.get("session_id")]
+        session_rows.sort(
+            key=lambda row: (str(row.get("updated_at", "")), str(row.get("task_id", "")))
+        )
+        if session_rows:
+            last_row = session_rows[-1]
+            latest_session = {
+                "task_id": last_row.get("task_id"),
+                "session_id": last_row.get("session_id"),
+                "timestamp": last_row.get("updated_at"),
+                "event_type": "task_state",
+                "agent_status": last_row.get("status"),
+                "summary": last_row.get("last_summary"),
+            }
+    return {
+        "project_name": state.get("meta", {}).get("project_name", project_dir.name),
+        "overall_status": state.get("meta", {}).get("overall_status", "unknown"),
+        "current_task": current_task,
+        "current_task_session": current_task_state.get("session_id"),
+        "latest_session": latest_session,
+        "tasks": rows,
+    }
+
+
+def format_sessions_report(project_dir: Path) -> str:
+    inventory = build_session_inventory(project_dir)
+    lines = [
+        f"project: {inventory['project_name']}",
+        f"overall_status: {inventory['overall_status']}",
+        f"current_task: {inventory['current_task']}",
+        f"current_task_session: {inventory.get('current_task_session') or 'none'}",
+        "latest_session:",
+    ]
+    latest_session = inventory.get("latest_session")
+    if latest_session is not None:
+        for key in ("task_id", "session_id", "timestamp", "event_type", "agent_status"):
+            lines.append(f"{key}: {latest_session.get(key, '')}")
+    lines.append("tasks:")
+    for row in inventory["tasks"]:
+        session_id = row.get("session_id") or "none"
+        lines.append(
+            f"{row['task_id']}: status={row['status']} session_id={session_id} "
+            f"iterations={row['iterations']} archived={row['archived']}"
+        )
+    return "\n".join(lines)
 
 
 def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:

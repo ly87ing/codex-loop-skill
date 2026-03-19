@@ -12,8 +12,10 @@ from .doctor import render_doctor_report, run_doctor
 from .hooks import HookRunner
 from .init_flow import initialize_project
 from .reporting import (
+    build_session_inventory,
     format_events_summary,
     format_events_timeline,
+    format_sessions_report,
     format_status_summary,
     load_events_timeline,
     summarize_events,
@@ -79,6 +81,26 @@ def _build_parser() -> argparse.ArgumentParser:
         "--summary",
         action="store_true",
         help="Print a concise human-readable summary instead of raw JSON.",
+    )
+
+    sessions_parser = subparsers.add_parser(
+        "sessions",
+        help="Inspect persisted Codex sessions for this workspace.",
+    )
+    sessions_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing .codex-loop/state.json.",
+    )
+    sessions_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
+    )
+    sessions_parser.add_argument(
+        "--latest",
+        action="store_true",
+        help="Only emit the latest known session payload.",
     )
 
     doctor_parser = subparsers.add_parser("doctor", help="Validate local loop files.")
@@ -261,6 +283,21 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 state = StateStore(project_dir / ".codex-loop" / "state.json").load()
                 print(json.dumps(state, indent=2, ensure_ascii=False))
+            return 0
+
+        if args.command == "sessions":
+            inventory = build_session_inventory(project_dir)
+            payload = inventory.get("latest_session") if args.latest else inventory
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                if args.latest:
+                    if payload is None:
+                        print("No sessions recorded.")
+                    else:
+                        print(json.dumps(payload, indent=2, ensure_ascii=False))
+                else:
+                    print(format_sessions_report(project_dir))
             return 0
 
         if args.command == "doctor":

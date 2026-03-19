@@ -30,6 +30,9 @@ class CliTests(unittest.TestCase):
             )
             store = StateStore(root / ".codex-loop" / "state.json")
             store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            state = store.load()
+            state["tasks"]["001-foundation"]["session_id"] = "session-001"
+            store.save(state)
             stdout = io.StringIO()
             stderr = io.StringIO()
 
@@ -40,6 +43,7 @@ class CliTests(unittest.TestCase):
             self.assertEqual(stderr.getvalue(), "")
             self.assertIn("demo", stdout.getvalue())
             self.assertIn("001-foundation", stdout.getvalue())
+            self.assertIn("current_task_session: session-001", stdout.getvalue())
 
     def test_logs_tail_prints_latest_log_lines(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -202,6 +206,87 @@ class CliTests(unittest.TestCase):
                 payload["latest_verification_failure"]["task_id"],
                 "001-foundation",
             )
+
+    def test_sessions_command_can_render_json_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            store.record_iteration(
+                task_id="001-foundation",
+                summary="Foundation iteration.",
+                fingerprint="001|continue",
+                files_changed=["src/foundation.py"],
+                verification_passed=False,
+                agent_status="continue",
+                session_id="session-001",
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "sessions",
+                        "--project-dir",
+                        str(root),
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["current_task"], "001-foundation")
+            self.assertEqual(payload["current_task_session"], "session-001")
+            self.assertEqual(payload["latest_session"]["session_id"], "session-001")
+
+    def test_sessions_command_can_emit_latest_session_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            store.record_iteration(
+                task_id="001-foundation",
+                summary="Foundation iteration.",
+                fingerprint="001|continue",
+                files_changed=["src/foundation.py"],
+                verification_passed=False,
+                agent_status="continue",
+                session_id="session-001",
+            )
+            store.record_iteration(
+                task_id="002-polish",
+                summary="Polish iteration.",
+                fingerprint="002|continue",
+                files_changed=["src/polish.py"],
+                verification_passed=False,
+                agent_status="continue",
+                session_id="session-002",
+            )
+            state = store.load()
+            state["history"][-2]["timestamp"] = "2026-03-19T00:00:00+00:00"
+            state["history"][-1]["timestamp"] = "2026-03-20T00:00:00+00:00"
+            store.save(state)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "sessions",
+                        "--project-dir",
+                        str(root),
+                        "--latest",
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["task_id"], "002-polish")
+            self.assertEqual(payload["session_id"], "session-002")
 
     def test_events_command_uses_config_default_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

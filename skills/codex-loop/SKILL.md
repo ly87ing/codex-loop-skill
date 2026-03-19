@@ -66,6 +66,8 @@ Run:
 
 ```bash
 codex-loop status --summary
+codex-loop sessions
+codex-loop sessions --latest --json
 codex-loop events --limit 20
 codex-loop events --summary --json
 codex-loop events --task-id 001-foundation --event-type iteration:continue --json
@@ -77,7 +79,8 @@ codex-loop cleanup --logs-keep 20 --prompts-older-than-days 30
 ```
 
 `status --summary` now includes key runtime counters from `.codex-loop/metrics.json`.
-When blocked, it also surfaces the latest `blocker_code` and reason.
+When blocked, it also surfaces the latest `blocker_code` and reason, and when a task has an active session it shows that too.
+`sessions` gives a workspace-scoped inventory of known task session ids and a `--latest` shortcut for the most recent session seen by the loop.
 `events` merges loop history with hook logs, can summarize the filtered set including blocker breakdowns plus latest runner or verification failures, and can export structured JSON to a file.
 `cleanup` defaults to dry-run and can combine config-driven retention, count-based limits, age thresholds, and per-directory overrides.
 `doctor --repair` can backfill missing operator defaults into older loop configs, and `doctor` warnings now suggest safer cleanup settings when defaults are destructive.
