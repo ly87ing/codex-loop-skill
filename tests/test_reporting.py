@@ -257,6 +257,18 @@ class ReportingTests(unittest.TestCase):
             root = Path(tmpdir)
             store = StateStore(root / ".codex-loop" / "state.json")
             store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            prompts_dir = root / ".codex-loop" / "prompts"
+            logs_dir = root / ".codex-loop" / "logs"
+            runs_dir = root / ".codex-loop" / "runs"
+            prompts_dir.mkdir(parents=True, exist_ok=True)
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            runs_dir.mkdir(parents=True, exist_ok=True)
+            (prompts_dir / "0001-001-foundation.txt").write_text("prompt 1", encoding="utf-8")
+            (logs_dir / "0001-001-foundation.jsonl").write_text("log 1", encoding="utf-8")
+            (runs_dir / "001-foundation-last.json").write_text("{}", encoding="utf-8")
+            (prompts_dir / "0002-002-polish.txt").write_text("prompt 2", encoding="utf-8")
+            (logs_dir / "0002-002-polish.jsonl").write_text("log 2", encoding="utf-8")
+            (runs_dir / "002-polish-last.json").write_text("{}", encoding="utf-8")
             store.record_iteration(
                 task_id="001-foundation",
                 summary="Foundation iteration.",
@@ -291,9 +303,27 @@ class ReportingTests(unittest.TestCase):
             self.assertEqual(inventory["current_task_session"], "session-001")
             self.assertEqual(inventory["latest_session"]["task_id"], "002-polish")
             self.assertEqual(inventory["latest_session"]["session_id"], "session-002")
+            self.assertEqual(
+                inventory["latest_session"]["artifacts"]["prompt"],
+                str((prompts_dir / "0002-002-polish.txt").resolve()),
+            )
+            self.assertEqual(
+                inventory["latest_session"]["artifacts"]["log"],
+                str((logs_dir / "0002-002-polish.jsonl").resolve()),
+            )
+            self.assertEqual(
+                inventory["latest_session"]["artifacts"]["run"],
+                str((runs_dir / "002-polish-last.json").resolve()),
+            )
+            first_task = inventory["tasks"][0]
+            self.assertEqual(
+                first_task["artifacts"]["prompt"],
+                str((prompts_dir / "0001-001-foundation.txt").resolve()),
+            )
             self.assertEqual(len(inventory["tasks"]), 2)
             self.assertIn("current_task_session: session-001", rendered)
             self.assertIn("latest_session:", rendered)
+            self.assertIn("prompt=", rendered)
 
 
 if __name__ == "__main__":

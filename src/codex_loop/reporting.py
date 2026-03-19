@@ -23,6 +23,41 @@ def _current_task_id(tasks: dict[str, dict[str, Any]]) -> str:
     )
 
 
+def _latest_task_artifact(
+    project_dir: Path,
+    *,
+    directory_name: str,
+    task_id: str,
+    pattern: str,
+) -> str | None:
+    directory = project_dir / ".codex-loop" / directory_name
+    if not directory.exists():
+        return None
+    candidates = sorted(directory.glob(pattern))
+    if not candidates:
+        return None
+    return str(candidates[-1])
+
+
+def _task_artifacts(project_dir: Path, task_id: str) -> dict[str, str | None]:
+    run_path = project_dir / ".codex-loop" / "runs" / f"{task_id}-last.json"
+    return {
+        "prompt": _latest_task_artifact(
+            project_dir,
+            directory_name="prompts",
+            task_id=task_id,
+            pattern=f"*-{task_id}.txt",
+        ),
+        "log": _latest_task_artifact(
+            project_dir,
+            directory_name="logs",
+            task_id=task_id,
+            pattern=f"*-{task_id}.jsonl",
+        ),
+        "run": str(run_path) if run_path.exists() else None,
+    }
+
+
 def format_status_summary(project_dir: Path) -> str:
     state = _load_state(project_dir)
     project_name = state.get("meta", {}).get("project_name", project_dir.name)
@@ -229,6 +264,7 @@ def format_events_timeline(
 
 
 def _iter_task_session_rows(
+    project_dir: Path,
     state: dict[str, Any],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
@@ -248,6 +284,7 @@ def _iter_task_session_rows(
                 ),
                 "resume_failure_reason": task_state.get("resume_failure_reason"),
                 "archived": False,
+                "artifacts": _task_artifacts(project_dir, task_id),
             }
         )
     for task_id, task_state in archived_tasks.items():
@@ -264,6 +301,7 @@ def _iter_task_session_rows(
                 ),
                 "resume_failure_reason": task_state.get("resume_failure_reason"),
                 "archived": True,
+                "artifacts": _task_artifacts(project_dir, task_id),
             }
         )
     rows.sort(key=lambda row: str(row.get("task_id", "")))
@@ -271,11 +309,12 @@ def _iter_task_session_rows(
 
 
 def build_session_inventory(project_dir: Path) -> dict[str, Any]:
+    project_dir = project_dir.resolve()
     state = _load_state(project_dir)
     tasks = state.get("tasks", {})
     current_task = _current_task_id(tasks) if tasks else "none"
     current_task_state = tasks.get(current_task, {}) if current_task != "none" else {}
-    rows = _iter_task_session_rows(state)
+    rows = _iter_task_session_rows(project_dir, state)
     latest_session: dict[str, Any] | None = None
     for entry in state.get("history", []):
         session_id = entry.get("session_id")
@@ -288,6 +327,7 @@ def build_session_inventory(project_dir: Path) -> dict[str, Any]:
             "event_type": entry.get("event_type"),
             "agent_status": entry.get("agent_status"),
             "summary": entry.get("summary"),
+            "artifacts": _task_artifacts(project_dir, str(entry.get("task_id"))),
         }
         if latest_session is None or str(candidate.get("timestamp", "")) >= str(
             latest_session.get("timestamp", "")
@@ -307,6 +347,7 @@ def build_session_inventory(project_dir: Path) -> dict[str, Any]:
                 "event_type": "task_state",
                 "agent_status": last_row.get("status"),
                 "summary": last_row.get("last_summary"),
+                "artifacts": dict(last_row.get("artifacts", {})),
             }
     return {
         "project_name": state.get("meta", {}).get("project_name", project_dir.name),
@@ -331,12 +372,19 @@ def format_sessions_report(project_dir: Path) -> str:
     if latest_session is not None:
         for key in ("task_id", "session_id", "timestamp", "event_type", "agent_status"):
             lines.append(f"{key}: {latest_session.get(key, '')}")
+        artifacts = latest_session.get("artifacts", {})
+        for key in ("prompt", "log", "run"):
+            lines.append(f"{key}: {artifacts.get(key) or 'none'}")
     lines.append("tasks:")
     for row in inventory["tasks"]:
         session_id = row.get("session_id") or "none"
+        artifacts = row.get("artifacts", {})
         lines.append(
             f"{row['task_id']}: status={row['status']} session_id={session_id} "
-            f"iterations={row['iterations']} archived={row['archived']}"
+            f"iterations={row['iterations']} archived={row['archived']} "
+            f"prompt={artifacts.get('prompt') or 'none'} "
+            f"log={artifacts.get('log') or 'none'} "
+            f"run={artifacts.get('run') or 'none'}"
         )
     return "\n".join(lines)
 

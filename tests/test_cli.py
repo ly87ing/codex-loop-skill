@@ -288,6 +288,62 @@ class CliTests(unittest.TestCase):
             self.assertEqual(payload["task_id"], "002-polish")
             self.assertEqual(payload["session_id"], "session-002")
 
+    def test_sessions_command_can_filter_to_task_and_include_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            prompts_dir = root / ".codex-loop" / "prompts"
+            logs_dir = root / ".codex-loop" / "logs"
+            runs_dir = root / ".codex-loop" / "runs"
+            prompts_dir.mkdir(parents=True, exist_ok=True)
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            runs_dir.mkdir(parents=True, exist_ok=True)
+            (prompts_dir / "0001-001-foundation.txt").write_text("prompt 1", encoding="utf-8")
+            (logs_dir / "0001-001-foundation.jsonl").write_text("log 1", encoding="utf-8")
+            (runs_dir / "001-foundation-last.json").write_text("{}", encoding="utf-8")
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            store.record_iteration(
+                task_id="001-foundation",
+                summary="Foundation iteration.",
+                fingerprint="001|continue",
+                files_changed=["src/foundation.py"],
+                verification_passed=False,
+                agent_status="continue",
+                session_id="session-001",
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "sessions",
+                        "--project-dir",
+                        str(root),
+                        "--task-id",
+                        "001-foundation",
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["task_id"], "001-foundation")
+            self.assertEqual(payload["session_id"], "session-001")
+            self.assertEqual(
+                payload["artifacts"]["prompt"],
+                str((prompts_dir / "0001-001-foundation.txt").resolve()),
+            )
+            self.assertEqual(
+                payload["artifacts"]["log"],
+                str((logs_dir / "0001-001-foundation.jsonl").resolve()),
+            )
+            self.assertEqual(
+                payload["artifacts"]["run"],
+                str((runs_dir / "001-foundation-last.json").resolve()),
+            )
+
     def test_events_command_uses_config_default_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

@@ -102,6 +102,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Only emit the latest known session payload.",
     )
+    sessions_parser.add_argument(
+        "--task-id",
+        default=None,
+        help="Optional task id filter, for example 001-foundation.",
+    )
 
     doctor_parser = subparsers.add_parser("doctor", help="Validate local loop files.")
     doctor_parser.add_argument(
@@ -287,11 +292,25 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "sessions":
             inventory = build_session_inventory(project_dir)
-            payload = inventory.get("latest_session") if args.latest else inventory
+            if args.task_id is not None:
+                payload = next(
+                    (
+                        row
+                        for row in inventory.get("tasks", [])
+                        if row.get("task_id") == args.task_id
+                    ),
+                    None,
+                )
+                if payload is None:
+                    raise ValueError(f"Unknown task id for sessions view: {args.task_id}")
+            else:
+                payload = inventory.get("latest_session") if args.latest else inventory
             if args.json:
                 print(json.dumps(payload, indent=2, ensure_ascii=False))
             else:
-                if args.latest:
+                if args.task_id is not None:
+                    print(json.dumps(payload, indent=2, ensure_ascii=False))
+                elif args.latest:
                     if payload is None:
                         print("No sessions recorded.")
                     else:
