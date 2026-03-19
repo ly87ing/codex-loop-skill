@@ -23,13 +23,15 @@
   - starts a detached local watchdog around `run --continuous`
   - writes `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, and `.codex-loop/daemon-watchdog.json`
   - restarts the worker when the child exits unexpectedly or the heartbeat goes stale
-  - reports pid, phase, cycle, restart count, heartbeat staleness, and log path for operator inspection
+  - applies a bounded restart policy with backoff so crash loops do not respawn forever without visibility
+  - reports pid, phase, cycle, restart policy, restart count, heartbeat staleness, and log path for operator inspection
 - `codex-loop service install|status|uninstall`:
   - installs a per-project macOS `launchd` agent under `~/Library/LaunchAgents`
   - keeps the loop alive across shell exits and future logins with `RunAtLoad` and `KeepAlive`
   - writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, `.codex-loop/service-watchdog.json`, and `.codex-loop/service.log`
   - preserves `PATH`, `HOME`, `SHELL`, and `CODEX_HOME` for the long-running service process
   - refuses to install while a local `daemon` worker is already running, to avoid dual writers against the same loop state
+  - confirms the job is actually unloaded before cleaning local metadata on uninstall
 - `.codex-loop/metrics.json`:
   - persists aggregate counters such as iterations, runner failures, verification failures, resume fallbacks, and blocker summaries
 - `codex-loop doctor --repair`:
@@ -186,8 +188,8 @@ The loop stops with `blocked` when:
 
 - `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks, plus the current task session id when one exists.
 - `run --continuous --retry-blocked` is the current fastest path to a long-lived local worker: it wraps the normal run loop, requeues blocked tasks between cycles, and keeps going until completed or a cycle limit is reached.
-- `daemon start|status|stop` now runs through a detached watchdog parent, with `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, `.codex-loop/daemon-watchdog.json`, and `.codex-loop/daemon.log`; `status` surfaces dead-process and stale-heartbeat detection plus restart counters.
-- `service install|status|uninstall` is the macOS path for real unattended persistence: it installs a `launchd` agent, writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, `.codex-loop/service-watchdog.json`, and `.codex-loop/service.log`, preserves enough environment for the loop to keep finding the local Codex CLI after terminal sessions end, reports `healthy` plus `missing_heartbeat`, and now tracks watchdog restart counters too.
+- `daemon start|status|stop` now runs through a detached watchdog parent, with `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, `.codex-loop/daemon-watchdog.json`, and `.codex-loop/daemon.log`; `status` surfaces dead-process and stale-heartbeat detection plus restart counters and restart policy, while `stop` waits for the watchdog to really exit before deleting metadata.
+- `service install|status|uninstall` is the macOS path for real unattended persistence: it installs a `launchd` agent, writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, `.codex-loop/service-watchdog.json`, and `.codex-loop/service.log`, preserves enough environment for the loop to keep finding the local Codex CLI after terminal sessions end, reports `healthy` plus `missing_heartbeat`, tracks watchdog restart counters and restart policy, and now waits for `launchctl` unload confirmation before cleaning local metadata.
 - `daemon` and `service` are now intentionally mutually exclusive for the same project root; starting one while the other is active returns an error instead of risking conflicting writes into `.codex-loop/`.
 - `sessions` provides a workspace-scoped inventory of known Codex session ids per task, the latest `prompt/log/run` artifacts for each task, and a `--latest` view for the most recent resumable session seen by the loop.
 - `evidence` turns a selected task or latest session into a read-only evidence bundle with selection metadata, status/session snapshots, prompt preview, log tail, parsed run payload, recent task events, and optional `--output` or auto-named `--output-dir` export; directory exports also maintain a snapshot `index.json`.

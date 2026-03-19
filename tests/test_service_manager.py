@@ -97,6 +97,7 @@ class ServiceManagerTests(unittest.TestCase):
                 result["watchdog_path"],
                 str((root / ".codex-loop" / "service-watchdog.json").resolve()),
             )
+            self.assertEqual(result["max_restarts"], 10)
 
     def test_service_status_reports_loaded_heartbeat_and_domain(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -215,6 +216,64 @@ class ServiceManagerTests(unittest.TestCase):
             plist_path.parent.mkdir(parents=True, exist_ok=True)
             plist_path.write_bytes(plistlib.dumps({"Label": label}))
             metadata_path = loop_dir / "service.json"
+            heartbeat_path = loop_dir / "service-heartbeat.json"
+            watchdog_path = loop_dir / "service-watchdog.json"
+            heartbeat_path.write_text("{}", encoding="utf-8")
+            watchdog_path.write_text("{}", encoding="utf-8")
+            metadata_path.write_text(
+                json.dumps(
+                    {
+                        "label": label,
+                        "domain": "gui/501",
+                        "project_dir": str(root.resolve()),
+                        "plist_path": str(plist_path),
+                        "log_path": str((loop_dir / "service.log").resolve()),
+                        "heartbeat_path": str(heartbeat_path.resolve()),
+                        "watchdog_path": str(watchdog_path.resolve()),
+                    }
+                ),
+                encoding="utf-8",
+            )
+            fake_run = _FakeRun(
+                _CompletedProcess(returncode=0),
+                _CompletedProcess(returncode=1, stderr="Could not find service"),
+            )
+
+            result = uninstall_service(
+                root,
+                uid=501,
+                home_dir=home_dir,
+                platform="darwin",
+                run_cmd=fake_run,
+                sleep_fn=lambda seconds: None,
+            )
+
+            self.assertEqual(
+                fake_run.calls,
+                [
+                    ["launchctl", "bootout", "gui/501", str(plist_path)],
+                    ["launchctl", "print", f"gui/501/{label}"],
+                ],
+            )
+            self.assertFalse(plist_path.exists())
+            self.assertFalse(metadata_path.exists())
+            self.assertFalse(heartbeat_path.exists())
+            self.assertFalse(watchdog_path.exists())
+            self.assertEqual(result["label"], label)
+            self.assertEqual(result["plist_path"], str(plist_path))
+
+    def test_uninstall_service_raises_if_job_stays_loaded(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "project"
+            home_dir = Path(tmpdir) / "home"
+            root.mkdir(parents=True, exist_ok=True)
+            label = service_label(root)
+            loop_dir = root / ".codex-loop"
+            loop_dir.mkdir(parents=True, exist_ok=True)
+            plist_path = home_dir / "Library" / "LaunchAgents" / f"{label}.plist"
+            plist_path.parent.mkdir(parents=True, exist_ok=True)
+            plist_path.write_bytes(plistlib.dumps({"Label": label}))
+            metadata_path = loop_dir / "service.json"
             metadata_path.write_text(
                 json.dumps(
                     {
@@ -224,28 +283,29 @@ class ServiceManagerTests(unittest.TestCase):
                         "plist_path": str(plist_path),
                         "log_path": str((loop_dir / "service.log").resolve()),
                         "heartbeat_path": str((loop_dir / "service-heartbeat.json").resolve()),
+                        "watchdog_path": str((loop_dir / "service-watchdog.json").resolve()),
                     }
                 ),
                 encoding="utf-8",
             )
-            fake_run = _FakeRun(_CompletedProcess(returncode=0))
-
-            result = uninstall_service(
-                root,
-                uid=501,
-                home_dir=home_dir,
-                platform="darwin",
-                run_cmd=fake_run,
+            fake_run = _FakeRun(
+                _CompletedProcess(returncode=0),
+                _CompletedProcess(returncode=0, stdout="still loaded"),
             )
 
-            self.assertEqual(
-                fake_run.calls,
-                [["launchctl", "bootout", "gui/501", str(plist_path)]],
-            )
-            self.assertFalse(plist_path.exists())
-            self.assertFalse(metadata_path.exists())
-            self.assertEqual(result["label"], label)
-            self.assertEqual(result["plist_path"], str(plist_path))
+            with self.assertRaisesRegex(RuntimeError, "still loaded"):
+                uninstall_service(
+                    root,
+                    uid=501,
+                    home_dir=home_dir,
+                    platform="darwin",
+                    run_cmd=fake_run,
+                    sleep_fn=lambda seconds: None,
+                    wait_timeout_seconds=0.0,
+                )
+
+            self.assertTrue(plist_path.exists())
+            self.assertTrue(metadata_path.exists())
 
 
 if __name__ == "__main__":

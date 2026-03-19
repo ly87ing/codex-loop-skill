@@ -15,6 +15,7 @@ DEFAULT_STALE_AFTER_SECONDS = 300.0
 DEFAULT_POLL_INTERVAL_SECONDS = 5.0
 DEFAULT_RESTART_BACKOFF_SECONDS = 5.0
 DEFAULT_TERMINATE_TIMEOUT_SECONDS = 10.0
+DEFAULT_MAX_RESTARTS = 10
 
 
 def _now() -> str:
@@ -79,6 +80,7 @@ def build_watchdog_command(
     poll_interval_seconds: float = DEFAULT_POLL_INTERVAL_SECONDS,
     restart_backoff_seconds: float = DEFAULT_RESTART_BACKOFF_SECONDS,
     terminate_timeout_seconds: float = DEFAULT_TERMINATE_TIMEOUT_SECONDS,
+    max_restarts: int | None = DEFAULT_MAX_RESTARTS,
 ) -> list[str]:
     command = [
         sys.executable,
@@ -106,6 +108,8 @@ def build_watchdog_command(
         command.append("--retry-blocked")
     if max_cycles is not None:
         command.extend(["--max-cycles", str(max_cycles)])
+    if max_restarts is not None:
+        command.extend(["--max-restarts", str(max_restarts)])
     return command
 
 

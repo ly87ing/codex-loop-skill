@@ -7,9 +7,14 @@ from pathlib import Path
 import signal
 import subprocess
 import sys
+import time
 from typing import Any, Callable
 
-from .watchdog_manager import build_watchdog_command
+from .watchdog_manager import (
+    DEFAULT_MAX_RESTARTS,
+    DEFAULT_RESTART_BACKOFF_SECONDS,
+    build_watchdog_command,
+)
 
 
 def _now() -> str:
@@ -117,6 +122,8 @@ def start_daemon(
         "retry_blocked": retry_blocked,
         "cycle_sleep_seconds": cycle_sleep_seconds,
         "max_cycles": max_cycles,
+        "max_restarts": DEFAULT_MAX_RESTARTS,
+        "restart_backoff_seconds": DEFAULT_RESTART_BACKOFF_SECONDS,
         "heartbeat_stale_seconds": 300,
     }
     _write_json(paths["metadata"], metadata)
@@ -173,6 +180,8 @@ def daemon_status(
         "retry_blocked": metadata.get("retry_blocked", False),
         "cycle_sleep_seconds": metadata.get("cycle_sleep_seconds"),
         "max_cycles": metadata.get("max_cycles"),
+        "max_restarts": metadata.get("max_restarts"),
+        "restart_backoff_seconds": metadata.get("restart_backoff_seconds"),
         "heartbeat_stale_seconds": heartbeat_stale_seconds,
         "stale_heartbeat": stale_heartbeat,
         "dead_process": not running,
@@ -196,6 +205,9 @@ def stop_daemon(
     *,
     kill_fn: Callable[[int, int], None] = os.kill,
     pid_alive_fn: Callable[[int], bool] = _pid_alive,
+    sleep_fn: Callable[[float], None] | None = None,
+    wait_timeout_seconds: float = 10.0,
+    poll_interval_seconds: float = 0.2,
 ) -> dict[str, Any]:
     project_dir = project_dir.resolve()
     paths = daemon_paths(project_dir)
@@ -206,10 +218,20 @@ def stop_daemon(
 
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     pid = int(metadata.get("pid", -1))
+    sleep = sleep_fn or time.sleep
     if pid_alive_fn(pid):
         kill_fn(pid, signal.SIGTERM)
+        deadline = time.monotonic() + wait_timeout_seconds
+        while pid_alive_fn(pid):
+            if time.monotonic() > deadline:
+                raise RuntimeError(
+                    f"codex-loop daemon watchdog pid={pid} did not exit within {wait_timeout_seconds} seconds."
+                )
+            sleep(poll_interval_seconds)
 
     metadata_path.unlink(missing_ok=True)
+    Path(metadata.get("watchdog_path", paths["watchdog"])).unlink(missing_ok=True)
+    Path(metadata.get("heartbeat_path", paths["heartbeat"])).unlink(missing_ok=True)
     return {
         "pid": pid,
         "signal": "SIGTERM",

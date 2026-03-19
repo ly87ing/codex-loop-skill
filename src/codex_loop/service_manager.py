@@ -9,10 +9,15 @@ import plistlib
 import re
 import subprocess
 import sys
+import time
 from typing import Any, Callable
 
 from .daemon_manager import _parse_timestamp, _write_json
-from .watchdog_manager import build_watchdog_command
+from .watchdog_manager import (
+    DEFAULT_MAX_RESTARTS,
+    DEFAULT_RESTART_BACKOFF_SECONDS,
+    build_watchdog_command,
+)
 
 
 DEFAULT_HEARTBEAT_STALE_SECONDS = 300
@@ -206,6 +211,8 @@ def install_service(
         "retry_blocked": retry_blocked,
         "cycle_sleep_seconds": cycle_sleep_seconds,
         "max_cycles": max_cycles,
+        "max_restarts": DEFAULT_MAX_RESTARTS,
+        "restart_backoff_seconds": DEFAULT_RESTART_BACKOFF_SECONDS,
         "heartbeat_stale_seconds": DEFAULT_HEARTBEAT_STALE_SECONDS,
         "reinstalled": reinstalled,
     }
@@ -278,6 +285,8 @@ def service_status(
         "retry_blocked": metadata.get("retry_blocked", False),
         "cycle_sleep_seconds": metadata.get("cycle_sleep_seconds"),
         "max_cycles": metadata.get("max_cycles"),
+        "max_restarts": metadata.get("max_restarts"),
+        "restart_backoff_seconds": metadata.get("restart_backoff_seconds"),
         "heartbeat_stale_seconds": heartbeat_stale_seconds,
         "stale_heartbeat": stale_heartbeat,
         "phase": heartbeat.get("phase"),
@@ -304,6 +313,9 @@ def uninstall_service(
     home_dir: Path | None = None,
     platform: str = sys.platform,
     run_cmd: Callable[..., Any] = subprocess.run,
+    sleep_fn: Callable[[float], None] | None = None,
+    wait_timeout_seconds: float = 10.0,
+    poll_interval_seconds: float = 0.2,
 ) -> dict[str, Any]:
     _require_darwin(platform)
     project_dir = project_dir.resolve()
@@ -314,6 +326,7 @@ def uninstall_service(
     plist_path = Path(metadata.get("plist_path", paths["plist"]))
     if not paths["metadata"].exists() and not plist_path.exists():
         raise RuntimeError(f"No service metadata found for {project_dir}")
+    sleep = sleep_fn or time.sleep
 
     if plist_path.exists():
         _bootout_service(
@@ -323,8 +336,25 @@ def uninstall_service(
             plist_path=plist_path,
             ignore_missing=True,
         )
+        deadline = time.monotonic() + wait_timeout_seconds
+        while True:
+            result = run_cmd(
+                [launchctl_cmd, "print", f"{domain}/{label}"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode != 0 or _launchctl_missing(result):
+                break
+            if time.monotonic() > deadline:
+                raise RuntimeError(
+                    f"codex-loop service {label} is still loaded after {wait_timeout_seconds} seconds."
+                )
+            sleep(poll_interval_seconds)
         plist_path.unlink(missing_ok=True)
     paths["metadata"].unlink(missing_ok=True)
+    Path(metadata.get("watchdog_path", paths["watchdog"])).unlink(missing_ok=True)
+    Path(metadata.get("heartbeat_path", paths["heartbeat"])).unlink(missing_ok=True)
     return {
         "label": label,
         "domain": domain,

@@ -106,13 +106,18 @@ class DaemonManagerTests(unittest.TestCase):
             loop_dir = root / ".codex-loop"
             loop_dir.mkdir(parents=True, exist_ok=True)
             metadata_path = loop_dir / "daemon.json"
+            watchdog_path = loop_dir / "daemon-watchdog.json"
+            heartbeat_path = loop_dir / "daemon-heartbeat.json"
+            watchdog_path.write_text("{}", encoding="utf-8")
+            heartbeat_path.write_text("{}", encoding="utf-8")
             metadata_path.write_text(
                 json.dumps(
                     {
                         "pid": 43210,
                         "started_at": "2026-03-19T00:00:00+00:00",
                         "log_path": str(loop_dir / "daemon.log"),
-                        "heartbeat_path": str(loop_dir / "daemon-heartbeat.json"),
+                        "heartbeat_path": str(heartbeat_path),
+                        "watchdog_path": str(watchdog_path),
                         "command": ["python3", "-m", "codex_loop", "run"],
                         "retry_blocked": True,
                         "cycle_sleep_seconds": 60.0,
@@ -122,17 +127,53 @@ class DaemonManagerTests(unittest.TestCase):
                 encoding="utf-8",
             )
             signalled: list[tuple[int, int]] = []
+            pid_checks = iter([True, False])
 
             result = stop_daemon(
                 root,
                 kill_fn=lambda pid, sig: signalled.append((pid, sig)),
-                pid_alive_fn=lambda pid: pid == 43210,
+                pid_alive_fn=lambda pid: next(pid_checks),
+                sleep_fn=lambda seconds: None,
             )
 
             self.assertEqual(signalled, [(43210, 15)])
             self.assertFalse(metadata_path.exists())
+            self.assertFalse(watchdog_path.exists())
+            self.assertFalse(heartbeat_path.exists())
             self.assertEqual(result["pid"], 43210)
             self.assertEqual(result["signal"], "SIGTERM")
+
+    def test_stop_daemon_raises_if_watchdog_does_not_exit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            loop_dir = root / ".codex-loop"
+            loop_dir.mkdir(parents=True, exist_ok=True)
+            metadata_path = loop_dir / "daemon.json"
+            metadata_path.write_text(
+                json.dumps(
+                    {
+                        "pid": 43210,
+                        "started_at": "2026-03-19T00:00:00+00:00",
+                        "log_path": str(loop_dir / "daemon.log"),
+                        "heartbeat_path": str(loop_dir / "daemon-heartbeat.json"),
+                        "watchdog_path": str(loop_dir / "daemon-watchdog.json"),
+                    }
+                ),
+                encoding="utf-8",
+            )
+            signalled: list[tuple[int, int]] = []
+
+            with self.assertRaisesRegex(RuntimeError, "did not exit"):
+                stop_daemon(
+                    root,
+                    kill_fn=lambda pid, sig: signalled.append((pid, sig)),
+                    pid_alive_fn=lambda pid: True,
+                    sleep_fn=lambda seconds: None,
+                    wait_timeout_seconds=0.0,
+                )
+
+            self.assertEqual(signalled, [(43210, 15)])
+            self.assertTrue(metadata_path.exists())
 
     def test_daemon_status_marks_stale_heartbeat(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
