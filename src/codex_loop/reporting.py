@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import json
 from pathlib import Path
 from typing import Any
@@ -87,6 +88,11 @@ def _format_event(event: dict[str, Any]) -> str:
     return f"{timestamp} {label}{task_fragment} {summary}".rstrip()
 
 
+def _parse_timestamp(value: str) -> datetime:
+    normalized = value.replace("Z", "+00:00")
+    return datetime.fromisoformat(normalized)
+
+
 def _iter_hook_events(project_dir: Path) -> list[dict[str, Any]]:
     hooks_dir = project_dir / ".codex-loop" / "hooks"
     if not hooks_dir.exists():
@@ -121,6 +127,8 @@ def load_events_timeline(
     limit: int = 20,
     task_id: str | None = None,
     event_type: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
 ) -> list[dict[str, Any]]:
     state_path = project_dir / ".codex-loop" / "state.json"
     if not state_path.exists():
@@ -150,6 +158,21 @@ def load_events_timeline(
             for entry in combined
             if entry.get("label") == event_type or entry.get("event_type") == event_type
         ]
+    if since is not None or until is not None:
+        since_ts = _parse_timestamp(since) if since is not None else None
+        until_ts = _parse_timestamp(until) if until is not None else None
+        filtered: list[dict[str, Any]] = []
+        for entry in combined:
+            try:
+                event_ts = _parse_timestamp(str(entry.get("timestamp", "")))
+            except ValueError:
+                continue
+            if since_ts is not None and event_ts < since_ts:
+                continue
+            if until_ts is not None and event_ts > until_ts:
+                continue
+            filtered.append(entry)
+        combined = filtered
     if not combined:
         return []
     combined.sort(
@@ -169,12 +192,16 @@ def format_events_timeline(
     limit: int = 20,
     task_id: str | None = None,
     event_type: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
 ) -> str:
     events = load_events_timeline(
         project_dir,
         limit=limit,
         task_id=task_id,
         event_type=event_type,
+        since=since,
+        until=until,
     )
     if not events:
         return "No events recorded."

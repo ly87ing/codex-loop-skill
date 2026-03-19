@@ -96,6 +96,38 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("iteration:continue", rendered)
             self.assertNotIn("runner_failure", rendered)
 
+    def test_events_timeline_can_filter_by_time_range(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            store.record_runner_failure(
+                task_id="001-foundation",
+                reason="runner failed once",
+            )
+            store.record_iteration(
+                task_id="002-polish",
+                summary="Updated polish layer",
+                fingerprint="002|continue",
+                files_changed=["src/polish.py"],
+                verification_passed=False,
+                agent_status="continue",
+            )
+            state = store.load()
+            state["history"][0]["timestamp"] = "2026-03-18T00:00:00+00:00"
+            state["history"][1]["timestamp"] = "2026-03-20T00:00:00+00:00"
+            store.save(state)
+
+            events = load_events_timeline(
+                root,
+                limit=10,
+                since="2026-03-19T00:00:00+00:00",
+                until="2026-03-21T00:00:00+00:00",
+            )
+
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0]["task_id"], "002-polish")
+
 
 if __name__ == "__main__":
     unittest.main()

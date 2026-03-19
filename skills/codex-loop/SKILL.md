@@ -68,15 +68,17 @@ Run:
 codex-loop status --summary
 codex-loop events --limit 20
 codex-loop events --task-id 001-foundation --event-type iteration:continue --json
+codex-loop events --since 2026-03-19T00:00:00+00:00 --until 2026-03-20T00:00:00+00:00 --output ./events.json
 codex-loop logs tail --lines 20
 codex-loop cleanup --keep 10
 codex-loop cleanup --apply --keep 10 --older-than-days 14
+codex-loop cleanup --logs-keep 20 --prompts-older-than-days 30
 ```
 
 `status --summary` now includes key runtime counters from `.codex-loop/metrics.json`.
 When blocked, it also surfaces the latest `blocker_code` and reason.
-`events` merges loop history with hook logs and can filter or export structured JSON.
-`cleanup` defaults to dry-run and can combine count-based retention with age thresholds.
+`events` merges loop history with hook logs and can filter by task, type, or time range, then export structured JSON to a file.
+`cleanup` defaults to dry-run and can combine count-based retention with age thresholds, including per-directory overrides.
 
 ## Key Rules
 

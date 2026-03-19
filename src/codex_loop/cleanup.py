@@ -8,6 +8,8 @@ import subprocess
 from .git_ops import remove_worktree, resolve_repo_root
 from .state_store import StateStore
 
+ARTIFACT_DIR_NAMES = ("logs", "runs", "prompts")
+
 
 @dataclass(slots=True)
 class CleanupReport:
@@ -20,11 +22,7 @@ class CleanupReport:
 
 def _artifact_directories(project_dir: Path) -> list[Path]:
     base = project_dir / ".codex-loop"
-    return [
-        base / "logs",
-        base / "runs",
-        base / "prompts",
-    ]
+    return [base / name for name in ARTIFACT_DIR_NAMES]
 
 
 def _relative_to_project(project_dir: Path, path: Path) -> str:
@@ -51,6 +49,7 @@ def _is_older_than(
 
 def _cleanup_directory(
     project_dir: Path,
+    directory_name: str,
     directory: Path,
     *,
     keep: int,
@@ -91,14 +90,23 @@ def run_cleanup(
     older_than_days: int | None = None,
     remove_worktrees: bool,
     now_timestamp: float | None = None,
+    directory_keep: dict[str, int] | None = None,
+    directory_older_than_days: dict[str, int] | None = None,
 ) -> CleanupReport:
     report = CleanupReport(dry_run=not apply)
-    for directory in _artifact_directories(project_dir):
+    keep_overrides = directory_keep or {}
+    age_overrides = directory_older_than_days or {}
+    for directory_name, directory in zip(
+        ARTIFACT_DIR_NAMES,
+        _artifact_directories(project_dir),
+        strict=True,
+    ):
         _cleanup_directory(
             project_dir,
+            directory_name,
             directory,
-            keep=keep,
-            older_than_days=older_than_days,
+            keep=keep_overrides.get(directory_name, keep),
+            older_than_days=age_overrides.get(directory_name, older_than_days),
             now_timestamp=now_timestamp,
             apply=apply,
             report=report,

@@ -21,6 +21,24 @@ from .run_flow import run_project
 from .state_store import StateStore
 
 
+def _collect_cleanup_overrides(args: argparse.Namespace) -> tuple[dict[str, int], dict[str, int]]:
+    keep_overrides: dict[str, int] = {}
+    age_overrides: dict[str, int] = {}
+    for directory_name in ("logs", "runs", "prompts"):
+        keep_value = getattr(args, f"{directory_name}_keep", None)
+        if keep_value is not None:
+            keep_overrides[directory_name] = keep_value
+        age_value = getattr(args, f"{directory_name}_older_than_days", None)
+        if age_value is not None:
+            age_overrides[directory_name] = age_value
+    return keep_overrides, age_overrides
+
+
+def _write_output_file(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="codex-loop")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -93,12 +111,27 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Emit structured JSON instead of formatted text.",
     )
+    events_parser.add_argument(
+        "--since",
+        default=None,
+        help="Optional lower inclusive ISO timestamp bound.",
+    )
+    events_parser.add_argument(
+        "--until",
+        default=None,
+        help="Optional upper inclusive ISO timestamp bound.",
+    )
+    events_parser.add_argument(
+        "--output",
+        default=None,
+        help="Optional file path to write the rendered events payload.",
+    )
 
     cleanup_parser = subparsers.add_parser("cleanup", help="Prune old local loop artifacts.")
     cleanup_parser.add_argument(
         "--project-dir",
         default=".",
-        help="Project directory containing .codex-loop/ state.",
+        help="Project directory containing .codex-loop state.",
     )
     cleanup_parser.add_argument(
         "--keep",
@@ -121,6 +154,32 @@ def _build_parser() -> argparse.ArgumentParser:
         "--no-worktrees",
         action="store_true",
         help="Do not remove stale .codex-loop worktrees.",
+    )
+    cleanup_parser.add_argument("--logs-keep", type=int, default=None, help="Override keep count for logs.")
+    cleanup_parser.add_argument("--runs-keep", type=int, default=None, help="Override keep count for runs.")
+    cleanup_parser.add_argument(
+        "--prompts-keep",
+        type=int,
+        default=None,
+        help="Override keep count for prompts.",
+    )
+    cleanup_parser.add_argument(
+        "--logs-older-than-days",
+        type=int,
+        default=None,
+        help="Override age threshold for logs.",
+    )
+    cleanup_parser.add_argument(
+        "--runs-older-than-days",
+        type=int,
+        default=None,
+        help="Override age threshold for runs.",
+    )
+    cleanup_parser.add_argument(
+        "--prompts-older-than-days",
+        type=int,
+        default=None,
+        help="Override age threshold for prompts.",
     )
 
     logs_parser = subparsers.add_parser("logs", help="Inspect persisted loop logs.")
@@ -196,39 +255,54 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "events":
+            events = load_events_timeline(
+                project_dir,
+                limit=args.limit,
+                task_id=args.task_id,
+                event_type=args.event_type,
+                since=args.since,
+                until=args.until,
+            )
             if args.json:
-                print(
-                    json.dumps(
-                        load_events_timeline(
-                            project_dir,
-                            limit=args.limit,
-                            task_id=args.task_id,
-                            event_type=args.event_type,
-                        ),
-                        indent=2,
-                        ensure_ascii=False,
-                    )
+                rendered = json.dumps(
+                    events,
+                    indent=2,
+                    ensure_ascii=False,
                 )
             else:
-                print(
-                    format_events_timeline(
-                        project_dir,
-                        limit=args.limit,
-                        task_id=args.task_id,
-                        event_type=args.event_type,
-                    )
+                rendered = format_events_timeline(
+                    project_dir,
+                    limit=args.limit,
+                    task_id=args.task_id,
+                    event_type=args.event_type,
+                    since=args.since,
+                    until=args.until,
                 )
+            if args.output:
+                output_path = Path(args.output).resolve()
+                _write_output_file(output_path, rendered)
+                print(f"Wrote events to {output_path}")
+            else:
+                print(rendered)
             return 0
 
         if args.command == "cleanup":
+            keep_overrides, age_overrides = _collect_cleanup_overrides(args)
+            cleanup_kwargs = {
+                "apply": args.apply,
+                "keep": args.keep,
+                "older_than_days": args.older_than_days,
+                "remove_worktrees": not args.no_worktrees,
+            }
+            if keep_overrides:
+                cleanup_kwargs["directory_keep"] = keep_overrides
+            if age_overrides:
+                cleanup_kwargs["directory_older_than_days"] = age_overrides
             print(
                 render_cleanup_report(
                     run_cleanup(
                         project_dir,
-                        apply=args.apply,
-                        keep=args.keep,
-                        older_than_days=args.older_than_days,
-                        remove_worktrees=not args.no_worktrees,
+                        **cleanup_kwargs,
                     )
                 )
             )

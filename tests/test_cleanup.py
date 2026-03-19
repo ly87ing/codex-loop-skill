@@ -83,6 +83,54 @@ class CleanupTests(unittest.TestCase):
             self.assertFalse(old_log.exists())
             self.assertTrue(new_log.exists())
 
+    def test_cleanup_respects_directory_specific_retention_overrides(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            state_store = StateStore(root / ".codex-loop" / "state.json")
+            state_store.create_initial("demo", "Build demo", ["001-foundation"])
+
+            logs_dir = root / ".codex-loop" / "logs"
+            runs_dir = root / ".codex-loop" / "runs"
+            prompts_dir = root / ".codex-loop" / "prompts"
+            for directory in (logs_dir, runs_dir, prompts_dir):
+                directory.mkdir(parents=True, exist_ok=True)
+
+            log_file = logs_dir / "0001-log.txt"
+            run_file = runs_dir / "0001-run.txt"
+            prompt_old = prompts_dir / "0001-old.txt"
+            prompt_new = prompts_dir / "0002-new.txt"
+            log_file.write_text("log", encoding="utf-8")
+            run_file.write_text("run", encoding="utf-8")
+            prompt_old.write_text("old", encoding="utf-8")
+            prompt_new.write_text("new", encoding="utf-8")
+
+            old_timestamp = 1_700_000_000
+            new_timestamp = 1_800_000_000
+            os.utime(log_file, (new_timestamp, new_timestamp))
+            os.utime(run_file, (old_timestamp, old_timestamp))
+            os.utime(prompt_old, (old_timestamp, old_timestamp))
+            os.utime(prompt_new, (new_timestamp, new_timestamp))
+
+            report = run_cleanup(
+                root,
+                apply=True,
+                keep=0,
+                older_than_days=0,
+                remove_worktrees=False,
+                now_timestamp=1_800_000_000,
+                directory_keep={"logs": 1},
+                directory_older_than_days={"prompts": 365},
+            )
+
+            self.assertIn(".codex-loop/logs/0001-log.txt", report.kept)
+            self.assertIn(".codex-loop/runs/0001-run.txt", report.removed)
+            self.assertIn(".codex-loop/prompts/0001-old.txt", report.removed)
+            self.assertIn(".codex-loop/prompts/0002-new.txt", report.kept)
+            self.assertTrue(log_file.exists())
+            self.assertFalse(run_file.exists())
+            self.assertFalse(prompt_old.exists())
+            self.assertTrue(prompt_new.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
