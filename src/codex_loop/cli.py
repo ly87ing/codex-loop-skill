@@ -257,6 +257,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Only emit the latest snapshot entry.",
     )
     snapshots_parser.add_argument(
+        "--latest-blocked",
+        action="store_true",
+        help="Only emit the most recent blocked snapshot entry.",
+    )
+    snapshots_parser.add_argument(
         "--summary",
         action="store_true",
         help="Render a grouped summary instead of the raw snapshot list.",
@@ -533,6 +538,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "snapshots":
+            if args.latest and args.latest_blocked:
+                raise ValueError("Use either --latest or --latest-blocked, not both.")
             snapshot_dir = Path(args.snapshot_dir).resolve()
             payload = load_snapshots_index(
                 snapshot_dir,
@@ -544,6 +551,7 @@ def main(argv: list[str] | None = None) -> int:
                 sort_order=args.sort,
                 limit=args.limit,
                 latest=args.latest,
+                latest_blocked=args.latest_blocked,
             )
             if args.summary:
                 summary = summarize_snapshots(payload)
@@ -565,6 +573,7 @@ def main(argv: list[str] | None = None) -> int:
                         sort_order=args.sort,
                         limit=args.limit,
                         latest=args.latest,
+                        latest_blocked=args.latest_blocked,
                     )
             if args.output:
                 output_path = Path(args.output).resolve()

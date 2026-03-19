@@ -78,6 +78,12 @@ def _read_json_payload(path: str | None) -> Any:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def _is_blocked_snapshot(snapshot: dict[str, Any]) -> bool:
+    return bool(
+        snapshot.get("overall_status") == "blocked" or snapshot.get("last_blocker_code")
+    )
+
+
 def load_snapshots_index(
     snapshot_dir: Path,
     *,
@@ -89,7 +95,11 @@ def load_snapshots_index(
     sort_order: str = "oldest",
     limit: int | None = None,
     latest: bool = False,
+    latest_blocked: bool = False,
 ) -> list[dict[str, Any]]:
+    if latest and latest_blocked:
+        msg = "Use either latest or latest_blocked, not both."
+        raise ValueError(msg)
     index_path = snapshot_dir.resolve() / "index.json"
     if not index_path.exists():
         msg = f"No snapshot index found at {index_path}"
@@ -121,7 +131,10 @@ def load_snapshots_index(
             time_filtered.append(item)
         filtered = time_filtered
     filtered.sort(key=lambda item: str(item.get("generated_at", "")))
-    if latest:
+    if latest_blocked:
+        blocked = [item for item in filtered if _is_blocked_snapshot(item)]
+        filtered = blocked[-1:] if blocked else []
+    elif latest:
         filtered = filtered[-1:] if filtered else []
     elif limit is not None:
         filtered = filtered[-limit:]
@@ -141,6 +154,7 @@ def format_snapshots_report(
     sort_order: str = "oldest",
     limit: int | None = None,
     latest: bool = False,
+    latest_blocked: bool = False,
 ) -> str:
     snapshots = load_snapshots_index(
         snapshot_dir,
@@ -152,6 +166,7 @@ def format_snapshots_report(
         sort_order=sort_order,
         limit=limit,
         latest=latest,
+        latest_blocked=latest_blocked,
     )
     if not snapshots:
         return "No snapshots recorded."

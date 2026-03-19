@@ -630,6 +630,54 @@ class ReportingTests(unittest.TestCase):
             self.assertEqual(filtered[0]["task_id"], "002-polish")
             self.assertEqual(filtered[1]["task_id"], "001-foundation")
 
+    def test_snapshots_index_can_select_latest_blocked(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_dir = Path(tmpdir)
+            (snapshot_dir / "index.json").write_text(
+                json.dumps(
+                    {
+                        "snapshots": [
+                            {
+                                "generated_at": "2026-03-19T00:00:00+00:00",
+                                "task_id": "001-foundation",
+                                "selection": "task_id",
+                                "session_id": "session-001",
+                                "overall_status": "blocked",
+                                "current_task": "001-foundation",
+                                "last_blocker_code": "no_progress_limit",
+                                "snapshot_path": str(snapshot_dir / "one.json"),
+                            },
+                            {
+                                "generated_at": "2026-03-20T00:00:00+00:00",
+                                "task_id": "002-polish",
+                                "selection": "latest_session",
+                                "session_id": "session-002",
+                                "overall_status": "blocked",
+                                "current_task": "002-polish",
+                                "last_blocker_code": "runner_failure_limit",
+                                "snapshot_path": str(snapshot_dir / "two.json"),
+                            },
+                            {
+                                "generated_at": "2026-03-21T00:00:00+00:00",
+                                "task_id": "003-release",
+                                "selection": "latest_session",
+                                "session_id": "session-003",
+                                "overall_status": "completed",
+                                "current_task": "done",
+                                "last_blocker_code": None,
+                                "snapshot_path": str(snapshot_dir / "three.json"),
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            filtered = load_snapshots_index(snapshot_dir, latest_blocked=True)
+
+            self.assertEqual(len(filtered), 1)
+            self.assertEqual(filtered[0]["task_id"], "002-polish")
+
 
 if __name__ == "__main__":
     unittest.main()

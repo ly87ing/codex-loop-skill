@@ -71,6 +71,7 @@ Those warnings now include concrete remediation guidance so operators can tighte
 - `snapshots --snapshot-dir <dir> --status blocked --since ... --until ... [--json]` for answering recent blocked-snapshot questions without opening bundles individually
 - `snapshots --snapshot-dir <dir> --blocker-code no_progress_limit [--json]` for isolating one blocker family across exported snapshots
 - `snapshots --snapshot-dir <dir> --sort newest [--json]` for reading filtered snapshots in reverse chronological order
+- `snapshots --snapshot-dir <dir> --latest-blocked [--json]` for the most recent blocked snapshot after any other filters are applied
 - `snapshots --snapshot-dir <dir> ... --output <path>` for exporting a filtered list or summary after operator-side triage
 - `cleanup [--apply] --keep N [--older-than-days N]` for conservative local artifact and stale worktree pruning
 - `cleanup --logs-keep ... --runs-keep ... --prompts-older-than-days ...` for per-directory retention overrides
