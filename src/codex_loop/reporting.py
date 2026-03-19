@@ -144,6 +144,7 @@ def load_events_timeline(
                     "label": _history_label(entry),
                     "event_type": str(entry.get("event_type", "event")),
                     "task_id": entry.get("task_id"),
+                    "blocker_code": entry.get("blocker_code"),
                     "summary": str(entry.get("summary", "")).strip(),
                     "source": "history",
                 }
@@ -215,7 +216,10 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
         "by_label": {},
         "by_task": {},
         "by_source": {},
+        "by_blocker_code": {},
+        "blocked_tasks": [],
     }
+    blocked_seen: set[str] = set()
     for event in events:
         label = str(event.get("label", "unknown"))
         task_id = str(event.get("task_id", "none"))
@@ -223,15 +227,27 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
         summary["by_label"][label] = int(summary["by_label"].get(label, 0)) + 1
         summary["by_task"][task_id] = int(summary["by_task"].get(task_id, 0)) + 1
         summary["by_source"][source] = int(summary["by_source"].get(source, 0)) + 1
+        blocker_code = event.get("blocker_code")
+        if blocker_code:
+            blocker_key = str(blocker_code)
+            summary["by_blocker_code"][blocker_key] = (
+                int(summary["by_blocker_code"].get(blocker_key, 0)) + 1
+            )
+            if task_id != "none" and task_id not in blocked_seen:
+                blocked_seen.add(task_id)
+                summary["blocked_tasks"].append(task_id)
     return summary
 
 
 def format_events_summary(events: list[dict[str, Any]]) -> str:
     summary = summarize_events(events)
     lines = [f"total_events: {summary['total_events']}"]
-    for section_name in ("by_label", "by_task", "by_source"):
+    for section_name in ("by_label", "by_task", "by_source", "by_blocker_code"):
         lines.append(f"{section_name}:")
         entries = summary[section_name]
         for key in sorted(entries):
             lines.append(f"{key}: {entries[key]}")
+    lines.append("blocked_tasks:")
+    for task_id in summary["blocked_tasks"]:
+        lines.append(task_id)
     return "\n".join(lines)

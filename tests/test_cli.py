@@ -163,13 +163,10 @@ class CliTests(unittest.TestCase):
                 task_id="001-foundation",
                 reason="runner failed once",
             )
-            store.record_iteration(
-                task_id="002-polish",
-                summary="Changed files",
-                fingerprint="abc",
-                files_changed=["src/a.py"],
-                verification_passed=False,
-                agent_status="continue",
+            store.mark_blocked(
+                "002-polish",
+                reason="Reached no-progress limit.",
+                code="no_progress_limit",
             )
             stdout = io.StringIO()
             stderr = io.StringIO()
@@ -190,6 +187,7 @@ class CliTests(unittest.TestCase):
             payload = json.loads(stdout.getvalue())
             self.assertEqual(payload["total_events"], 2)
             self.assertEqual(payload["by_label"]["runner_failure"], 1)
+            self.assertEqual(payload["by_blocker_code"]["no_progress_limit"], 1)
 
     def test_events_command_uses_config_default_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

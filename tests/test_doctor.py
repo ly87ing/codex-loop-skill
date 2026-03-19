@@ -36,7 +36,7 @@ class DoctorTests(unittest.TestCase):
 
             self.assertTrue(report.fixed)
             self.assertIn(".codex-loop/agent_result.schema.json", report.fixed)
-            self.assertIn("tasks", report.fixed[1])
+            self.assertTrue(any("tasks" in item for item in report.fixed))
             repaired_state = json.loads((root / ".codex-loop" / "state.json").read_text())
             self.assertEqual(repaired_state["tasks"]["001-foundation"]["status"], "done")
             self.assertEqual(repaired_state["tasks"]["003-polish"]["status"], "ready")
@@ -45,6 +45,51 @@ class DoctorTests(unittest.TestCase):
                 (root / ".codex-loop" / "agent_result.schema.json").read_text()
             )
             self.assertEqual(schema["required"], AGENT_RESULT_SCHEMA["required"])
+
+    def test_repair_adds_missing_operator_defaults_to_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "tasks").mkdir(parents=True)
+            (root / "tasks" / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+            (root / "codex-loop.yaml").write_text(
+                json.dumps(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                        "verification": {"commands": ["python -m unittest"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            report = run_doctor(root, repair=True)
+
+            self.assertIn("codex-loop.yaml operator defaults", report.fixed)
+            config = json.loads((root / "codex-loop.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(config["operator"]["events"]["default_limit"], 20)
+            self.assertEqual(config["operator"]["cleanup"]["keep"], 10)
+
+    def test_doctor_reports_invalid_operator_config_as_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "tasks").mkdir(parents=True)
+            (root / "tasks" / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+            (root / "codex-loop.yaml").write_text(
+                json.dumps(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                        "verification": {"commands": ["python -m unittest"]},
+                        "operator": {"events": {"default_limit": 0}},
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            report = run_doctor(root, repair=False)
+
+            self.assertTrue(report.errors)
+            self.assertIn("operator.events.default_limit", report.errors[0])
 
 
 if __name__ == "__main__":

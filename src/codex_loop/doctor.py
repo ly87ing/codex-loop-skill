@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 import json
 from pathlib import Path
+from typing import Any
 
-from .config import CodexLoopConfig
+from .config import CodexLoopConfig, OperatorConfig, _load_yaml_or_json
 from .init_flow import AGENT_RESULT_SCHEMA
 from .state_store import StateStore
 from .task_graph import TaskGraph
@@ -18,10 +19,51 @@ class DoctorReport:
     errors: list[str] = field(default_factory=list)
 
 
+def _merge_missing_defaults(target: dict[str, Any], defaults: dict[str, Any]) -> bool:
+    changed = False
+    for key, value in defaults.items():
+        if key not in target:
+            target[key] = value
+            changed = True
+            continue
+        if isinstance(value, dict) and isinstance(target.get(key), dict):
+            if _merge_missing_defaults(target[key], value):
+                changed = True
+    return changed
+
+
 def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
-    config = CodexLoopConfig.from_file(project_dir / "codex-loop.yaml")
     report = DoctorReport()
+    config_path = project_dir / "codex-loop.yaml"
+    if not config_path.exists():
+        report.errors.append("Missing config file: codex-loop.yaml")
+        return report
+    raw_data = _load_yaml_or_json(config_path.read_text(encoding="utf-8"))
     report.checked.append("codex-loop.yaml")
+    operator_defaults = asdict(OperatorConfig())
+    working_data = json.loads(json.dumps(raw_data))
+    operator_data = working_data.get("operator")
+    operator_changed = False
+    if operator_data is None:
+        working_data["operator"] = operator_defaults
+        operator_changed = True
+    elif isinstance(operator_data, dict):
+        operator_changed = _merge_missing_defaults(operator_data, operator_defaults)
+    if operator_changed:
+        if repair:
+            config_path.write_text(
+                json.dumps(working_data, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            raw_data = working_data
+            report.fixed.append("codex-loop.yaml operator defaults")
+        else:
+            report.warnings.append("codex-loop.yaml is missing operator defaults")
+    try:
+        config = CodexLoopConfig.from_dict(raw_data, project_dir)
+    except (ValueError, TypeError, AttributeError) as exc:
+        report.errors.append(str(exc))
+        return report
 
     tasks_dir = project_dir / config.tasks.source_dir
     task_graph = TaskGraph(tasks_dir)

@@ -24,6 +24,7 @@
 - `codex-loop doctor --repair`:
   - recreates a missing agent result schema
   - reconciles task files with `.codex-loop/state.json`
+  - restores missing `operator.events` and `operator.cleanup` defaults in `codex-loop.yaml`
 - `codex-loop status --summary`, `codex-loop events`, and `codex-loop logs tail`:
   - provide concise operator-facing visibility during unattended runs
 - `codex-loop cleanup`:
@@ -139,10 +140,11 @@ The loop stops with `blocked` when:
 ## Operator Notes
 
 - `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks.
-- `events --summary` aggregates the filtered event set by label, task, and source before optional JSON/export handling.
+- `events --summary` aggregates the filtered event set by label, task, source, blocker code, and blocked task before optional JSON/export handling.
 - `events --limit N` merges `.codex-loop/state.json` history with hook execution logs into a readable timeline, and supports `--task-id`, `--event-type`, `--since`, `--until`, `--json`, and `--output` for focused inspection or export.
 - `cleanup` defaults to dry-run mode so operators can review what would be deleted before using `--apply`; its default retention policy now comes from `codex-loop.yaml`, and CLI flags such as `--keep`, `--older-than-days`, `--logs-keep`, or `--prompts-older-than-days` override config values per run.
 - `.codex-loop/metrics.json` includes blocker aggregates keyed by blocker code.
+- `doctor --repair` can backfill missing `operator` defaults into older projects so new CLI behavior does not depend on a manual config rewrite.
 
 ## Known Limits
 

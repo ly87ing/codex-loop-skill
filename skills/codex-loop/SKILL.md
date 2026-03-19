@@ -78,8 +78,9 @@ codex-loop cleanup --logs-keep 20 --prompts-older-than-days 30
 
 `status --summary` now includes key runtime counters from `.codex-loop/metrics.json`.
 When blocked, it also surfaces the latest `blocker_code` and reason.
-`events` merges loop history with hook logs, can summarize the filtered set, and can export structured JSON to a file.
+`events` merges loop history with hook logs, can summarize the filtered set including blocker breakdowns, and can export structured JSON to a file.
 `cleanup` defaults to dry-run and can combine config-driven retention, count-based limits, age thresholds, and per-directory overrides.
+`doctor --repair` can backfill missing operator defaults into older loop configs.
 
 ## Key Rules
 

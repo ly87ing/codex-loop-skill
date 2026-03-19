@@ -163,6 +163,26 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("total_events: 2", rendered)
             self.assertIn("iteration:continue: 1", rendered)
 
+    def test_events_summary_tracks_blocker_codes_and_blocked_tasks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            store.mark_blocked(
+                "001-foundation",
+                reason="Reached no-progress limit.",
+                code="no_progress_limit",
+            )
+
+            events = load_events_timeline(root, limit=10)
+            summary = summarize_events(events)
+            rendered = format_events_summary(events)
+
+            self.assertEqual(summary["by_blocker_code"]["no_progress_limit"], 1)
+            self.assertEqual(summary["blocked_tasks"], ["001-foundation"])
+            self.assertIn("by_blocker_code:", rendered)
+            self.assertIn("no_progress_limit: 1", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()

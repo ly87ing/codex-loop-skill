@@ -38,6 +38,7 @@ Those artifacts are written locally so future iterations do not depend on the or
 - `.codex-loop/agent_result.schema.json`
 
 When repair is enabled, it can recreate the schema and realign task state with the current task files.
+It can also backfill missing `operator.events` and `operator.cleanup` defaults in `codex-loop.yaml`.
 
 ## Hooks And Metrics
 
@@ -52,6 +53,7 @@ When repair is enabled, it can recreate the schema and realign task state with t
 - `status --summary` for the latest blocker code and reason
 - `events --limit N` for a merged timeline across loop history and hook logs
 - `events --summary` for grouped counts across the filtered event set
+- `events --summary` includes blocker-code counts and blocked task ids when blocked events exist
 - `events --task-id ... --event-type ... --json` for focused operator queries and export
 - `events --since ... --until ... --output <path>` for time-boxed exports
 - `cleanup [--apply] --keep N [--older-than-days N]` for conservative local artifact and stale worktree pruning
