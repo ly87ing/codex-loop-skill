@@ -203,10 +203,12 @@ def load_events_timeline(
         raise FileNotFoundError(msg)
     state = json.loads(state_path.read_text(encoding="utf-8"))
     combined: list[dict[str, Any]] = []
+    next_order = 0
     for entry in state.get("history", []):
         combined.append(
             (
                 {
+                    "_order": next_order,
                     "timestamp": str(entry.get("timestamp", "")),
                     "label": _history_label(entry),
                     "event_type": str(entry.get("event_type", "event")),
@@ -219,7 +221,13 @@ def load_events_timeline(
                 }
             )
         )
-    combined.extend(_iter_hook_events(project_dir))
+        next_order += 1
+    hook_events = _iter_hook_events(project_dir)
+    for entry in hook_events:
+        event = dict(entry)
+        event["_order"] = next_order
+        combined.append(event)
+        next_order += 1
     if task_id is not None:
         combined = [entry for entry in combined if entry.get("task_id") == task_id]
     if event_type is not None:
@@ -248,12 +256,13 @@ def load_events_timeline(
     combined.sort(
         key=lambda entry: (
             str(entry.get("timestamp", "")),
-            str(entry.get("source", "")),
-            str(entry.get("label", "")),
-            str(entry.get("summary", "")),
+            int(entry.get("_order", 0)),
         )
     )
-    return combined[-limit:]
+    selected = combined[-limit:]
+    for entry in selected:
+        entry.pop("_order", None)
+    return selected
 
 
 def format_events_timeline(
@@ -412,6 +421,7 @@ def build_evidence_bundle(
     latest: bool = False,
     prompt_lines: int = 20,
     log_lines: int = 20,
+    event_limit: int = 10,
 ) -> dict[str, Any] | None:
     inventory = build_session_inventory(project_dir)
     selection = "current_task"
@@ -440,6 +450,16 @@ def build_evidence_bundle(
         )
     if session is None:
         return None
+    selected_task_id = session.get("task_id")
+    recent_events = (
+        load_events_timeline(
+            project_dir,
+            limit=event_limit,
+            task_id=str(selected_task_id) if selected_task_id else None,
+        )
+        if selected_task_id
+        else []
+    )
     artifacts = dict(session.get("artifacts", {}))
     return {
         "project_name": inventory.get("project_name"),
@@ -452,6 +472,8 @@ def build_evidence_bundle(
         "summary": session.get("summary") or session.get("last_summary"),
         "selection": selection,
         "artifacts": artifacts,
+        "events_summary": summarize_events(recent_events),
+        "recent_events": recent_events,
         "prompt_preview": _read_text_preview(
             artifacts.get("prompt"),
             lines=prompt_lines,
@@ -472,6 +494,7 @@ def format_evidence_report(
     latest: bool = False,
     prompt_lines: int = 20,
     log_lines: int = 20,
+    event_limit: int = 10,
 ) -> str:
     evidence = build_evidence_bundle(
         project_dir,
@@ -479,6 +502,7 @@ def format_evidence_report(
         latest=latest,
         prompt_lines=prompt_lines,
         log_lines=log_lines,
+        event_limit=event_limit,
     )
     if evidence is None:
         return "No evidence recorded."
@@ -500,6 +524,14 @@ def format_evidence_report(
     lines.append(evidence.get("prompt_preview") or "")
     lines.append("log_tail:")
     lines.append(evidence.get("log_tail") or "")
+    lines.append("events_summary:")
+    lines.append(
+        json.dumps(evidence.get("events_summary"), indent=2, ensure_ascii=False)
+    )
+    lines.append("recent_events:")
+    lines.append(
+        json.dumps(evidence.get("recent_events"), indent=2, ensure_ascii=False)
+    )
     lines.append("run_payload:")
     lines.append(json.dumps(evidence.get("run_payload"), indent=2, ensure_ascii=False))
     return "\n".join(lines)

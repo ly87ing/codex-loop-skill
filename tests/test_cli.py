@@ -221,6 +221,11 @@ class CliTests(unittest.TestCase):
                 agent_status="continue",
                 session_id="session-001",
             )
+            store.mark_blocked(
+                "001-foundation",
+                reason="Reached no-progress limit.",
+                code="no_progress_limit",
+            )
             stdout = io.StringIO()
             stderr = io.StringIO()
 
@@ -311,6 +316,11 @@ class CliTests(unittest.TestCase):
                 agent_status="continue",
                 session_id="session-001",
             )
+            store.mark_blocked(
+                "001-foundation",
+                reason="Reached no-progress limit.",
+                code="no_progress_limit",
+            )
             stdout = io.StringIO()
             stderr = io.StringIO()
 
@@ -376,6 +386,11 @@ class CliTests(unittest.TestCase):
                 agent_status="continue",
                 session_id="session-001",
             )
+            store.mark_blocked(
+                "001-foundation",
+                reason="Reached no-progress limit.",
+                code="no_progress_limit",
+            )
             stdout = io.StringIO()
             stderr = io.StringIO()
 
@@ -391,6 +406,8 @@ class CliTests(unittest.TestCase):
                         "1",
                         "--log-lines",
                         "1",
+                        "--event-limit",
+                        "1",
                         "--json",
                     ]
                 )
@@ -402,6 +419,9 @@ class CliTests(unittest.TestCase):
             self.assertEqual(payload["selection"], "task_id")
             self.assertEqual(payload["prompt_preview"], "line one")
             self.assertEqual(payload["log_tail"], "log two")
+            self.assertEqual(payload["events_summary"]["total_events"], 1)
+            self.assertEqual(len(payload["recent_events"]), 1)
+            self.assertEqual(payload["recent_events"][0]["label"], "blocked:no_progress_limit")
             self.assertEqual(payload["run_payload"]["summary"], "Foundation run")
 
     def test_evidence_command_can_write_json_to_output_file(self) -> None:

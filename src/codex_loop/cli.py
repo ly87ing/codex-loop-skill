@@ -142,6 +142,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Number of log tail lines to include.",
     )
     evidence_parser.add_argument(
+        "--event-limit",
+        type=int,
+        default=10,
+        help="Number of recent task events to include in the evidence bundle.",
+    )
+    evidence_parser.add_argument(
         "--json",
         action="store_true",
         help="Emit structured JSON instead of formatted text.",
@@ -370,6 +376,7 @@ def main(argv: list[str] | None = None) -> int:
                 latest=args.latest,
                 prompt_lines=args.prompt_lines,
                 log_lines=args.log_lines,
+                event_limit=args.event_limit,
             )
             if args.json:
                 rendered = json.dumps(payload, indent=2, ensure_ascii=False)
@@ -380,6 +387,7 @@ def main(argv: list[str] | None = None) -> int:
                     latest=args.latest,
                     prompt_lines=args.prompt_lines,
                     log_lines=args.log_lines,
+                    event_limit=args.event_limit,
                 )
             if args.output:
                 output_path = Path(args.output).resolve()

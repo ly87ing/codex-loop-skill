@@ -359,18 +359,25 @@ class ReportingTests(unittest.TestCase):
                 agent_status="continue",
                 session_id="session-001",
             )
+            store.mark_blocked(
+                "001-foundation",
+                reason="Reached no-progress limit.",
+                code="no_progress_limit",
+            )
 
             evidence = build_evidence_bundle(
                 root,
                 task_id="001-foundation",
                 prompt_lines=1,
                 log_lines=1,
+                event_limit=5,
             )
             rendered = format_evidence_report(
                 root,
                 task_id="001-foundation",
                 prompt_lines=1,
                 log_lines=1,
+                event_limit=5,
             )
 
             self.assertEqual(evidence["task_id"], "001-foundation")
@@ -379,7 +386,13 @@ class ReportingTests(unittest.TestCase):
             self.assertEqual(evidence["prompt_preview"], "line one")
             self.assertEqual(evidence["log_tail"], "log two")
             self.assertEqual(evidence["run_payload"]["summary"], "Foundation run")
+            self.assertEqual(evidence["events_summary"]["total_events"], 2)
+            self.assertEqual(evidence["events_summary"]["by_blocker_code"]["no_progress_limit"], 1)
+            self.assertEqual(len(evidence["recent_events"]), 2)
+            self.assertEqual(evidence["recent_events"][-1]["label"], "blocked:no_progress_limit")
             self.assertIn("prompt_preview:", rendered)
+            self.assertIn("events_summary:", rendered)
+            self.assertIn("recent_events:", rendered)
             self.assertIn("run_payload:", rendered)
 
 
