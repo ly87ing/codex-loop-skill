@@ -12,7 +12,9 @@ from .doctor import render_doctor_report, run_doctor
 from .hooks import HookRunner
 from .init_flow import initialize_project
 from .reporting import (
+    build_evidence_bundle,
     build_session_inventory,
+    format_evidence_report,
     format_events_summary,
     format_events_timeline,
     format_sessions_report,
@@ -106,6 +108,43 @@ def _build_parser() -> argparse.ArgumentParser:
         "--task-id",
         default=None,
         help="Optional task id filter, for example 001-foundation.",
+    )
+
+    evidence_parser = subparsers.add_parser(
+        "evidence",
+        help="Render the latest operator evidence bundle for a task or session.",
+    )
+    evidence_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing .codex-loop/state.json.",
+    )
+    evidence_parser.add_argument(
+        "--task-id",
+        default=None,
+        help="Optional task id filter, for example 001-foundation.",
+    )
+    evidence_parser.add_argument(
+        "--latest",
+        action="store_true",
+        help="Use the latest known session instead of the current task.",
+    )
+    evidence_parser.add_argument(
+        "--prompt-lines",
+        type=int,
+        default=20,
+        help="Number of prompt preview lines to include.",
+    )
+    evidence_parser.add_argument(
+        "--log-lines",
+        type=int,
+        default=20,
+        help="Number of log tail lines to include.",
+    )
+    evidence_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
     )
 
     doctor_parser = subparsers.add_parser("doctor", help="Validate local loop files.")
@@ -317,6 +356,28 @@ def main(argv: list[str] | None = None) -> int:
                         print(json.dumps(payload, indent=2, ensure_ascii=False))
                 else:
                     print(format_sessions_report(project_dir))
+            return 0
+
+        if args.command == "evidence":
+            payload = build_evidence_bundle(
+                project_dir,
+                task_id=args.task_id,
+                latest=args.latest,
+                prompt_lines=args.prompt_lines,
+                log_lines=args.log_lines,
+            )
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(
+                    format_evidence_report(
+                        project_dir,
+                        task_id=args.task_id,
+                        latest=args.latest,
+                        prompt_lines=args.prompt_lines,
+                        log_lines=args.log_lines,
+                    )
+                )
             return 0
 
         if args.command == "doctor":

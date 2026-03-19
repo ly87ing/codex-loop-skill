@@ -58,6 +58,22 @@ def _task_artifacts(project_dir: Path, task_id: str) -> dict[str, str | None]:
     }
 
 
+def _read_text_preview(path: str | None, *, lines: int, from_end: bool = False) -> str | None:
+    if path is None:
+        return None
+    text_lines = Path(path).read_text(encoding="utf-8").splitlines()
+    if not text_lines:
+        return ""
+    selected = text_lines[-lines:] if from_end else text_lines[:lines]
+    return "\n".join(selected)
+
+
+def _read_json_payload(path: str | None) -> Any:
+    if path is None:
+        return None
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
 def format_status_summary(project_dir: Path) -> str:
     state = _load_state(project_dir)
     project_name = state.get("meta", {}).get("project_name", project_dir.name)
@@ -386,6 +402,101 @@ def format_sessions_report(project_dir: Path) -> str:
             f"log={artifacts.get('log') or 'none'} "
             f"run={artifacts.get('run') or 'none'}"
         )
+    return "\n".join(lines)
+
+
+def build_evidence_bundle(
+    project_dir: Path,
+    *,
+    task_id: str | None = None,
+    latest: bool = False,
+    prompt_lines: int = 20,
+    log_lines: int = 20,
+) -> dict[str, Any] | None:
+    inventory = build_session_inventory(project_dir)
+    if task_id is not None:
+        session = next(
+            (
+                row
+                for row in inventory.get("tasks", [])
+                if row.get("task_id") == task_id
+            ),
+            None,
+        )
+    elif latest:
+        session = inventory.get("latest_session")
+    else:
+        current_task_id = inventory.get("current_task")
+        session = next(
+            (
+                row
+                for row in inventory.get("tasks", [])
+                if row.get("task_id") == current_task_id
+            ),
+            None,
+        )
+    if session is None:
+        return None
+    artifacts = dict(session.get("artifacts", {}))
+    return {
+        "project_name": inventory.get("project_name"),
+        "overall_status": inventory.get("overall_status"),
+        "task_id": session.get("task_id"),
+        "session_id": session.get("session_id"),
+        "timestamp": session.get("timestamp") or session.get("updated_at"),
+        "event_type": session.get("event_type"),
+        "agent_status": session.get("agent_status") or session.get("status"),
+        "summary": session.get("summary") or session.get("last_summary"),
+        "artifacts": artifacts,
+        "prompt_preview": _read_text_preview(
+            artifacts.get("prompt"),
+            lines=prompt_lines,
+        ),
+        "log_tail": _read_text_preview(
+            artifacts.get("log"),
+            lines=log_lines,
+            from_end=True,
+        ),
+        "run_payload": _read_json_payload(artifacts.get("run")),
+    }
+
+
+def format_evidence_report(
+    project_dir: Path,
+    *,
+    task_id: str | None = None,
+    latest: bool = False,
+    prompt_lines: int = 20,
+    log_lines: int = 20,
+) -> str:
+    evidence = build_evidence_bundle(
+        project_dir,
+        task_id=task_id,
+        latest=latest,
+        prompt_lines=prompt_lines,
+        log_lines=log_lines,
+    )
+    if evidence is None:
+        return "No evidence recorded."
+    lines = [
+        f"project: {evidence.get('project_name')}",
+        f"overall_status: {evidence.get('overall_status')}",
+        f"task_id: {evidence.get('task_id')}",
+        f"session_id: {evidence.get('session_id') or 'none'}",
+        f"timestamp: {evidence.get('timestamp') or ''}",
+        f"event_type: {evidence.get('event_type') or ''}",
+        f"agent_status: {evidence.get('agent_status') or ''}",
+        f"summary: {evidence.get('summary') or ''}",
+        "artifacts:",
+    ]
+    for key in ("prompt", "log", "run"):
+        lines.append(f"{key}: {evidence['artifacts'].get(key) or 'none'}")
+    lines.append("prompt_preview:")
+    lines.append(evidence.get("prompt_preview") or "")
+    lines.append("log_tail:")
+    lines.append(evidence.get("log_tail") or "")
+    lines.append("run_payload:")
+    lines.append(json.dumps(evidence.get("run_payload"), indent=2, ensure_ascii=False))
     return "\n".join(lines)
 
 

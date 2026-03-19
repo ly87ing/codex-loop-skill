@@ -7,7 +7,9 @@ from pathlib import Path
 
 from codex_loop.reporting import (
     build_session_inventory,
+    build_evidence_bundle,
     format_events_summary,
+    format_evidence_report,
     format_events_timeline,
     format_sessions_report,
     load_events_timeline,
@@ -324,6 +326,60 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("current_task_session: session-001", rendered)
             self.assertIn("latest_session:", rendered)
             self.assertIn("prompt=", rendered)
+
+    def test_evidence_bundle_collects_prompt_log_and_run_payloads(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            prompts_dir = root / ".codex-loop" / "prompts"
+            logs_dir = root / ".codex-loop" / "logs"
+            runs_dir = root / ".codex-loop" / "runs"
+            prompts_dir.mkdir(parents=True, exist_ok=True)
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            runs_dir.mkdir(parents=True, exist_ok=True)
+            (prompts_dir / "0001-001-foundation.txt").write_text(
+                "line one\nline two\n",
+                encoding="utf-8",
+            )
+            (logs_dir / "0001-001-foundation.jsonl").write_text(
+                "log one\nlog two\n",
+                encoding="utf-8",
+            )
+            (runs_dir / "001-foundation-last.json").write_text(
+                json.dumps({"status": "continue", "summary": "Foundation run"}),
+                encoding="utf-8",
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            store.record_iteration(
+                task_id="001-foundation",
+                summary="Foundation iteration.",
+                fingerprint="001|continue",
+                files_changed=["src/foundation.py"],
+                verification_passed=False,
+                agent_status="continue",
+                session_id="session-001",
+            )
+
+            evidence = build_evidence_bundle(
+                root,
+                task_id="001-foundation",
+                prompt_lines=1,
+                log_lines=1,
+            )
+            rendered = format_evidence_report(
+                root,
+                task_id="001-foundation",
+                prompt_lines=1,
+                log_lines=1,
+            )
+
+            self.assertEqual(evidence["task_id"], "001-foundation")
+            self.assertEqual(evidence["session_id"], "session-001")
+            self.assertEqual(evidence["prompt_preview"], "line one")
+            self.assertEqual(evidence["log_tail"], "log two")
+            self.assertEqual(evidence["run_payload"]["summary"], "Foundation run")
+            self.assertIn("prompt_preview:", rendered)
+            self.assertIn("run_payload:", rendered)
 
 
 if __name__ == "__main__":
