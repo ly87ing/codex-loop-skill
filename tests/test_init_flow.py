@@ -46,6 +46,9 @@ class InitializeProjectTests(unittest.TestCase):
                 config["verification"]["commands"],
                 ["python -m unittest discover -s tests"],
             )
+            self.assertEqual(config["operator"]["events"]["default_limit"], 20)
+            self.assertEqual(config["operator"]["cleanup"]["keep"], 10)
+            self.assertEqual(config["operator"]["cleanup"]["directory_keep"], {})
             self.assertTrue((project_dir / "spec" / "001-project-spec.md").exists())
             self.assertTrue(
                 (project_dir / "plan" / "001-implementation-plan.md").exists()

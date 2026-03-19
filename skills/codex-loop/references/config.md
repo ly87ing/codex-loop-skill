@@ -42,6 +42,13 @@
 - `save_prompts`: whether prompts should be persisted
 - `save_jsonl`: whether raw Codex JSONL should be persisted
 
+`operator`
+- `events.default_limit`: default `events` limit when the CLI flag is omitted
+- `cleanup.keep`: default artifact keep count
+- `cleanup.older_than_days`: default artifact/worktree age threshold
+- `cleanup.directory_keep`: per-directory keep overrides for `logs`, `runs`, and `prompts`
+- `cleanup.directory_older_than_days`: per-directory age overrides for `logs`, `runs`, and `prompts`
+
 `hooks`
 - `post_init`: local commands run after `codex-loop init`
 - `pre_iteration`: local commands run before each task iteration

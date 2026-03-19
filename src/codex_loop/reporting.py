@@ -207,3 +207,31 @@ def format_events_timeline(
         return "No events recorded."
     rendered = [_format_event(event) for event in events]
     return "\n".join(rendered)
+
+
+def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
+    summary: dict[str, Any] = {
+        "total_events": len(events),
+        "by_label": {},
+        "by_task": {},
+        "by_source": {},
+    }
+    for event in events:
+        label = str(event.get("label", "unknown"))
+        task_id = str(event.get("task_id", "none"))
+        source = str(event.get("source", "unknown"))
+        summary["by_label"][label] = int(summary["by_label"].get(label, 0)) + 1
+        summary["by_task"][task_id] = int(summary["by_task"].get(task_id, 0)) + 1
+        summary["by_source"][source] = int(summary["by_source"].get(source, 0)) + 1
+    return summary
+
+
+def format_events_summary(events: list[dict[str, Any]]) -> str:
+    summary = summarize_events(events)
+    lines = [f"total_events: {summary['total_events']}"]
+    for section_name in ("by_label", "by_task", "by_source"):
+        lines.append(f"{section_name}:")
+        entries = summary[section_name]
+        for key in sorted(entries):
+            lines.append(f"{key}: {entries[key]}")
+    return "\n".join(lines)

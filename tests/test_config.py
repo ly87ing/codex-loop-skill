@@ -124,6 +124,65 @@ class ConfigTests(unittest.TestCase):
                     root,
                 )
 
+    def test_parses_operator_cleanup_and_events_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["tests pass"]},
+                    "verification": {"commands": ["python -m unittest"]},
+                    "operator": {
+                        "events": {"default_limit": 50},
+                        "cleanup": {
+                            "keep": 7,
+                            "older_than_days": 14,
+                            "directory_keep": {"logs": 20},
+                            "directory_older_than_days": {"prompts": 30},
+                        },
+                    },
+                },
+                root,
+            )
+
+            self.assertEqual(config.operator.events.default_limit, 50)
+            self.assertEqual(config.operator.cleanup.keep, 7)
+            self.assertEqual(config.operator.cleanup.older_than_days, 14)
+            self.assertEqual(config.operator.cleanup.directory_keep["logs"], 20)
+            self.assertEqual(
+                config.operator.cleanup.directory_older_than_days["prompts"], 30
+            )
+
+    def test_rejects_invalid_operator_cleanup_directory_and_limits(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            with self.assertRaises(ValueError):
+                CodexLoopConfig.from_dict(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["tests pass"]},
+                        "verification": {"commands": ["python -m unittest"]},
+                        "operator": {
+                            "events": {"default_limit": 0},
+                        },
+                    },
+                    root,
+                )
+            with self.assertRaises(ValueError):
+                CodexLoopConfig.from_dict(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["tests pass"]},
+                        "verification": {"commands": ["python -m unittest"]},
+                        "operator": {
+                            "cleanup": {
+                                "directory_keep": {"artifacts": 3},
+                            },
+                        },
+                    },
+                    root,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()

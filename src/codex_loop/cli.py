@@ -12,9 +12,11 @@ from .doctor import render_doctor_report, run_doctor
 from .hooks import HookRunner
 from .init_flow import initialize_project
 from .reporting import (
+    format_events_summary,
     format_events_timeline,
     format_status_summary,
     load_events_timeline,
+    summarize_events,
     tail_log_lines,
 )
 from .run_flow import run_project
@@ -37,6 +39,13 @@ def _collect_cleanup_overrides(args: argparse.Namespace) -> tuple[dict[str, int]
 def _write_output_file(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+def _load_optional_config(project_dir: Path) -> CodexLoopConfig | None:
+    config_path = project_dir / "codex-loop.yaml"
+    if not config_path.exists():
+        return None
+    return CodexLoopConfig.from_file(config_path)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -93,7 +102,7 @@ def _build_parser() -> argparse.ArgumentParser:
     events_parser.add_argument(
         "--limit",
         type=int,
-        default=20,
+        default=None,
         help="Maximum number of timeline entries to print.",
     )
     events_parser.add_argument(
@@ -126,6 +135,11 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional file path to write the rendered events payload.",
     )
+    events_parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="Aggregate the filtered events instead of printing the full timeline.",
+    )
 
     cleanup_parser = subparsers.add_parser("cleanup", help="Prune old local loop artifacts.")
     cleanup_parser.add_argument(
@@ -136,7 +150,7 @@ def _build_parser() -> argparse.ArgumentParser:
     cleanup_parser.add_argument(
         "--keep",
         type=int,
-        default=10,
+        default=None,
         help="Number of most recent files to keep in each artifact directory.",
     )
     cleanup_parser.add_argument(
@@ -255,28 +269,39 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "events":
+            config = _load_optional_config(project_dir)
+            limit = (
+                args.limit
+                if args.limit is not None
+                else (
+                    config.operator.events.default_limit
+                    if config is not None
+                    else 20
+                )
+            )
             events = load_events_timeline(
                 project_dir,
-                limit=args.limit,
+                limit=limit,
                 task_id=args.task_id,
                 event_type=args.event_type,
                 since=args.since,
                 until=args.until,
             )
             if args.json:
-                rendered = json.dumps(
-                    events,
-                    indent=2,
-                    ensure_ascii=False,
-                )
+                payload = summarize_events(events) if args.summary else events
+                rendered = json.dumps(payload, indent=2, ensure_ascii=False)
             else:
-                rendered = format_events_timeline(
-                    project_dir,
-                    limit=args.limit,
-                    task_id=args.task_id,
-                    event_type=args.event_type,
-                    since=args.since,
-                    until=args.until,
+                rendered = (
+                    format_events_summary(events)
+                    if args.summary
+                    else format_events_timeline(
+                        project_dir,
+                        limit=limit,
+                        task_id=args.task_id,
+                        event_type=args.event_type,
+                        since=args.since,
+                        until=args.until,
+                    )
                 )
             if args.output:
                 output_path = Path(args.output).resolve()
@@ -287,17 +312,46 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "cleanup":
+            config = _load_optional_config(project_dir)
             keep_overrides, age_overrides = _collect_cleanup_overrides(args)
+            default_keep = (
+                args.keep
+                if args.keep is not None
+                else (
+                    config.operator.cleanup.keep
+                    if config is not None
+                    else 10
+                )
+            )
+            default_age = (
+                args.older_than_days
+                if args.older_than_days is not None
+                else (
+                    config.operator.cleanup.older_than_days
+                    if config is not None
+                    else None
+                )
+            )
+            merged_keep = (
+                dict(config.operator.cleanup.directory_keep) if config is not None else {}
+            )
+            merged_keep.update(keep_overrides)
+            merged_age = (
+                dict(config.operator.cleanup.directory_older_than_days)
+                if config is not None
+                else {}
+            )
+            merged_age.update(age_overrides)
             cleanup_kwargs = {
                 "apply": args.apply,
-                "keep": args.keep,
-                "older_than_days": args.older_than_days,
+                "keep": default_keep,
+                "older_than_days": default_age,
                 "remove_worktrees": not args.no_worktrees,
             }
-            if keep_overrides:
-                cleanup_kwargs["directory_keep"] = keep_overrides
-            if age_overrides:
-                cleanup_kwargs["directory_older_than_days"] = age_overrides
+            if merged_keep:
+                cleanup_kwargs["directory_keep"] = merged_keep
+            if merged_age:
+                cleanup_kwargs["directory_older_than_days"] = merged_age
             print(
                 render_cleanup_report(
                     run_cleanup(

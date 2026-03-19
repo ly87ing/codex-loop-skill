@@ -45,6 +45,21 @@
     "save_prompts": true,
     "save_jsonl": true
   },
+  "operator": {
+    "events": {
+      "default_limit": 20
+    },
+    "cleanup": {
+      "keep": 10,
+      "older_than_days": null,
+      "directory_keep": {
+        "logs": 20
+      },
+      "directory_older_than_days": {
+        "prompts": 30
+      }
+    }
+  },
   "hooks": {
     "post_init": [],
     "pre_iteration": [],

@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+SUPPORTED_ARTIFACT_DIRECTORIES = frozenset({"logs", "runs", "prompts"})
+
 
 def _load_yaml_or_json(text: str) -> dict[str, Any]:
     try:
@@ -92,6 +94,25 @@ class HooksConfig:
 
 
 @dataclass(slots=True)
+class EventsOperatorConfig:
+    default_limit: int = 20
+
+
+@dataclass(slots=True)
+class CleanupOperatorConfig:
+    keep: int = 10
+    older_than_days: int | None = None
+    directory_keep: dict[str, int] = field(default_factory=dict)
+    directory_older_than_days: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class OperatorConfig:
+    events: EventsOperatorConfig = field(default_factory=EventsOperatorConfig)
+    cleanup: CleanupOperatorConfig = field(default_factory=CleanupOperatorConfig)
+
+
+@dataclass(slots=True)
 class CodexLoopConfig:
     project_dir: Path
     project: ProjectConfig
@@ -102,6 +123,7 @@ class CodexLoopConfig:
     tasks: TasksConfig = field(default_factory=TasksConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     hooks: HooksConfig = field(default_factory=HooksConfig)
+    operator: OperatorConfig = field(default_factory=OperatorConfig)
 
     @classmethod
     def from_file(cls, path: Path) -> "CodexLoopConfig":
@@ -147,6 +169,11 @@ class CodexLoopConfig:
         tasks = TasksConfig(**data.get("tasks", {}))
         logging = LoggingConfig(**data.get("logging", {}))
         hooks = HooksConfig(**data.get("hooks", {}))
+        operator_data = data.get("operator", {})
+        operator = OperatorConfig(
+            events=EventsOperatorConfig(**operator_data.get("events", {})),
+            cleanup=CleanupOperatorConfig(**operator_data.get("cleanup", {})),
+        )
         config = cls(
             project_dir=project_dir,
             project=project,
@@ -157,6 +184,7 @@ class CodexLoopConfig:
             tasks=tasks,
             logging=logging,
             hooks=hooks,
+            operator=operator,
         )
         config.validate()
         return config
@@ -210,3 +238,35 @@ class CodexLoopConfig:
         if not self.tasks.source_dir.strip():
             msg = "tasks.source_dir must not be empty."
             raise ValueError(msg)
+        if self.operator.events.default_limit <= 0:
+            msg = "operator.events.default_limit must be greater than zero."
+            raise ValueError(msg)
+        if self.operator.cleanup.keep < 0:
+            msg = "operator.cleanup.keep must not be negative."
+            raise ValueError(msg)
+        if (
+            self.operator.cleanup.older_than_days is not None
+            and self.operator.cleanup.older_than_days < 0
+        ):
+            msg = "operator.cleanup.older_than_days must not be negative."
+            raise ValueError(msg)
+        for directory_name, value in self.operator.cleanup.directory_keep.items():
+            if directory_name not in SUPPORTED_ARTIFACT_DIRECTORIES:
+                msg = f"Unsupported cleanup directory override: {directory_name}"
+                raise ValueError(msg)
+            if value < 0:
+                msg = f"operator.cleanup.directory_keep[{directory_name}] must not be negative."
+                raise ValueError(msg)
+        for (
+            directory_name,
+            value,
+        ) in self.operator.cleanup.directory_older_than_days.items():
+            if directory_name not in SUPPORTED_ARTIFACT_DIRECTORIES:
+                msg = f"Unsupported cleanup directory override: {directory_name}"
+                raise ValueError(msg)
+            if value < 0:
+                msg = (
+                    f"operator.cleanup.directory_older_than_days[{directory_name}] "
+                    "must not be negative."
+                )
+                raise ValueError(msg)

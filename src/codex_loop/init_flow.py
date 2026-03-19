@@ -114,6 +114,15 @@ def initialize_project(
         },
         "tasks": {"strategy": "sequential", "source_dir": "tasks"},
         "logging": {"save_prompts": True, "save_jsonl": True},
+        "operator": {
+            "events": {"default_limit": 20},
+            "cleanup": {
+                "keep": 10,
+                "older_than_days": None,
+                "directory_keep": {},
+                "directory_older_than_days": {},
+            },
+        },
         "hooks": {
             "post_init": [],
             "pre_iteration": [],

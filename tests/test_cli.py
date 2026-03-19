@@ -154,6 +154,72 @@ class CliTests(unittest.TestCase):
             self.assertEqual(len(payload), 1)
             self.assertEqual(payload[0]["task_id"], "001-foundation")
 
+    def test_events_command_can_render_summary_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            store.record_runner_failure(
+                task_id="001-foundation",
+                reason="runner failed once",
+            )
+            store.record_iteration(
+                task_id="002-polish",
+                summary="Changed files",
+                fingerprint="abc",
+                files_changed=["src/a.py"],
+                verification_passed=False,
+                agent_status="continue",
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "events",
+                        "--project-dir",
+                        str(root),
+                        "--summary",
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["total_events"], 2)
+            self.assertEqual(payload["by_label"]["runner_failure"], 1)
+
+    def test_events_command_uses_config_default_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "codex-loop.yaml").write_text(
+                json.dumps(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                        "verification": {"commands": ["python -m unittest"]},
+                        "operator": {"events": {"default_limit": 7}},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                patch("codex_loop.cli.load_events_timeline", return_value=[] ) as events_mock,
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                exit_code = main(["events", "--project-dir", str(root), "--json"])
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            events_mock.assert_called_once()
+            self.assertEqual(events_mock.call_args.kwargs["limit"], 7)
+
     def test_cleanup_command_invokes_apply_mode(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -277,6 +343,60 @@ class CliTests(unittest.TestCase):
                 apply=False,
                 keep=10,
                 older_than_days=None,
+                remove_worktrees=True,
+                directory_keep={"logs": 20},
+                directory_older_than_days={"prompts": 30},
+            )
+
+    def test_cleanup_command_uses_config_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "codex-loop.yaml").write_text(
+                json.dumps(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                        "verification": {"commands": ["python -m unittest"]},
+                        "operator": {
+                            "cleanup": {
+                                "keep": 6,
+                                "older_than_days": 14,
+                                "directory_keep": {"logs": 20},
+                                "directory_older_than_days": {"prompts": 30},
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                patch("codex_loop.cli.run_cleanup") as cleanup_mock,
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                cleanup_mock.return_value = type(
+                    "CleanupReportStub",
+                    (),
+                    {
+                        "dry_run": True,
+                        "removed": [],
+                        "kept": [],
+                        "removed_worktrees": [],
+                        "warnings": [],
+                    },
+                )()
+                exit_code = main(["cleanup", "--project-dir", str(root)])
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            cleanup_mock.assert_called_once_with(
+                root.resolve(),
+                apply=False,
+                keep=6,
+                older_than_days=14,
                 remove_worktrees=True,
                 directory_keep={"logs": 20},
                 directory_older_than_days={"prompts": 30},

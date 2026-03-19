@@ -51,10 +51,12 @@ When repair is enabled, it can recreate the schema and realign task state with t
 - `.codex-loop/metrics.json` for aggregate runtime counters
 - `status --summary` for the latest blocker code and reason
 - `events --limit N` for a merged timeline across loop history and hook logs
+- `events --summary` for grouped counts across the filtered event set
 - `events --task-id ... --event-type ... --json` for focused operator queries and export
 - `events --since ... --until ... --output <path>` for time-boxed exports
 - `cleanup [--apply] --keep N [--older-than-days N]` for conservative local artifact and stale worktree pruning
 - `cleanup --logs-keep ... --runs-keep ... --prompts-older-than-days ...` for per-directory retention overrides
+- `operator.cleanup` in `codex-loop.yaml` for default retention policy, with CLI flags overriding config per invocation
 
 ## Task Semantics
 

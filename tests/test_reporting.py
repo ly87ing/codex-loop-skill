@@ -5,7 +5,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from codex_loop.reporting import format_events_timeline, load_events_timeline
+from codex_loop.reporting import (
+    format_events_summary,
+    format_events_timeline,
+    load_events_timeline,
+    summarize_events,
+)
 from codex_loop.state_store import StateStore
 
 
@@ -127,6 +132,36 @@ class ReportingTests(unittest.TestCase):
 
             self.assertEqual(len(events), 1)
             self.assertEqual(events[0]["task_id"], "002-polish")
+
+    def test_events_summary_aggregates_by_label_and_task(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            store.record_runner_failure(
+                task_id="001-foundation",
+                reason="runner failed once",
+            )
+            store.record_iteration(
+                task_id="002-polish",
+                summary="Updated polish layer",
+                fingerprint="002|continue",
+                files_changed=["src/polish.py"],
+                verification_passed=False,
+                agent_status="continue",
+            )
+
+            events = load_events_timeline(root, limit=10)
+            summary = summarize_events(events)
+            rendered = format_events_summary(events)
+
+            self.assertEqual(summary["total_events"], 2)
+            self.assertEqual(summary["by_label"]["runner_failure"], 1)
+            self.assertEqual(summary["by_label"]["iteration:continue"], 1)
+            self.assertEqual(summary["by_task"]["001-foundation"], 1)
+            self.assertEqual(summary["by_task"]["002-polish"], 1)
+            self.assertIn("total_events: 2", rendered)
+            self.assertIn("iteration:continue: 1", rendered)
 
 
 if __name__ == "__main__":
