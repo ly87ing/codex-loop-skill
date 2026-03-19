@@ -8,10 +8,12 @@ from pathlib import Path
 from codex_loop.reporting import (
     build_session_inventory,
     build_evidence_bundle,
+    format_snapshots_report,
     format_events_summary,
     format_evidence_report,
     format_events_timeline,
     format_sessions_report,
+    load_snapshots_index,
     load_events_timeline,
     summarize_events,
 )
@@ -399,6 +401,50 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("events_summary:", rendered)
             self.assertIn("recent_events:", rendered)
             self.assertIn("run_payload:", rendered)
+
+    def test_snapshots_index_can_filter_and_render_latest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_dir = Path(tmpdir)
+            (snapshot_dir / "index.json").write_text(
+                json.dumps(
+                    {
+                        "snapshots": [
+                            {
+                                "generated_at": "2026-03-19T00:00:00+00:00",
+                                "task_id": "001-foundation",
+                                "selection": "task_id",
+                                "session_id": "session-001",
+                                "overall_status": "running",
+                                "current_task": "001-foundation",
+                                "last_blocker_code": None,
+                                "snapshot_path": str(snapshot_dir / "one.json"),
+                            },
+                            {
+                                "generated_at": "2026-03-20T00:00:00+00:00",
+                                "task_id": "002-polish",
+                                "selection": "latest_session",
+                                "session_id": "session-002",
+                                "overall_status": "blocked",
+                                "current_task": "002-polish",
+                                "last_blocker_code": "no_progress_limit",
+                                "snapshot_path": str(snapshot_dir / "two.json"),
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            latest = load_snapshots_index(snapshot_dir, latest=True)
+            filtered = load_snapshots_index(snapshot_dir, task_id="001-foundation")
+            rendered = format_snapshots_report(snapshot_dir, latest=True)
+
+            self.assertEqual(len(latest), 1)
+            self.assertEqual(latest[0]["task_id"], "002-polish")
+            self.assertEqual(len(filtered), 1)
+            self.assertEqual(filtered[0]["task_id"], "001-foundation")
+            self.assertIn("002-polish", rendered)
+            self.assertIn("no_progress_limit", rendered)
 
 
 if __name__ == "__main__":

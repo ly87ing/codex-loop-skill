@@ -78,6 +78,60 @@ def _read_json_payload(path: str | None) -> Any:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def load_snapshots_index(
+    snapshot_dir: Path,
+    *,
+    task_id: str | None = None,
+    limit: int | None = None,
+    latest: bool = False,
+) -> list[dict[str, Any]]:
+    index_path = snapshot_dir.resolve() / "index.json"
+    if not index_path.exists():
+        msg = f"No snapshot index found at {index_path}"
+        raise FileNotFoundError(msg)
+    index_data = json.loads(index_path.read_text(encoding="utf-8"))
+    snapshots = index_data.get("snapshots", [])
+    if not isinstance(snapshots, list):
+        return []
+    filtered = [item for item in snapshots if isinstance(item, dict)]
+    if task_id is not None:
+        filtered = [item for item in filtered if item.get("task_id") == task_id]
+    filtered.sort(key=lambda item: str(item.get("generated_at", "")))
+    if latest:
+        filtered = filtered[-1:] if filtered else []
+    elif limit is not None:
+        filtered = filtered[-limit:]
+    return filtered
+
+
+def format_snapshots_report(
+    snapshot_dir: Path,
+    *,
+    task_id: str | None = None,
+    limit: int | None = None,
+    latest: bool = False,
+) -> str:
+    snapshots = load_snapshots_index(
+        snapshot_dir,
+        task_id=task_id,
+        limit=limit,
+        latest=latest,
+    )
+    if not snapshots:
+        return "No snapshots recorded."
+    lines = [f"snapshot_dir: {snapshot_dir.resolve()}", f"count: {len(snapshots)}", "snapshots:"]
+    for snapshot in snapshots:
+        lines.append(
+            f"{snapshot.get('generated_at', '')} "
+            f"task={snapshot.get('task_id', '')} "
+            f"selection={snapshot.get('selection', '')} "
+            f"status={snapshot.get('overall_status', '')} "
+            f"blocker={snapshot.get('last_blocker_code') or 'none'} "
+            f"path={snapshot.get('snapshot_path', '')}"
+        )
+    return "\n".join(lines)
+
+
 def build_status_snapshot(project_dir: Path) -> dict[str, Any]:
     state = _load_state(project_dir)
     project_name = state.get("meta", {}).get("project_name", project_dir.name)

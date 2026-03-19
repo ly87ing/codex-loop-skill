@@ -66,6 +66,7 @@ Those warnings now include concrete remediation guidance so operators can tighte
 - `evidence --latest --json --output <path>` for exporting a latest-session debug bundle to disk
 - `evidence --task-id ... --event-limit N --json` for a bounded task-scoped event snapshot inside the bundle
 - `evidence --task-id ... --json --output-dir <dir>` for auto-named debug snapshot exports plus a directory-level `index.json`
+- `snapshots --snapshot-dir <dir> [--task-id ...] [--latest] [--json]` for reading that snapshot index back as an operator view
 - `cleanup [--apply] --keep N [--older-than-days N]` for conservative local artifact and stale worktree pruning
 - `cleanup --logs-keep ... --runs-keep ... --prompts-older-than-days ...` for per-directory retention overrides
 - `operator.cleanup` in `codex-loop.yaml` for default retention policy, with CLI flags overriding config per invocation

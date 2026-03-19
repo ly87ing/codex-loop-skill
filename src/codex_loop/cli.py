@@ -17,9 +17,11 @@ from .reporting import (
     format_evidence_report,
     format_events_summary,
     format_events_timeline,
+    format_snapshots_report,
     format_sessions_report,
     format_status_summary,
     load_events_timeline,
+    load_snapshots_index,
     summarize_events,
     tail_log_lines,
 )
@@ -211,6 +213,37 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional directory for an auto-named evidence snapshot file.",
     )
 
+    snapshots_parser = subparsers.add_parser(
+        "snapshots",
+        help="Inspect exported evidence snapshots from an index directory.",
+    )
+    snapshots_parser.add_argument(
+        "--snapshot-dir",
+        default="./snapshots",
+        help="Directory containing evidence snapshot index.json.",
+    )
+    snapshots_parser.add_argument(
+        "--task-id",
+        default=None,
+        help="Optional task id filter, for example 001-foundation.",
+    )
+    snapshots_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum number of snapshots to print.",
+    )
+    snapshots_parser.add_argument(
+        "--latest",
+        action="store_true",
+        help="Only emit the latest snapshot entry.",
+    )
+    snapshots_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
+    )
+
     doctor_parser = subparsers.add_parser("doctor", help="Validate local loop files.")
     doctor_parser.add_argument(
         "--project-dir",
@@ -351,7 +384,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
-    project_dir = Path(args.project_dir).resolve()
+    project_dir = Path(getattr(args, "project_dir", ".")).resolve()
 
     try:
         if args.command == "init":
@@ -459,6 +492,27 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Wrote evidence to {output_path}")
             else:
                 print(rendered)
+            return 0
+
+        if args.command == "snapshots":
+            snapshot_dir = Path(args.snapshot_dir).resolve()
+            payload = load_snapshots_index(
+                snapshot_dir,
+                task_id=args.task_id,
+                limit=args.limit,
+                latest=args.latest,
+            )
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(
+                    format_snapshots_report(
+                        snapshot_dir,
+                        task_id=args.task_id,
+                        limit=args.limit,
+                        latest=args.latest,
+                    )
+                )
             return 0
 
         if args.command == "doctor":
