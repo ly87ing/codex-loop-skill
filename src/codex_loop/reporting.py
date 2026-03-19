@@ -83,6 +83,7 @@ def load_snapshots_index(
     *,
     task_id: str | None = None,
     status: str | None = None,
+    blocker_code: str | None = None,
     since: str | None = None,
     until: str | None = None,
     limit: int | None = None,
@@ -101,6 +102,8 @@ def load_snapshots_index(
         filtered = [item for item in filtered if item.get("task_id") == task_id]
     if status is not None:
         filtered = [item for item in filtered if item.get("overall_status") == status]
+    if blocker_code is not None:
+        filtered = [item for item in filtered if item.get("last_blocker_code") == blocker_code]
     if since is not None or until is not None:
         since_ts = _parse_timestamp(since) if since is not None else None
         until_ts = _parse_timestamp(until) if until is not None else None
@@ -129,6 +132,7 @@ def format_snapshots_report(
     *,
     task_id: str | None = None,
     status: str | None = None,
+    blocker_code: str | None = None,
     since: str | None = None,
     until: str | None = None,
     limit: int | None = None,
@@ -138,6 +142,7 @@ def format_snapshots_report(
         snapshot_dir,
         task_id=task_id,
         status=status,
+        blocker_code=blocker_code,
         since=since,
         until=until,
         limit=limit,

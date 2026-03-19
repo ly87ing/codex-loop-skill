@@ -235,6 +235,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional snapshot status filter, for example blocked or completed.",
     )
     snapshots_parser.add_argument(
+        "--blocker-code",
+        default=None,
+        help="Optional blocker code filter, for example no_progress_limit.",
+    )
+    snapshots_parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -522,6 +527,7 @@ def main(argv: list[str] | None = None) -> int:
                 snapshot_dir,
                 task_id=args.task_id,
                 status=args.status,
+                blocker_code=args.blocker_code,
                 since=args.since,
                 until=args.until,
                 limit=args.limit,
@@ -542,6 +548,7 @@ def main(argv: list[str] | None = None) -> int:
                         snapshot_dir,
                         task_id=args.task_id,
                         status=args.status,
+                        blocker_code=args.blocker_code,
                         since=args.since,
                         until=args.until,
                         limit=args.limit,

@@ -69,6 +69,7 @@ Those warnings now include concrete remediation guidance so operators can tighte
 - `snapshots --snapshot-dir <dir> [--task-id ...] [--latest] [--json]` for reading that snapshot index back as an operator view
 - `snapshots --snapshot-dir <dir> --summary [--json]` for a grouped digest by task, status, selection, blocker code, and latest snapshot markers
 - `snapshots --snapshot-dir <dir> --status blocked --since ... --until ... [--json]` for answering recent blocked-snapshot questions without opening bundles individually
+- `snapshots --snapshot-dir <dir> --blocker-code no_progress_limit [--json]` for isolating one blocker family across exported snapshots
 - `cleanup [--apply] --keep N [--older-than-days N]` for conservative local artifact and stale worktree pruning
 - `cleanup --logs-keep ... --runs-keep ... --prompts-older-than-days ...` for per-directory retention overrides
 - `operator.cleanup` in `codex-loop.yaml` for default retention policy, with CLI flags overriding config per invocation
