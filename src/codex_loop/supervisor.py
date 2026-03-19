@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
+import random
 import time
 
 from .config import CodexLoopConfig
@@ -26,6 +27,8 @@ class Supervisor:
         verifier: object,
         working_directory: Path | None = None,
         hook_runner: HookRunner | None = None,
+        sleep_fn: object | None = None,
+        jitter_fn: object | None = None,
     ) -> None:
         self.config = config
         self.state_store = state_store
@@ -34,13 +37,23 @@ class Supervisor:
         self.verifier = verifier
         self.working_directory = working_directory or config.project_dir
         self.hook_runner = hook_runner
+        self.sleep_fn = sleep_fn or time.sleep
+        self.jitter_fn = jitter_fn or random.uniform
 
     def run(self) -> LoopOutcome:
         for _ in range(self.config.execution.max_iterations):
             task = self._select_task()
             if task is None:
                 outcome = self._terminal_outcome_without_selectable_task()
-                self._run_terminal_hooks(outcome=outcome, task=None)
+                state = self.state_store.load()
+                last_blocker = state.get("meta", {}).get("last_blocker") or {}
+                extra_env = None
+                if outcome == LoopOutcome.BLOCKED and last_blocker:
+                    extra_env = {
+                        "CODEX_LOOP_ERROR": last_blocker.get("reason"),
+                        "CODEX_LOOP_BLOCKER_CODE": last_blocker.get("code"),
+                    }
+                self._run_terminal_hooks(outcome=outcome, task=None, extra_env=extra_env)
                 return outcome
             state = self.state_store.load()
             task_state = state["tasks"][task.task_id]
@@ -53,11 +66,18 @@ class Supervisor:
                 },
             )
             if hook_failure is not None:
-                self.state_store.mark_blocked(task.task_id, hook_failure)
+                self.state_store.mark_blocked(
+                    task.task_id,
+                    hook_failure,
+                    code="hook_failure",
+                )
                 self._run_terminal_hooks(
                     outcome=LoopOutcome.BLOCKED,
                     task=task,
-                    extra_env={"CODEX_LOOP_ERROR": hook_failure},
+                    extra_env={
+                        "CODEX_LOOP_ERROR": hook_failure,
+                        "CODEX_LOOP_BLOCKER_CODE": "hook_failure",
+                    },
                 )
                 return LoopOutcome.BLOCKED
             try:
@@ -85,11 +105,18 @@ class Supervisor:
                     },
                 )
                 if hook_failure is not None:
-                    self.state_store.mark_blocked(task.task_id, hook_failure)
+                    self.state_store.mark_blocked(
+                        task.task_id,
+                        hook_failure,
+                        code="hook_failure",
+                    )
                     self._run_terminal_hooks(
                         outcome=LoopOutcome.BLOCKED,
                         task=task,
-                        extra_env={"CODEX_LOOP_ERROR": hook_failure},
+                        extra_env={
+                            "CODEX_LOOP_ERROR": hook_failure,
+                            "CODEX_LOOP_BLOCKER_CODE": "hook_failure",
+                        },
                     )
                     return LoopOutcome.BLOCKED
                 if (
@@ -100,26 +127,36 @@ class Supervisor:
                     self.state_store.mark_blocked(
                         task.task_id,
                         "Reached runner failure circuit breaker.",
+                        code="runner_failure_circuit_breaker",
                     )
                     self._run_terminal_hooks(
                         outcome=LoopOutcome.BLOCKED,
                         task=task,
-                        extra_env={"CODEX_LOOP_ERROR": "Reached runner failure circuit breaker."},
+                        extra_env={
+                            "CODEX_LOOP_ERROR": "Reached runner failure circuit breaker.",
+                            "CODEX_LOOP_BLOCKER_CODE": "runner_failure_circuit_breaker",
+                        },
                     )
                     return LoopOutcome.BLOCKED
                 if (
                     updated["meta"]["no_progress_iterations"]
                     >= self.config.execution.max_no_progress_iterations
                 ):
-                    self.state_store.mark_blocked(task.task_id, "Reached no-progress limit.")
+                    self.state_store.mark_blocked(
+                        task.task_id,
+                        "Reached no-progress limit.",
+                        code="no_progress_limit",
+                    )
                     self._run_terminal_hooks(
                         outcome=LoopOutcome.BLOCKED,
                         task=task,
-                        extra_env={"CODEX_LOOP_ERROR": "Reached no-progress limit."},
+                        extra_env={
+                            "CODEX_LOOP_ERROR": "Reached no-progress limit.",
+                            "CODEX_LOOP_BLOCKER_CODE": "no_progress_limit",
+                        },
                     )
                     return LoopOutcome.BLOCKED
-                if self.config.execution.iteration_backoff_seconds > 0:
-                    time.sleep(self.config.execution.iteration_backoff_seconds)
+                self._sleep_between_iterations()
                 continue
             passed, verification_results = self.verifier.run(
                 self.config.verification.commands,
@@ -165,18 +202,41 @@ class Supervisor:
                 },
             )
             if hook_failure is not None:
-                self.state_store.mark_blocked(task.task_id, hook_failure)
+                self.state_store.mark_blocked(
+                    task.task_id,
+                    hook_failure,
+                    code="hook_failure",
+                )
                 self._run_terminal_hooks(
                     outcome=LoopOutcome.BLOCKED,
                     task=task,
-                    extra_env={"CODEX_LOOP_ERROR": hook_failure},
+                    extra_env={
+                        "CODEX_LOOP_ERROR": hook_failure,
+                        "CODEX_LOOP_BLOCKER_CODE": "hook_failure",
+                    },
                 )
                 return LoopOutcome.BLOCKED
             if str(result.get("status")) == "blocked":
+                blocker_reason = next(
+                    (
+                        str(item)
+                        for item in result.get("blockers", [])
+                        if isinstance(item, str)
+                    ),
+                    "Agent returned blocked.",
+                )
+                self.state_store.mark_blocked(
+                    task.task_id,
+                    blocker_reason,
+                    code="agent_blocked",
+                )
                 self._run_terminal_hooks(
                     outcome=LoopOutcome.BLOCKED,
                     task=task,
-                    extra_env={"CODEX_LOOP_ERROR": "Agent returned blocked."},
+                    extra_env={
+                        "CODEX_LOOP_ERROR": blocker_reason,
+                        "CODEX_LOOP_BLOCKER_CODE": "agent_blocked",
+                    },
                 )
                 return LoopOutcome.BLOCKED
             if passed:
@@ -195,26 +255,36 @@ class Supervisor:
                 self.state_store.mark_blocked(
                     task.task_id,
                     "Reached verification failure circuit breaker.",
+                    code="verification_failure_circuit_breaker",
                 )
                 self._run_terminal_hooks(
                     outcome=LoopOutcome.BLOCKED,
                     task=task,
-                    extra_env={"CODEX_LOOP_ERROR": "Reached verification failure circuit breaker."},
+                    extra_env={
+                        "CODEX_LOOP_ERROR": "Reached verification failure circuit breaker.",
+                        "CODEX_LOOP_BLOCKER_CODE": "verification_failure_circuit_breaker",
+                    },
                 )
                 return LoopOutcome.BLOCKED
             if (
                 updated["meta"]["no_progress_iterations"]
                 >= self.config.execution.max_no_progress_iterations
             ):
-                self.state_store.mark_blocked(task.task_id, "Reached no-progress limit.")
+                self.state_store.mark_blocked(
+                    task.task_id,
+                    "Reached no-progress limit.",
+                    code="no_progress_limit",
+                )
                 self._run_terminal_hooks(
                     outcome=LoopOutcome.BLOCKED,
                     task=task,
-                    extra_env={"CODEX_LOOP_ERROR": "Reached no-progress limit."},
+                    extra_env={
+                        "CODEX_LOOP_ERROR": "Reached no-progress limit.",
+                        "CODEX_LOOP_BLOCKER_CODE": "no_progress_limit",
+                    },
                 )
                 return LoopOutcome.BLOCKED
-            if self.config.execution.iteration_backoff_seconds > 0:
-                time.sleep(self.config.execution.iteration_backoff_seconds)
+            self._sleep_between_iterations()
         state = self.state_store.load()
         remaining = [
             task_id
@@ -225,12 +295,16 @@ class Supervisor:
             self.state_store.mark_blocked(
                 remaining[0],
                 "Reached max iterations before completion.",
+                code="max_iterations",
             )
         terminal_task = self._select_task()
         self._run_terminal_hooks(
             outcome=LoopOutcome.BLOCKED,
             task=terminal_task,
-            extra_env={"CODEX_LOOP_ERROR": "Reached max iterations before completion."},
+            extra_env={
+                "CODEX_LOOP_ERROR": "Reached max iterations before completion.",
+                "CODEX_LOOP_BLOCKER_CODE": "max_iterations",
+            },
         )
         return LoopOutcome.BLOCKED
 
@@ -254,6 +328,7 @@ class Supervisor:
             self.state_store.mark_blocked(
                 first_incomplete,
                 "No selectable task found while unfinished tasks remain.",
+                code="no_selectable_task",
             )
         return LoopOutcome.BLOCKED
 
@@ -336,3 +411,14 @@ class Supervisor:
             env=env,
             timeout_seconds=self.config.hooks.timeout_seconds,
         )
+
+    def _sleep_between_iterations(self) -> None:
+        base = float(self.config.execution.iteration_backoff_seconds)
+        jitter = float(self.config.execution.iteration_backoff_jitter_seconds)
+        if base <= 0 and jitter <= 0:
+            return
+        delay = max(base, 0.0)
+        if jitter > 0:
+            delay += float(self.jitter_fn(0.0, jitter))
+        if delay > 0:
+            self.sleep_fn(delay)

@@ -65,6 +65,16 @@ class ConfigTests(unittest.TestCase):
                     },
                     root,
                 )
+            with self.assertRaises(ValueError):
+                CodexLoopConfig.from_dict(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["tests pass"]},
+                        "execution": {"iteration_backoff_jitter_seconds": -0.1},
+                        "verification": {"commands": ["python -m unittest"]},
+                    },
+                    root,
+                )
 
     def test_rejects_negative_circuit_breaker_thresholds(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

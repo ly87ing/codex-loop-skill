@@ -14,6 +14,13 @@ def build_metrics_snapshot(state: dict[str, Any]) -> dict[str, Any]:
     history = state.get("history", [])
     tasks = state.get("tasks", {})
     meta = state.get("meta", {})
+    blocked_by_code: dict[str, int] = {}
+    for item in history:
+        if item.get("event_type") != "blocked":
+            continue
+        code = str(item.get("blocker_code", "blocked"))
+        blocked_by_code[code] = blocked_by_code.get(code, 0) + 1
+    last_blocker = meta.get("last_blocker") or {}
     return {
         "generated_at": _now(),
         "overall_status": meta.get("overall_status", "unknown"),
@@ -36,12 +43,18 @@ def build_metrics_snapshot(state: dict[str, Any]) -> dict[str, Any]:
         "resume_fallbacks_total": sum(
             1 for item in history if item.get("resume_fallback_used", False)
         ),
+        "blocked_events_total": sum(
+            1 for item in history if item.get("event_type") == "blocked"
+        ),
+        "blocked_by_code": blocked_by_code,
         "consecutive_runner_failures": int(
             meta.get("consecutive_runner_failures", 0)
         ),
         "consecutive_verification_failures": int(
             meta.get("consecutive_verification_failures", 0)
         ),
+        "last_blocker_code": last_blocker.get("code"),
+        "last_blocker_reason": last_blocker.get("reason"),
         "last_error": meta.get("last_error"),
     }
 

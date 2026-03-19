@@ -44,6 +44,10 @@ def format_status_summary(project_dir: Path) -> str:
                 f"resume_fallbacks_total: {metrics.get('resume_fallbacks_total', 0)}",
             ]
         )
+        if metrics.get("last_blocker_code"):
+            lines.append(f"last_blocker_code: {metrics.get('last_blocker_code')}")
+        if metrics.get("last_blocker_reason"):
+            lines.append(f"last_blocker_reason: {metrics.get('last_blocker_reason')}")
     if last_history:
         lines.append(f"last_summary: {last_history.get('summary', '')}")
     return "\n".join(lines)

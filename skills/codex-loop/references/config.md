@@ -19,7 +19,8 @@
 - `max_consecutive_runner_failures`: circuit breaker for repeated Codex command failures
 - `max_consecutive_verification_failures`: optional circuit breaker for repeated red verification runs; `0` disables it
 - `iteration_timeout_seconds`: timeout for each `codex exec` or `codex exec resume` call
-- `iteration_backoff_seconds`: optional sleep between iterations
+- `iteration_backoff_seconds`: base sleep between non-terminal iterations
+- `iteration_backoff_jitter_seconds`: random jitter added on top of the base backoff
 - `resume_fallback_to_fresh`: retry once without `resume` when the saved session is stale
 - `worktree.enabled`: whether to run inside a temporary worktree
 - `worktree.branch_prefix`: branch prefix for generated worktree branches
@@ -49,6 +50,18 @@
 - `on_blocked`: local commands run after the loop reaches `blocked`
 - `failure_policy`: `ignore` or `block` for `post_init`, `pre_iteration`, and `post_iteration`
 - `timeout_seconds`: timeout for each hook command
+
+## Blocker Taxonomy
+
+When the loop blocks, state and metrics persist a `blocker_code` alongside the human-readable reason. Current codes include:
+
+- `hook_failure`
+- `agent_blocked`
+- `runner_failure_circuit_breaker`
+- `verification_failure_circuit_breaker`
+- `no_progress_limit`
+- `max_iterations`
+- `no_selectable_task`
 
 ## Format Note
 

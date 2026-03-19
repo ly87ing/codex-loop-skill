@@ -24,6 +24,8 @@ def _default_task_state(index: int) -> dict[str, Any]:
         "last_summary": "",
         "files_changed": [],
         "last_error": None,
+        "blocker_code": None,
+        "blocker_reason": None,
         "resume_fallback_used": False,
         "resume_failure_reason": None,
         "updated_at": _now(),
@@ -78,6 +80,7 @@ class StateStore:
                 "consecutive_verification_failures": 0,
                 "last_fingerprint": "",
                 "last_error": None,
+                "last_blocker": None,
                 "overall_status": "initialized",
                 "archived_tasks": {},
                 "created_at": _now(),
@@ -99,6 +102,7 @@ class StateStore:
         meta.setdefault("consecutive_runner_failures", 0)
         meta.setdefault("consecutive_verification_failures", 0)
         meta.setdefault("last_error", None)
+        meta.setdefault("last_blocker", None)
         current_tasks = state.get("tasks", {})
         removed_task_ids = [task_id for task_id in current_tasks if task_id not in task_ids]
         for task_id in removed_task_ids:
@@ -112,6 +116,8 @@ class StateStore:
             task_state.setdefault("resume_fallback_used", False)
             task_state.setdefault("resume_failure_reason", None)
             task_state.setdefault("last_error", None)
+            task_state.setdefault("blocker_code", None)
+            task_state.setdefault("blocker_reason", None)
             rebuilt_tasks[task_id] = task_state
 
         _normalize_task_statuses(rebuilt_tasks)
@@ -134,6 +140,8 @@ class StateStore:
         state = self.load()
         state["tasks"][task_id]["status"] = "done"
         state["tasks"][task_id]["last_error"] = None
+        state["tasks"][task_id]["blocker_code"] = None
+        state["tasks"][task_id]["blocker_reason"] = None
         state["tasks"][task_id]["updated_at"] = _now()
         next_pending = next(
             (key for key, task in state["tasks"].items() if task["status"] == "pending"),
@@ -148,15 +156,37 @@ class StateStore:
         self.save(state)
         return state
 
-    def mark_blocked(self, task_id: str, reason: str) -> dict[str, Any]:
+    def mark_blocked(
+        self,
+        task_id: str,
+        reason: str,
+        code: str = "blocked",
+    ) -> dict[str, Any]:
         state = self.load()
         state["tasks"][task_id]["status"] = "blocked"
+        state["tasks"][task_id]["blocker_code"] = code
         state["tasks"][task_id]["blocker_reason"] = reason
         state["tasks"][task_id]["last_error"] = reason
         state["tasks"][task_id]["updated_at"] = _now()
         state["meta"]["last_error"] = reason
+        state["meta"]["last_blocker"] = {
+            "task_id": task_id,
+            "code": code,
+            "reason": reason,
+            "timestamp": _now(),
+        }
         state["meta"]["overall_status"] = "blocked"
         state["meta"]["updated_at"] = _now()
+        state["history"].append(
+            {
+                "event_type": "blocked",
+                "iteration": state["meta"].get("iteration", 0),
+                "task_id": task_id,
+                "summary": reason,
+                "blocker_code": code,
+                "blocker_reason": reason,
+            }
+        )
         self.save(state)
         return state
 
@@ -183,6 +213,8 @@ class StateStore:
         task["status"] = "in_progress"
         task["last_summary"] = reason
         task["last_error"] = reason
+        task["blocker_code"] = None
+        task["blocker_reason"] = None
         task["files_changed"] = []
         if session_id is not None:
             task["session_id"] = session_id
@@ -246,6 +278,8 @@ class StateStore:
         task["files_changed"] = files_changed
         task["session_id"] = session_id
         task["last_error"] = None if verification_passed else summary
+        task["blocker_code"] = None
+        task["blocker_reason"] = None
         task["resume_fallback_used"] = resume_fallback_used
         task["resume_failure_reason"] = resume_failure_reason
         task["updated_at"] = _now()

@@ -49,7 +49,8 @@ class ExecutionConfig:
     max_consecutive_verification_failures: int = 0
     lock_stale_seconds: int = 21600
     iteration_timeout_seconds: int = 1800
-    iteration_backoff_seconds: int = 0
+    iteration_backoff_seconds: float = 0.0
+    iteration_backoff_jitter_seconds: float = 0.0
     resume_fallback_to_fresh: bool = True
     worktree: WorktreeConfig = field(default_factory=WorktreeConfig)
 
@@ -130,8 +131,11 @@ class CodexLoopConfig:
             iteration_timeout_seconds=int(
                 execution_data.get("iteration_timeout_seconds", 1800)
             ),
-            iteration_backoff_seconds=int(
-                execution_data.get("iteration_backoff_seconds", 0)
+            iteration_backoff_seconds=float(
+                execution_data.get("iteration_backoff_seconds", 0.0)
+            ),
+            iteration_backoff_jitter_seconds=float(
+                execution_data.get("iteration_backoff_jitter_seconds", 0.0)
             ),
             resume_fallback_to_fresh=bool(
                 execution_data.get("resume_fallback_to_fresh", True)
@@ -190,6 +194,9 @@ class CodexLoopConfig:
             raise ValueError(msg)
         if self.execution.iteration_backoff_seconds < 0:
             msg = "execution.iteration_backoff_seconds must not be negative."
+            raise ValueError(msg)
+        if self.execution.iteration_backoff_jitter_seconds < 0:
+            msg = "execution.iteration_backoff_jitter_seconds must not be negative."
             raise ValueError(msg)
         if self.hooks.timeout_seconds <= 0:
             msg = "hooks.timeout_seconds must be greater than zero."

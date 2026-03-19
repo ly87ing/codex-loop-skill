@@ -388,6 +388,62 @@ class SupervisorTests(unittest.TestCase):
             self.assertEqual(outcome, LoopOutcome.BLOCKED)
             self.assertEqual(blocked_file.read_text(), "blocked")
 
+    def test_applies_backoff_with_jitter_between_iterations(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+            sleep_calls: list[float] = []
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {
+                        "max_iterations": 3,
+                        "max_no_progress_iterations": 10,
+                        "iteration_backoff_seconds": 2,
+                        "iteration_backoff_jitter_seconds": 0.5,
+                    },
+                    "verification": {"commands": ["python -m unittest"]},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=StubRunner(
+                    [
+                        {
+                            "status": "continue",
+                            "summary": "Changed code",
+                            "files_changed": ["src/a.py"],
+                            "session_id": "s1",
+                        },
+                        {
+                            "status": "continue",
+                            "summary": "Finished code",
+                            "files_changed": ["src/a.py"],
+                            "session_id": "s1",
+                        },
+                    ]
+                ),
+                verifier=StubVerifier([False, True]),
+                sleep_fn=sleep_calls.append,
+                jitter_fn=lambda low, high: 0.25,
+            )
+
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.COMPLETED)
+            self.assertEqual(sleep_calls, [2.25])
+
     def test_blocks_when_state_has_incomplete_tasks_but_no_selectable_task(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

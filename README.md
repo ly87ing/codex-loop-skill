@@ -20,7 +20,7 @@
   - runs local verification commands after each iteration
   - stops only on `completed` or `blocked`
 - `.codex-loop/metrics.json`:
-  - persists aggregate counters such as iterations, runner failures, verification failures, and resume fallbacks
+  - persists aggregate counters such as iterations, runner failures, verification failures, resume fallbacks, and blocker summaries
 - `codex-loop doctor --repair`:
   - recreates a missing agent result schema
   - reconciles task files with `.codex-loop/state.json`
@@ -96,9 +96,10 @@ your-project/
 7. If `codex exec resume` fails because the session is stale, retry once with a fresh `codex exec`
 8. Run every command in `verification.commands`
 9. Update circuit-breaker counters and metrics
-10. Run local iteration hooks when configured
-11. Record progress, files changed, session metadata, and verification results
-12. Continue until all tasks are done or a blocking threshold is reached
+10. Apply structured blocker codes when the loop blocks
+11. Run local iteration hooks when configured
+12. Record progress, files changed, session metadata, and verification results
+13. Continue until all tasks are done or a blocking threshold is reached
 
 ## Verification Model
 
@@ -125,6 +126,11 @@ The loop stops with `blocked` when:
 - Hook execution is local and explicit through `codex-loop.yaml`; it is never inferred from prompts
 - `post_init`, `pre_iteration`, and `post_iteration` can be configured to block on hook failure; terminal hooks are notification-oriented and do not rewrite the final outcome
 - The default finish mode is conservative: keep the worktree and branch
+
+## Operator Notes
+
+- `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks.
+- `.codex-loop/metrics.json` includes blocker aggregates keyed by blocker code.
 
 ## Known Limits
 

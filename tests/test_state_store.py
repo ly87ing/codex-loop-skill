@@ -63,6 +63,27 @@ class StateStoreTests(unittest.TestCase):
                 "pending",
             )
 
+    def test_persists_structured_blocker_details(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial(
+                project_name="demo",
+                source_prompt="Build it",
+                tasks=["001-foundation"],
+            )
+
+            state = store.mark_blocked(
+                "001-foundation",
+                reason="Reached no-progress limit.",
+                code="no_progress_limit",
+            )
+
+            self.assertEqual(state["tasks"]["001-foundation"]["blocker_code"], "no_progress_limit")
+            self.assertEqual(state["meta"]["last_blocker"]["code"], "no_progress_limit")
+            self.assertEqual(state["history"][-1]["event_type"], "blocked")
+            self.assertEqual(state["history"][-1]["blocker_code"], "no_progress_limit")
+
 
 if __name__ == "__main__":
     unittest.main()

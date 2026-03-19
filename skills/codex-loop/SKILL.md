@@ -70,6 +70,7 @@ codex-loop logs tail --lines 20
 ```
 
 `status --summary` now includes key runtime counters from `.codex-loop/metrics.json`.
+When blocked, it also surfaces the latest `blocker_code` and reason.
 
 ## Key Rules
 

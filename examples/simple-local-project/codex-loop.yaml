@@ -18,7 +18,8 @@
     "max_consecutive_runner_failures": 3,
     "max_consecutive_verification_failures": 0,
     "iteration_timeout_seconds": 1800,
-    "iteration_backoff_seconds": 0,
+    "iteration_backoff_seconds": 0.0,
+    "iteration_backoff_jitter_seconds": 0.0,
     "resume_fallback_to_fresh": true,
     "worktree": {
       "enabled": true,

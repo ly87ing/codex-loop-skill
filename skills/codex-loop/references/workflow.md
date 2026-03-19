@@ -23,9 +23,10 @@ Those artifacts are written locally so future iterations do not depend on the or
 6. If resume fails because the session is stale, retry once with a fresh `codex exec`
 7. Run local verification commands
 8. Apply circuit-breaker thresholds for repeated runner or verification failures
-9. Persist iteration history, metrics, and loop status
-10. Run local iteration hooks when configured
-11. Continue until `completed` or `blocked`
+9. Apply base backoff plus optional jitter before the next non-terminal iteration
+10. Persist iteration history, metrics, blocker codes, and loop status
+11. Run local iteration hooks when configured
+12. Continue until `completed` or `blocked`
 
 ## Doctor
 
@@ -48,6 +49,7 @@ When repair is enabled, it can recreate the schema and realign task state with t
 - `on_completed` and `on_blocked` after terminal outcomes
 - hook `failure_policy` can block `post_init`, `pre_iteration`, and `post_iteration`
 - `.codex-loop/metrics.json` for aggregate runtime counters
+- `status --summary` for the latest blocker code and reason
 
 ## Task Semantics
 
