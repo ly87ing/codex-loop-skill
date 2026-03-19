@@ -132,6 +132,73 @@ def format_snapshots_report(
     return "\n".join(lines)
 
 
+def summarize_snapshots(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
+    summary: dict[str, Any] = {
+        "total_snapshots": len(snapshots),
+        "by_task": {},
+        "by_status": {},
+        "by_selection": {},
+        "by_blocker_code": {},
+        "latest_snapshot": None,
+        "latest_blocked": None,
+    }
+    for snapshot in snapshots:
+        task_id = str(snapshot.get("task_id", "none"))
+        status = str(snapshot.get("overall_status", "unknown"))
+        selection = str(snapshot.get("selection", "unknown"))
+        timestamp = str(snapshot.get("generated_at", ""))
+        summary["by_task"][task_id] = int(summary["by_task"].get(task_id, 0)) + 1
+        summary["by_status"][status] = int(summary["by_status"].get(status, 0)) + 1
+        summary["by_selection"][selection] = int(summary["by_selection"].get(selection, 0)) + 1
+
+        blocker_code = snapshot.get("last_blocker_code")
+        if blocker_code:
+            blocker_key = str(blocker_code)
+            summary["by_blocker_code"][blocker_key] = (
+                int(summary["by_blocker_code"].get(blocker_key, 0)) + 1
+            )
+
+        latest_snapshot = summary["latest_snapshot"]
+        if latest_snapshot is None or timestamp >= str(latest_snapshot.get("generated_at", "")):
+            summary["latest_snapshot"] = {
+                "task_id": snapshot.get("task_id"),
+                "overall_status": snapshot.get("overall_status"),
+                "selection": snapshot.get("selection"),
+                "generated_at": snapshot.get("generated_at"),
+                "snapshot_path": snapshot.get("snapshot_path"),
+            }
+
+        if status == "blocked" or blocker_code:
+            latest_blocked = summary["latest_blocked"]
+            if latest_blocked is None or timestamp >= str(
+                latest_blocked.get("generated_at", "")
+            ):
+                summary["latest_blocked"] = {
+                    "task_id": snapshot.get("task_id"),
+                    "blocker_code": blocker_code,
+                    "generated_at": snapshot.get("generated_at"),
+                    "snapshot_path": snapshot.get("snapshot_path"),
+                }
+    return summary
+
+
+def format_snapshots_summary(snapshots: list[dict[str, Any]]) -> str:
+    summary = summarize_snapshots(snapshots)
+    lines = [f"total_snapshots: {summary['total_snapshots']}"]
+    for section_name in ("by_task", "by_status", "by_selection", "by_blocker_code"):
+        lines.append(f"{section_name}:")
+        entries = summary[section_name]
+        for key in sorted(entries):
+            lines.append(f"{key}: {entries[key]}")
+    for field_name in ("latest_snapshot", "latest_blocked"):
+        lines.append(f"{field_name}:")
+        payload = summary[field_name]
+        if payload is not None:
+            for key, value in payload.items():
+                lines.append(f"{key}: {value}")
+    return "\n".join(lines)
+
+
 def build_status_snapshot(project_dir: Path) -> dict[str, Any]:
     state = _load_state(project_dir)
     project_name = state.get("meta", {}).get("project_name", project_dir.name)

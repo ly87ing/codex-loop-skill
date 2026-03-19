@@ -9,12 +9,14 @@ from codex_loop.reporting import (
     build_session_inventory,
     build_evidence_bundle,
     format_snapshots_report,
+    format_snapshots_summary,
     format_events_summary,
     format_evidence_report,
     format_events_timeline,
     format_sessions_report,
     load_snapshots_index,
     load_events_timeline,
+    summarize_snapshots,
     summarize_events,
 )
 from codex_loop.state_store import StateStore
@@ -445,6 +447,55 @@ class ReportingTests(unittest.TestCase):
             self.assertEqual(filtered[0]["task_id"], "001-foundation")
             self.assertIn("002-polish", rendered)
             self.assertIn("no_progress_limit", rendered)
+
+    def test_snapshots_summary_tracks_status_task_and_blockers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_dir = Path(tmpdir)
+            snapshots = [
+                {
+                    "generated_at": "2026-03-19T00:00:00+00:00",
+                    "task_id": "001-foundation",
+                    "selection": "task_id",
+                    "session_id": "session-001",
+                    "overall_status": "running",
+                    "current_task": "001-foundation",
+                    "last_blocker_code": None,
+                    "snapshot_path": str(snapshot_dir / "one.json"),
+                },
+                {
+                    "generated_at": "2026-03-20T00:00:00+00:00",
+                    "task_id": "002-polish",
+                    "selection": "latest_session",
+                    "session_id": "session-002",
+                    "overall_status": "blocked",
+                    "current_task": "002-polish",
+                    "last_blocker_code": "no_progress_limit",
+                    "snapshot_path": str(snapshot_dir / "two.json"),
+                },
+                {
+                    "generated_at": "2026-03-21T00:00:00+00:00",
+                    "task_id": "002-polish",
+                    "selection": "latest_session",
+                    "session_id": "session-003",
+                    "overall_status": "completed",
+                    "current_task": "done",
+                    "last_blocker_code": None,
+                    "snapshot_path": str(snapshot_dir / "three.json"),
+                },
+            ]
+            summary = summarize_snapshots(snapshots)
+            rendered = format_snapshots_summary(snapshots)
+
+            self.assertEqual(summary["total_snapshots"], 3)
+            self.assertEqual(summary["by_task"]["002-polish"], 2)
+            self.assertEqual(summary["by_status"]["blocked"], 1)
+            self.assertEqual(summary["by_selection"]["latest_session"], 2)
+            self.assertEqual(summary["by_blocker_code"]["no_progress_limit"], 1)
+            self.assertEqual(summary["latest_snapshot"]["task_id"], "002-polish")
+            self.assertEqual(summary["latest_blocked"]["task_id"], "002-polish")
+            self.assertIn("total_snapshots: 3", rendered)
+            self.assertIn("by_status:", rendered)
+            self.assertIn("no_progress_limit: 1", rendered)
 
 
 if __name__ == "__main__":

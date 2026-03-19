@@ -74,6 +74,7 @@ codex-loop evidence --latest --json --output ./evidence.json
 codex-loop evidence --task-id 001-foundation --event-limit 5 --json
 codex-loop evidence --task-id 001-foundation --json --output-dir ./snapshots
 codex-loop snapshots --snapshot-dir ./snapshots
+codex-loop snapshots --snapshot-dir ./snapshots --summary
 codex-loop snapshots --snapshot-dir ./snapshots --latest --json
 codex-loop events --limit 20
 codex-loop events --summary --json
@@ -89,7 +90,7 @@ codex-loop cleanup --logs-keep 20 --prompts-older-than-days 30
 When blocked, it also surfaces the latest `blocker_code` and reason, and when a task has an active session it shows that too.
 `sessions` gives a workspace-scoped inventory of known task session ids, their latest prompt/log/run artifacts, and a `--latest` shortcut for the most recent session seen by the loop.
 `evidence` gives a read-only prompt/log/run bundle for the current task, a selected task, or the latest session, embeds bounded task event snapshots plus status/session metadata, and can export that bundle to disk or an auto-named snapshot directory with an index file.
-`snapshots` reads that index file back as a filtered list or JSON payload, so exported evidence can be audited without opening each bundle manually.
+`snapshots` reads that index file back as a filtered list or JSON payload, and `--summary` turns it into a grouped operator view across task, status, selection, blocker code, and latest snapshot markers.
 `events` merges loop history with hook logs, can summarize the filtered set including blocker breakdowns plus latest runner or verification failures, and can export structured JSON to a file.
 `cleanup` defaults to dry-run and can combine config-driven retention, count-based limits, age thresholds, and per-directory overrides.
 `doctor --repair` can backfill missing operator defaults into older loop configs, and `doctor` warnings now suggest safer cleanup settings when defaults are destructive.

@@ -18,10 +18,12 @@ from .reporting import (
     format_events_summary,
     format_events_timeline,
     format_snapshots_report,
+    format_snapshots_summary,
     format_sessions_report,
     format_status_summary,
     load_events_timeline,
     load_snapshots_index,
+    summarize_snapshots,
     summarize_events,
     tail_log_lines,
 )
@@ -237,6 +239,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--latest",
         action="store_true",
         help="Only emit the latest snapshot entry.",
+    )
+    snapshots_parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="Render a grouped summary instead of the raw snapshot list.",
     )
     snapshots_parser.add_argument(
         "--json",
@@ -502,6 +509,13 @@ def main(argv: list[str] | None = None) -> int:
                 limit=args.limit,
                 latest=args.latest,
             )
+            if args.summary:
+                summary = summarize_snapshots(payload)
+                if args.json:
+                    print(json.dumps(summary, indent=2, ensure_ascii=False))
+                else:
+                    print(format_snapshots_summary(payload))
+                return 0
             if args.json:
                 print(json.dumps(payload, indent=2, ensure_ascii=False))
             else:
