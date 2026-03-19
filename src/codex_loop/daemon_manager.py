@@ -58,12 +58,28 @@ def start_daemon(
     cycle_sleep_seconds: float,
     max_cycles: int | None,
     popen_cls: Callable[..., Any] = subprocess.Popen,
+    service_status_fn: Callable[[Path], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     project_dir = project_dir.resolve()
     status = daemon_status(project_dir)
     if status.get("running"):
         msg = f"codex-loop daemon already running (pid={status.get('pid')})."
         raise RuntimeError(msg)
+    if service_status_fn is None:
+        try:
+            from .service_manager import service_status
+        except ImportError:
+            service_status_fn = None
+        else:
+            service_status_fn = service_status if sys.platform == "darwin" else None
+    if service_status_fn is not None:
+        service = service_status_fn(project_dir)
+        if service.get("loaded"):
+            label = service.get("label")
+            detail = f" ({label})" if label else ""
+            raise RuntimeError(
+                f"codex-loop service is already loaded{detail}; uninstall or stop it before starting the daemon."
+            )
 
     paths = daemon_paths(project_dir)
     command = [

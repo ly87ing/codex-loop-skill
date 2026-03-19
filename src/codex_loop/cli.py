@@ -970,7 +970,9 @@ def main(argv: list[str] | None = None) -> int:
                 print(
                     f"installed={payload.get('installed')} "
                     f"loaded={payload.get('loaded')} "
+                    f"healthy={payload.get('healthy')} "
                     f"stale_heartbeat={payload.get('stale_heartbeat')} "
+                    f"missing_heartbeat={payload.get('missing_heartbeat')} "
                     f"label={payload.get('label')} "
                     f"phase={payload.get('phase')} "
                     f"cycle={payload.get('cycle')} "

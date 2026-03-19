@@ -35,6 +35,24 @@ class _FakeRun:
 
 
 class ServiceManagerTests(unittest.TestCase):
+    def test_install_service_refuses_when_daemon_is_running(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "project"
+            home_dir = Path(tmpdir) / "home"
+            root.mkdir(parents=True, exist_ok=True)
+
+            with self.assertRaisesRegex(RuntimeError, "daemon is already running"):
+                install_service(
+                    root,
+                    retry_blocked=True,
+                    cycle_sleep_seconds=60.0,
+                    max_cycles=None,
+                    uid=501,
+                    home_dir=home_dir,
+                    platform="darwin",
+                    daemon_status_fn=lambda project_dir: {"running": True, "pid": 43210},
+                )
+
     def test_install_service_writes_plist_and_bootstraps_launch_agent(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir) / "project"
@@ -51,6 +69,7 @@ class ServiceManagerTests(unittest.TestCase):
                 home_dir=home_dir,
                 platform="darwin",
                 run_cmd=fake_run,
+                daemon_status_fn=lambda project_dir: {"running": False},
             )
 
             label = service_label(root)
@@ -134,6 +153,50 @@ class ServiceManagerTests(unittest.TestCase):
                 fake_run.calls,
                 [["launchctl", "print", f"gui/501/{label}"]],
             )
+
+    def test_service_status_marks_missing_heartbeat_when_loaded(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "project"
+            home_dir = Path(tmpdir) / "home"
+            root.mkdir(parents=True, exist_ok=True)
+            label = service_label(root)
+            loop_dir = root / ".codex-loop"
+            loop_dir.mkdir(parents=True, exist_ok=True)
+            plist_path = home_dir / "Library" / "LaunchAgents" / f"{label}.plist"
+            plist_path.parent.mkdir(parents=True, exist_ok=True)
+            plist_path.write_bytes(plistlib.dumps({"Label": label}))
+            (loop_dir / "service.json").write_text(
+                json.dumps(
+                    {
+                        "label": label,
+                        "domain": "gui/501",
+                        "project_dir": str(root.resolve()),
+                        "plist_path": str(plist_path),
+                        "log_path": str((loop_dir / "service.log").resolve()),
+                        "heartbeat_path": str((loop_dir / "service-heartbeat.json").resolve()),
+                        "retry_blocked": True,
+                        "cycle_sleep_seconds": 60.0,
+                        "max_cycles": None,
+                        "heartbeat_stale_seconds": 300,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            fake_run = _FakeRun(_CompletedProcess(returncode=0, stdout="service = running"))
+
+            status = service_status(
+                root,
+                uid=501,
+                home_dir=home_dir,
+                platform="darwin",
+                run_cmd=fake_run,
+            )
+
+            self.assertTrue(status["installed"])
+            self.assertTrue(status["loaded"])
+            self.assertTrue(status["missing_heartbeat"])
+            self.assertFalse(status["healthy"])
+            self.assertIsNone(status["updated_at"])
 
     def test_uninstall_service_boots_out_and_removes_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -65,8 +65,9 @@ Those warnings now include concrete remediation guidance so operators can tighte
 - `daemon status [--json]` for checking pid, heartbeat phase, cycle, stale/dead detection, and log path
 - `daemon stop [--json]` for sending `SIGTERM` to the detached worker and clearing local daemon metadata
 - `service install --retry-blocked --cycle-sleep-seconds 60 [--max-cycles N]` for installing a `launchd` agent that survives shell exits and future logins on macOS
-- `service status [--json]` for checking whether that `launchd` agent is installed, loaded, and still producing fresh heartbeats
+- `service status [--json]` for checking whether that `launchd` agent is installed, loaded, healthy, and still producing fresh heartbeats; loaded-but-missing-heartbeat is now surfaced explicitly
 - `service uninstall [--json]` for removing the `launchd` plist and clearing local service metadata
+- `daemon start` refuses to run while a service is already loaded for the same project, and `service install` refuses to proceed while a daemon is already running, so one project root has only one long-lived supervisor at a time
 - `sessions --latest --json` for the most recent session seen by the loop
 - `sessions --task-id ... --json` for the latest task-specific session and artifact pointers
 - `evidence --task-id ... --json` for the latest evidence bundle of a task without manually opening multiple files

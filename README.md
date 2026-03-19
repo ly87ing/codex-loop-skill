@@ -29,6 +29,7 @@
   - keeps the loop alive across shell exits and future logins with `RunAtLoad` and `KeepAlive`
   - writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, and `.codex-loop/service.log`
   - preserves `PATH`, `HOME`, `SHELL`, and `CODEX_HOME` for the long-running service process
+  - refuses to install while a local `daemon` worker is already running, to avoid dual writers against the same loop state
 - `.codex-loop/metrics.json`:
   - persists aggregate counters such as iterations, runner failures, verification failures, resume fallbacks, and blocker summaries
 - `codex-loop doctor --repair`:
@@ -186,7 +187,8 @@ The loop stops with `blocked` when:
 - `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks, plus the current task session id when one exists.
 - `run --continuous --retry-blocked` is the current fastest path to a long-lived local worker: it wraps the normal run loop, requeues blocked tasks between cycles, and keeps going until completed or a cycle limit is reached.
 - `daemon start|status|stop` adds a lightweight detached supervisor layer on top of `run --continuous`, with `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, and `.codex-loop/daemon.log` for local operator visibility, plus dead-process and stale-heartbeat detection in `status`.
-- `service install|status|uninstall` is the macOS path for real unattended persistence: it installs a `launchd` agent, writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, and `.codex-loop/service.log`, and preserves enough environment for the loop to keep finding the local Codex CLI after terminal sessions end.
+- `service install|status|uninstall` is the macOS path for real unattended persistence: it installs a `launchd` agent, writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, and `.codex-loop/service.log`, preserves enough environment for the loop to keep finding the local Codex CLI after terminal sessions end, and now reports `healthy` plus `missing_heartbeat` so a loaded-but-stuck service is visible immediately.
+- `daemon` and `service` are now intentionally mutually exclusive for the same project root; starting one while the other is active returns an error instead of risking conflicting writes into `.codex-loop/`.
 - `sessions` provides a workspace-scoped inventory of known Codex session ids per task, the latest `prompt/log/run` artifacts for each task, and a `--latest` view for the most recent resumable session seen by the loop.
 - `evidence` turns a selected task or latest session into a read-only evidence bundle with selection metadata, status/session snapshots, prompt preview, log tail, parsed run payload, recent task events, and optional `--output` or auto-named `--output-dir` export; directory exports also maintain a snapshot `index.json`.
 - `snapshots` reads that directory-level `index.json` back as an operator view, with task filtering, status filtering, blocker-code filtering, sort control via `--sort newest|oldest`, `--latest`, the `--latest-blocked` shortcut for the newest blocked snapshot, ISO time windows via `--since/--until`, raw JSON output, file export via `--output`, auto-named archive export via `--output-dir`, and a `--summary` aggregation over task, status, selection, blocker code, and latest snapshot markers; `--group-by task|status|blocker|selection` narrows that summary to one chosen view, and `--output-dir` now maintains a sibling `manifest.json` for exported query results.

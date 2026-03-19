@@ -159,9 +159,21 @@ def install_service(
     home_dir: Path | None = None,
     platform: str = sys.platform,
     run_cmd: Callable[..., Any] = subprocess.run,
+    daemon_status_fn: Callable[[Path], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     _require_darwin(platform)
     project_dir = project_dir.resolve()
+    if daemon_status_fn is None:
+        from .daemon_manager import daemon_status
+
+        daemon_status_fn = daemon_status
+    daemon = daemon_status_fn(project_dir)
+    if daemon.get("running"):
+        pid = daemon.get("pid")
+        detail = f" (pid={pid})" if pid is not None else ""
+        raise RuntimeError(
+            f"codex-loop daemon is already running{detail}; stop it before installing the launchd service."
+        )
     paths = service_paths(project_dir, home_dir=home_dir)
     label = service_label(project_dir)
     domain = _domain_for_uid(uid)
@@ -256,6 +268,8 @@ def service_status(
         detail = ""
 
     heartbeat = _read_json(heartbeat_path)
+    heartbeat_present = heartbeat_path.exists()
+    missing_heartbeat = loaded and not heartbeat_present
     heartbeat_stale_seconds = metadata.get(
         "heartbeat_stale_seconds", DEFAULT_HEARTBEAT_STALE_SECONDS
     )
@@ -264,16 +278,20 @@ def service_status(
     if isinstance(heartbeat_stale_seconds, (int, float)) and heartbeat_ts is not None:
         age_seconds = (datetime.now(UTC) - heartbeat_ts).total_seconds()
         stale_heartbeat = age_seconds > float(heartbeat_stale_seconds)
+    healthy = loaded and not missing_heartbeat and not stale_heartbeat
 
     return {
         "installed": installed,
         "loaded": loaded,
+        "healthy": healthy,
         "label": label,
         "domain": domain,
         "project_dir": str(project_dir),
         "plist_path": str(plist_path),
         "log_path": str(log_path),
         "heartbeat_path": str(heartbeat_path),
+        "heartbeat_present": heartbeat_present,
+        "missing_heartbeat": missing_heartbeat,
         "command": metadata.get("command", []),
         "retry_blocked": metadata.get("retry_blocked", False),
         "cycle_sleep_seconds": metadata.get("cycle_sleep_seconds"),

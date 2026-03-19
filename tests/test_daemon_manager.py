@@ -17,6 +17,23 @@ class _FakePopen:
 
 
 class DaemonManagerTests(unittest.TestCase):
+    def test_start_daemon_refuses_when_service_is_loaded(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+
+            with self.assertRaisesRegex(RuntimeError, "service is already loaded"):
+                start_daemon(
+                    root,
+                    retry_blocked=True,
+                    cycle_sleep_seconds=45.0,
+                    max_cycles=7,
+                    popen_cls=_FakePopen,
+                    service_status_fn=lambda project_dir: {
+                        "loaded": True,
+                        "label": "com.codex-loop.demo",
+                    },
+                )
+
     def test_start_daemon_writes_metadata_and_command(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -27,6 +44,7 @@ class DaemonManagerTests(unittest.TestCase):
                 cycle_sleep_seconds=45.0,
                 max_cycles=7,
                 popen_cls=_FakePopen,
+                service_status_fn=lambda project_dir: {"loaded": False},
             )
 
             metadata_path = root / ".codex-loop" / "daemon.json"
