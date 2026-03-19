@@ -183,6 +183,40 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("by_blocker_code:", rendered)
             self.assertIn("no_progress_limit: 1", rendered)
 
+    def test_events_summary_tracks_latest_blocked_details(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            store.mark_blocked(
+                "001-foundation",
+                reason="Reached no-progress limit.",
+                code="no_progress_limit",
+            )
+            store.mark_blocked(
+                "002-polish",
+                reason="Runner circuit breaker tripped.",
+                code="runner_failure_circuit_breaker",
+            )
+            state = store.load()
+            state["history"][-2]["timestamp"] = "2026-03-19T00:00:00+00:00"
+            state["history"][-1]["timestamp"] = "2026-03-20T00:00:00+00:00"
+            store.save(state)
+
+            summary = summarize_events(load_events_timeline(root, limit=10))
+            rendered = format_events_summary(load_events_timeline(root, limit=10))
+
+            self.assertEqual(
+                summary["latest_blocked"]["task_id"],
+                "002-polish",
+            )
+            self.assertEqual(
+                summary["latest_blocked"]["blocker_code"],
+                "runner_failure_circuit_breaker",
+            )
+            self.assertIn("latest_blocked:", rendered)
+            self.assertIn("runner_failure_circuit_breaker", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()

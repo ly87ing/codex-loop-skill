@@ -188,6 +188,7 @@ class CliTests(unittest.TestCase):
             self.assertEqual(payload["total_events"], 2)
             self.assertEqual(payload["by_label"]["runner_failure"], 1)
             self.assertEqual(payload["by_blocker_code"]["no_progress_limit"], 1)
+            self.assertEqual(payload["latest_blocked"]["task_id"], "002-polish")
 
     def test_events_command_uses_config_default_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

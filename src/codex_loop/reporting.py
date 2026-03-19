@@ -218,6 +218,7 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
         "by_source": {},
         "by_blocker_code": {},
         "blocked_tasks": [],
+        "latest_blocked": None,
     }
     blocked_seen: set[str] = set()
     for event in events:
@@ -236,6 +237,16 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
             if task_id != "none" and task_id not in blocked_seen:
                 blocked_seen.add(task_id)
                 summary["blocked_tasks"].append(task_id)
+            latest_blocked = summary["latest_blocked"]
+            if latest_blocked is None or str(event.get("timestamp", "")) >= str(
+                latest_blocked.get("timestamp", "")
+            ):
+                summary["latest_blocked"] = {
+                    "task_id": event.get("task_id"),
+                    "blocker_code": blocker_key,
+                    "timestamp": event.get("timestamp"),
+                    "summary": event.get("summary"),
+                }
     return summary
 
 
@@ -250,4 +261,9 @@ def format_events_summary(events: list[dict[str, Any]]) -> str:
     lines.append("blocked_tasks:")
     for task_id in summary["blocked_tasks"]:
         lines.append(task_id)
+    lines.append("latest_blocked:")
+    latest_blocked = summary["latest_blocked"]
+    if latest_blocked is not None:
+        for key in ("task_id", "blocker_code", "timestamp", "summary"):
+            lines.append(f"{key}: {latest_blocked.get(key, '')}")
     return "\n".join(lines)

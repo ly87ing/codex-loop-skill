@@ -91,6 +91,35 @@ class DoctorTests(unittest.TestCase):
             self.assertTrue(report.errors)
             self.assertIn("operator.events.default_limit", report.errors[0])
 
+    def test_doctor_warns_on_aggressive_cleanup_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "tasks").mkdir(parents=True)
+            (root / "tasks" / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+            (root / "codex-loop.yaml").write_text(
+                json.dumps(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                        "verification": {"commands": ["python -m unittest"]},
+                        "operator": {
+                            "cleanup": {
+                                "keep": 0,
+                                "older_than_days": None,
+                                "directory_keep": {"logs": 0},
+                            }
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            report = run_doctor(root, repair=False)
+
+            self.assertTrue(report.warnings)
+            self.assertTrue(any("operator.cleanup.keep=0" in item for item in report.warnings))
+            self.assertTrue(any("directory_keep.logs=0" in item for item in report.warnings))
+
 
 if __name__ == "__main__":
     unittest.main()

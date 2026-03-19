@@ -32,6 +32,23 @@ def _merge_missing_defaults(target: dict[str, Any], defaults: dict[str, Any]) ->
     return changed
 
 
+def _append_operator_cleanup_warnings(report: DoctorReport, config: CodexLoopConfig) -> None:
+    cleanup = config.operator.cleanup
+    if cleanup.keep == 0 and cleanup.older_than_days is None:
+        report.warnings.append(
+            "operator.cleanup.keep=0 with no older_than_days will delete all matching artifacts on apply."
+        )
+    for directory_name, keep_value in cleanup.directory_keep.items():
+        directory_age = cleanup.directory_older_than_days.get(
+            directory_name,
+            cleanup.older_than_days,
+        )
+        if keep_value == 0 and directory_age is None:
+            report.warnings.append(
+                f"operator.cleanup.directory_keep.{directory_name}=0 with no age threshold will delete all {directory_name} artifacts on apply."
+            )
+
+
 def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
     report = DoctorReport()
     config_path = project_dir / "codex-loop.yaml"
@@ -64,6 +81,7 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
     except (ValueError, TypeError, AttributeError) as exc:
         report.errors.append(str(exc))
         return report
+    _append_operator_cleanup_warnings(report, config)
 
     tasks_dir = project_dir / config.tasks.source_dir
     task_graph = TaskGraph(tasks_dir)
@@ -108,7 +126,6 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
             report.warnings.append("tasks state does not match task files")
         else:
             report.checked.append(".codex-loop/state.json")
-
     return report
 
 
