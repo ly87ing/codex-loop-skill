@@ -523,12 +523,22 @@ class CliTests(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             self.assertEqual(stderr.getvalue(), "")
-            files = sorted(output_dir.glob("*.json"))
-            self.assertEqual(len(files), 1)
-            self.assertIn("001-foundation", files[0].name)
-            payload = json.loads(files[0].read_text(encoding="utf-8"))
+            snapshot_files = sorted(
+                path for path in output_dir.glob("*.json") if path.name != "index.json"
+            )
+            self.assertEqual(len(snapshot_files), 1)
+            self.assertIn("001-foundation", snapshot_files[0].name)
+            payload = json.loads(snapshot_files[0].read_text(encoding="utf-8"))
             self.assertEqual(payload["task_id"], "001-foundation")
             self.assertEqual(payload["status_snapshot"]["current_task"], "001-foundation")
+            index_path = output_dir / "index.json"
+            self.assertTrue(index_path.exists())
+            index_payload = json.loads(index_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(index_payload["snapshots"]), 1)
+            snapshot_entry = index_payload["snapshots"][0]
+            self.assertEqual(snapshot_entry["task_id"], "001-foundation")
+            self.assertEqual(snapshot_entry["selection"], "task_id")
+            self.assertEqual(snapshot_entry["snapshot_path"], str(snapshot_files[0].resolve()))
 
     def test_events_command_uses_config_default_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

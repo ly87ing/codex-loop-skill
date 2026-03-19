@@ -45,6 +45,33 @@ def _write_output_file(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _update_evidence_index(output_dir: Path, snapshot_path: Path, payload: dict[str, object] | None) -> None:
+    index_path = output_dir.resolve() / "index.json"
+    if index_path.exists():
+        index_data = json.loads(index_path.read_text(encoding="utf-8"))
+    else:
+        index_data = {"snapshots": []}
+    snapshots = index_data.get("snapshots")
+    if not isinstance(snapshots, list):
+        snapshots = []
+    status_snapshot = payload.get("status_snapshot") if isinstance(payload, dict) else {}
+    if not isinstance(status_snapshot, dict):
+        status_snapshot = {}
+    snapshot_entry = {
+        "generated_at": (payload or {}).get("generated_at"),
+        "task_id": (payload or {}).get("task_id"),
+        "selection": (payload or {}).get("selection"),
+        "session_id": (payload or {}).get("session_id"),
+        "overall_status": (payload or {}).get("overall_status"),
+        "current_task": status_snapshot.get("current_task"),
+        "last_blocker_code": status_snapshot.get("last_blocker_code"),
+        "snapshot_path": str(snapshot_path.resolve()),
+    }
+    snapshots.append(snapshot_entry)
+    index_data["snapshots"] = snapshots
+    _write_output_file(index_path, json.dumps(index_data, indent=2, ensure_ascii=False))
+
+
 def _slugify_file_component(value: str) -> str:
     cleaned = "".join(char if char.isalnum() or char in {"-", "_"} else "-" for char in value)
     return cleaned.strip("-_") or "snapshot"
@@ -428,6 +455,7 @@ def main(argv: list[str] | None = None) -> int:
                     json_output=bool(args.json),
                 )
                 _write_output_file(output_path, rendered)
+                _update_evidence_index(output_path.parent, output_path, payload)
                 print(f"Wrote evidence to {output_path}")
             else:
                 print(rendered)
