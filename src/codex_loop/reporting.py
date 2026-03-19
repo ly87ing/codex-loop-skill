@@ -598,6 +598,9 @@ def _history_label(entry: dict[str, Any]) -> str:
     if event_type == "iteration":
         agent_status = entry.get("agent_status")
         return f"iteration:{agent_status}" if agent_status else "iteration"
+    if event_type in {"watchdog_restart", "watchdog_exhausted"}:
+        restart_reason = entry.get("restart_reason")
+        return f"{event_type}:{restart_reason}" if restart_reason else str(event_type)
     return str(event_type)
 
 
@@ -669,6 +672,10 @@ def load_events_timeline(
                     "event_type": str(entry.get("event_type", "event")),
                     "task_id": entry.get("task_id"),
                     "blocker_code": entry.get("blocker_code"),
+                    "restart_reason": entry.get("restart_reason"),
+                    "restart_count": entry.get("restart_count"),
+                    "child_pid": entry.get("child_pid"),
+                    "child_exit_code": entry.get("child_exit_code"),
                     "verification_passed": entry.get("verification_passed"),
                     "agent_status": entry.get("agent_status"),
                     "summary": str(entry.get("summary", "")).strip(),
@@ -1015,6 +1022,8 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
         "latest_blocked": None,
         "latest_runner_failure": None,
         "latest_verification_failure": None,
+        "latest_watchdog_restart": None,
+        "latest_watchdog_exhausted": None,
     }
     blocked_seen: set[str] = set()
     for event in events:
@@ -1044,6 +1053,20 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
                     "task_id": event.get("task_id"),
                     "timestamp": event.get("timestamp"),
                     "summary": event.get("summary"),
+                }
+        if event_type in {"watchdog_restart", "watchdog_exhausted"}:
+            field_name = f"latest_{event_type}"
+            latest_watchdog_event = summary[field_name]
+            if latest_watchdog_event is None or str(event.get("timestamp", "")) >= str(
+                latest_watchdog_event.get("timestamp", "")
+            ):
+                summary[field_name] = {
+                    "timestamp": event.get("timestamp"),
+                    "summary": event.get("summary"),
+                    "restart_reason": event.get("restart_reason"),
+                    "restart_count": event.get("restart_count"),
+                    "child_pid": event.get("child_pid"),
+                    "child_exit_code": event.get("child_exit_code"),
                 }
         blocker_code = event.get("blocker_code")
         if blocker_code:
@@ -1089,4 +1112,19 @@ def format_events_summary(events: list[dict[str, Any]]) -> str:
         if payload is not None:
             for key in ("task_id", "timestamp", "summary"):
                 lines.append(f"{key}: {payload.get(key, '')}")
+    for field_name in ("latest_watchdog_restart", "latest_watchdog_exhausted"):
+        lines.append(f"{field_name}:")
+        payload = summary[field_name]
+        if payload is not None:
+            for key in (
+                "timestamp",
+                "summary",
+                "restart_reason",
+                "restart_count",
+                "child_pid",
+                "child_exit_code",
+            ):
+                value = payload.get(key)
+                if value is not None:
+                    lines.append(f"{key}: {value}")
     return "\n".join(lines)

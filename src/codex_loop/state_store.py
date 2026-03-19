@@ -95,6 +95,20 @@ class StateStore:
         self.save(state)
         return state
 
+    def ensure_initialized(
+        self,
+        *,
+        project_name: str,
+        source_prompt: str,
+    ) -> dict[str, Any]:
+        if self.path.exists():
+            return self.load()
+        return self.create_initial(
+            project_name=project_name,
+            source_prompt=source_prompt,
+            tasks=[],
+        )
+
     def reconcile_tasks(self, task_ids: list[str]) -> dict[str, Any]:
         state = self.load()
         meta = state["meta"]
@@ -360,5 +374,39 @@ class StateStore:
                 "resume_failure_reason": resume_failure_reason,
             }
         )
+        self.save(state)
+        return state
+
+    def record_watchdog_event(
+        self,
+        *,
+        event_type: str,
+        summary: str,
+        restart_reason: str,
+        restart_count: int,
+        child_pid: int | None,
+        child_exit_code: int | None = None,
+        watchdog_phase: str | None = None,
+    ) -> dict[str, Any]:
+        state = self.ensure_initialized(
+            project_name=self.path.parent.parent.name,
+            source_prompt="Watchdog runtime state",
+        )
+        history = state.setdefault("history", [])
+        history.append(
+            {
+                "event_type": event_type,
+                "timestamp": _now(),
+                "iteration": state.get("meta", {}).get("iteration", 0),
+                "task_id": None,
+                "summary": summary,
+                "restart_reason": restart_reason,
+                "restart_count": restart_count,
+                "child_pid": child_pid,
+                "child_exit_code": child_exit_code,
+                "watchdog_phase": watchdog_phase,
+            }
+        )
+        state["meta"]["updated_at"] = _now()
         self.save(state)
         return state

@@ -117,6 +117,46 @@ class StateStoreTests(unittest.TestCase):
             self.assertEqual(updated["history"][-1]["event_type"], "requeued")
             self.assertEqual(updated["history"][-1]["task_id"], "001-foundation")
 
+    def test_records_watchdog_events_and_updates_metrics(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial(
+                project_name="demo",
+                source_prompt="Build it",
+                tasks=["001-foundation"],
+            )
+
+            state = store.record_watchdog_event(
+                event_type="watchdog_restart",
+                summary="Restarting worker after stale heartbeat.",
+                restart_reason="stale_heartbeat",
+                restart_count=1,
+                child_pid=4321,
+            )
+            store.record_watchdog_event(
+                event_type="watchdog_exhausted",
+                summary="Watchdog exhausted restart budget after repeated crashes.",
+                restart_reason="exit_code:2",
+                restart_count=10,
+                child_pid=4321,
+                child_exit_code=2,
+            )
+
+            self.assertEqual(state["history"][-1]["event_type"], "watchdog_restart")
+            self.assertEqual(state["history"][-1]["restart_reason"], "stale_heartbeat")
+            state = json.loads((root / ".codex-loop" / "state.json").read_text())
+            self.assertEqual(state["history"][-1]["event_type"], "watchdog_exhausted")
+            self.assertEqual(state["history"][-1]["restart_reason"], "exit_code:2")
+            self.assertEqual(state["history"][-1]["child_exit_code"], 2)
+
+            metrics = json.loads((root / ".codex-loop" / "metrics.json").read_text())
+            self.assertEqual(metrics["watchdog_restarts_total"], 1)
+            self.assertEqual(metrics["watchdog_exhausted_total"], 1)
+            self.assertEqual(metrics["watchdog_restart_reasons"]["stale_heartbeat"], 1)
+            self.assertEqual(metrics["watchdog_restart_reasons"]["exit_code:2"], 1)
+            self.assertEqual(metrics["latest_watchdog_exhausted"]["child_exit_code"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()

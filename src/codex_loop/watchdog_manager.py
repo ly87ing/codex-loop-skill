@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 from typing import Any, Callable
+from .state_store import StateStore
 
 
 DEFAULT_STALE_AFTER_SECONDS = 300.0
@@ -189,6 +190,11 @@ def run_watchdog(
     project_dir = project_dir.resolve()
     heartbeat_path = heartbeat_path.resolve()
     watchdog_state_path = watchdog_state_path.resolve()
+    state_store = StateStore(project_dir / ".codex-loop" / "state.json")
+    state_store.ensure_initialized(
+        project_name=project_dir.name,
+        source_prompt="Watchdog runtime state",
+    )
     sleep = sleep_fn or time.sleep
     now = now_fn or (lambda: datetime.now(UTC))
     stop_requested = False
@@ -265,6 +271,15 @@ def run_watchdog(
                         last_restart_reason=last_restart_reason,
                         child_exit_code=exit_code,
                     )
+                    state_store.record_watchdog_event(
+                        event_type="watchdog_exhausted",
+                        summary="Watchdog exhausted restart budget after worker exit.",
+                        restart_reason=last_restart_reason or f"exit_code:{exit_code}",
+                        restart_count=restart_count,
+                        child_pid=current_process.pid,
+                        child_exit_code=exit_code,
+                        watchdog_phase="exhausted",
+                    )
                     return exit_code
                 restart_count += 1
                 last_restart_reason = f"exit_code:{exit_code}"
@@ -275,6 +290,15 @@ def run_watchdog(
                     restart_count=restart_count,
                     last_restart_reason=last_restart_reason,
                     child_exit_code=exit_code,
+                )
+                state_store.record_watchdog_event(
+                    event_type="watchdog_restart",
+                    summary="Restarting worker after non-zero exit.",
+                    restart_reason=last_restart_reason,
+                    restart_count=restart_count,
+                    child_pid=current_process.pid,
+                    child_exit_code=exit_code,
+                    watchdog_phase="restarting",
                 )
                 sleep(restart_backoff_seconds)
                 current_process = spawn_worker()
@@ -303,6 +327,14 @@ def run_watchdog(
                         restart_count=restart_count,
                         last_restart_reason="stale_heartbeat",
                     )
+                    state_store.record_watchdog_event(
+                        event_type="watchdog_exhausted",
+                        summary="Watchdog exhausted restart budget after stale heartbeat.",
+                        restart_reason="stale_heartbeat",
+                        restart_count=restart_count,
+                        child_pid=current_process.pid,
+                        watchdog_phase="exhausted",
+                    )
                     return 1
                 restart_count += 1
                 last_restart_reason = "stale_heartbeat"
@@ -312,6 +344,14 @@ def run_watchdog(
                     child_pid=current_process.pid,
                     restart_count=restart_count,
                     last_restart_reason=last_restart_reason,
+                )
+                state_store.record_watchdog_event(
+                    event_type="watchdog_restart",
+                    summary="Restarting worker after stale heartbeat.",
+                    restart_reason=last_restart_reason,
+                    restart_count=restart_count,
+                    child_pid=current_process.pid,
+                    watchdog_phase="restarting",
                 )
                 sleep(restart_backoff_seconds)
                 current_process = spawn_worker()

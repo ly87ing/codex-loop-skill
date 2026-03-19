@@ -110,6 +110,9 @@ class WatchdogManagerTests(unittest.TestCase):
             self.assertEqual(state["restart_count"], 1)
             self.assertEqual(state["last_restart_reason"], "stale_heartbeat")
             self.assertEqual(state["child_pid"], 1002)
+            run_state = json.loads((root / ".codex-loop" / "state.json").read_text(encoding="utf-8"))
+            self.assertEqual(run_state["history"][0]["event_type"], "watchdog_restart")
+            self.assertEqual(run_state["history"][0]["restart_reason"], "stale_heartbeat")
 
     def test_run_watchdog_restarts_worker_after_non_zero_exit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -149,6 +152,37 @@ class WatchdogManagerTests(unittest.TestCase):
             self.assertEqual(state["restart_count"], 1)
             self.assertEqual(state["last_restart_reason"], "exit_code:2")
             self.assertEqual(state["child_pid"], 2002)
+            run_state = json.loads((root / ".codex-loop" / "state.json").read_text(encoding="utf-8"))
+            self.assertEqual(run_state["history"][0]["event_type"], "watchdog_restart")
+            self.assertEqual(run_state["history"][0]["restart_reason"], "exit_code:2")
+
+    def test_run_watchdog_records_exhausted_event(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            heartbeat_path = root / "heartbeat.json"
+            state_path = root / "watchdog.json"
+            process = _FakeProcess(3001, [3])
+
+            exit_code = run_watchdog(
+                root,
+                heartbeat_path=heartbeat_path,
+                watchdog_state_path=state_path,
+                retry_blocked=False,
+                cycle_sleep_seconds=60.0,
+                max_cycles=None,
+                poll_interval_seconds=0.0,
+                restart_backoff_seconds=0.0,
+                max_restarts=0,
+                worker_factory=lambda args, **kwargs: process,
+                sleep_fn=lambda seconds: None,
+                now_fn=lambda: datetime(2026, 3, 19, tzinfo=UTC),
+            )
+
+            self.assertEqual(exit_code, 3)
+            run_state = json.loads((root / ".codex-loop" / "state.json").read_text(encoding="utf-8"))
+            self.assertEqual(run_state["history"][0]["event_type"], "watchdog_exhausted")
+            self.assertEqual(run_state["history"][0]["restart_reason"], "exit_code:3")
+            self.assertEqual(run_state["history"][0]["child_exit_code"], 3)
 
 
 if __name__ == "__main__":

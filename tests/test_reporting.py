@@ -222,6 +222,38 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("by_blocker_code:", rendered)
             self.assertIn("no_progress_limit: 1", rendered)
 
+    def test_events_summary_tracks_watchdog_lifecycle(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            store.record_watchdog_event(
+                event_type="watchdog_restart",
+                summary="Restarting worker after stale heartbeat.",
+                restart_reason="stale_heartbeat",
+                restart_count=1,
+                child_pid=1001,
+            )
+            store.record_watchdog_event(
+                event_type="watchdog_exhausted",
+                summary="Watchdog exhausted restart budget.",
+                restart_reason="exit_code:2",
+                restart_count=10,
+                child_pid=1002,
+                child_exit_code=2,
+            )
+
+            events = load_events_timeline(root, limit=10)
+            summary = summarize_events(events)
+            rendered = format_events_summary(events)
+
+            self.assertEqual(summary["by_label"]["watchdog_restart:stale_heartbeat"], 1)
+            self.assertEqual(summary["by_label"]["watchdog_exhausted:exit_code:2"], 1)
+            self.assertEqual(summary["latest_watchdog_restart"]["restart_reason"], "stale_heartbeat")
+            self.assertEqual(summary["latest_watchdog_exhausted"]["child_exit_code"], 2)
+            self.assertIn("latest_watchdog_restart:", rendered)
+            self.assertIn("latest_watchdog_exhausted:", rendered)
+
     def test_events_summary_tracks_latest_blocked_details(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

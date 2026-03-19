@@ -15,11 +15,35 @@ def build_metrics_snapshot(state: dict[str, Any]) -> dict[str, Any]:
     tasks = state.get("tasks", {})
     meta = state.get("meta", {})
     blocked_by_code: dict[str, int] = {}
+    watchdog_restart_reasons: dict[str, int] = {}
+    latest_watchdog_restart: dict[str, Any] | None = None
+    latest_watchdog_exhausted: dict[str, Any] | None = None
     for item in history:
-        if item.get("event_type") != "blocked":
-            continue
-        code = str(item.get("blocker_code", "blocked"))
-        blocked_by_code[code] = blocked_by_code.get(code, 0) + 1
+        event_type = item.get("event_type")
+        if event_type == "blocked":
+            code = str(item.get("blocker_code", "blocked"))
+            blocked_by_code[code] = blocked_by_code.get(code, 0) + 1
+        if event_type in {"watchdog_restart", "watchdog_exhausted"}:
+            reason = str(item.get("restart_reason", "unknown"))
+            watchdog_restart_reasons[reason] = watchdog_restart_reasons.get(reason, 0) + 1
+            payload = {
+                "timestamp": item.get("timestamp"),
+                "summary": item.get("summary"),
+                "restart_reason": item.get("restart_reason"),
+                "restart_count": item.get("restart_count"),
+                "child_pid": item.get("child_pid"),
+                "child_exit_code": item.get("child_exit_code"),
+            }
+            if event_type == "watchdog_restart":
+                if latest_watchdog_restart is None or str(item.get("timestamp", "")) >= str(
+                    latest_watchdog_restart.get("timestamp", "")
+                ):
+                    latest_watchdog_restart = payload
+            if event_type == "watchdog_exhausted":
+                if latest_watchdog_exhausted is None or str(item.get("timestamp", "")) >= str(
+                    latest_watchdog_exhausted.get("timestamp", "")
+                ):
+                    latest_watchdog_exhausted = payload
     last_blocker = meta.get("last_blocker") or {}
     return {
         "generated_at": _now(),
@@ -46,6 +70,15 @@ def build_metrics_snapshot(state: dict[str, Any]) -> dict[str, Any]:
         "blocked_events_total": sum(
             1 for item in history if item.get("event_type") == "blocked"
         ),
+        "watchdog_restarts_total": sum(
+            1 for item in history if item.get("event_type") == "watchdog_restart"
+        ),
+        "watchdog_exhausted_total": sum(
+            1 for item in history if item.get("event_type") == "watchdog_exhausted"
+        ),
+        "watchdog_restart_reasons": watchdog_restart_reasons,
+        "latest_watchdog_restart": latest_watchdog_restart,
+        "latest_watchdog_exhausted": latest_watchdog_exhausted,
         "blocked_by_code": blocked_by_code,
         "consecutive_runner_failures": int(
             meta.get("consecutive_runner_failures", 0)
