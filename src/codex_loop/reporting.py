@@ -414,7 +414,9 @@ def build_evidence_bundle(
     log_lines: int = 20,
 ) -> dict[str, Any] | None:
     inventory = build_session_inventory(project_dir)
+    selection = "current_task"
     if task_id is not None:
+        selection = "task_id"
         session = next(
             (
                 row
@@ -424,6 +426,7 @@ def build_evidence_bundle(
             None,
         )
     elif latest:
+        selection = "latest_session"
         session = inventory.get("latest_session")
     else:
         current_task_id = inventory.get("current_task")
@@ -447,6 +450,7 @@ def build_evidence_bundle(
         "event_type": session.get("event_type"),
         "agent_status": session.get("agent_status") or session.get("status"),
         "summary": session.get("summary") or session.get("last_summary"),
+        "selection": selection,
         "artifacts": artifacts,
         "prompt_preview": _read_text_preview(
             artifacts.get("prompt"),
@@ -487,6 +491,7 @@ def format_evidence_report(
         f"event_type: {evidence.get('event_type') or ''}",
         f"agent_status: {evidence.get('agent_status') or ''}",
         f"summary: {evidence.get('summary') or ''}",
+        f"selection: {evidence.get('selection') or ''}",
         "artifacts:",
     ]
     for key in ("prompt", "log", "run"):

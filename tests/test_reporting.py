@@ -375,6 +375,7 @@ class ReportingTests(unittest.TestCase):
 
             self.assertEqual(evidence["task_id"], "001-foundation")
             self.assertEqual(evidence["session_id"], "session-001")
+            self.assertEqual(evidence["selection"], "task_id")
             self.assertEqual(evidence["prompt_preview"], "line one")
             self.assertEqual(evidence["log_tail"], "log two")
             self.assertEqual(evidence["run_payload"]["summary"], "Foundation run")

@@ -146,6 +146,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Emit structured JSON instead of formatted text.",
     )
+    evidence_parser.add_argument(
+        "--output",
+        default=None,
+        help="Optional file path to write the rendered evidence payload.",
+    )
 
     doctor_parser = subparsers.add_parser("doctor", help="Validate local loop files.")
     doctor_parser.add_argument(
@@ -367,17 +372,21 @@ def main(argv: list[str] | None = None) -> int:
                 log_lines=args.log_lines,
             )
             if args.json:
-                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                rendered = json.dumps(payload, indent=2, ensure_ascii=False)
             else:
-                print(
-                    format_evidence_report(
-                        project_dir,
-                        task_id=args.task_id,
-                        latest=args.latest,
-                        prompt_lines=args.prompt_lines,
-                        log_lines=args.log_lines,
-                    )
+                rendered = format_evidence_report(
+                    project_dir,
+                    task_id=args.task_id,
+                    latest=args.latest,
+                    prompt_lines=args.prompt_lines,
+                    log_lines=args.log_lines,
                 )
+            if args.output:
+                output_path = Path(args.output).resolve()
+                _write_output_file(output_path, rendered)
+                print(f"Wrote evidence to {output_path}")
+            else:
+                print(rendered)
             return 0
 
         if args.command == "doctor":

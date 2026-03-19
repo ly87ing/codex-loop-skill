@@ -69,6 +69,7 @@ codex-loop sessions
 codex-loop sessions --latest --json
 codex-loop sessions --task-id 001-foundation --json
 codex-loop evidence --task-id 001-foundation --json
+codex-loop evidence --latest --json --output ./evidence.json
 codex-loop events --limit 20
 codex-loop events --summary --json
 codex-loop events --task-id 001-foundation --event-type iteration:continue --json
@@ -146,7 +147,7 @@ The loop stops with `blocked` when:
 
 - `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks, plus the current task session id when one exists.
 - `sessions` provides a workspace-scoped inventory of known Codex session ids per task, the latest `prompt/log/run` artifacts for each task, and a `--latest` view for the most recent resumable session seen by the loop.
-- `evidence` turns a selected task or latest session into a read-only evidence bundle with prompt preview, log tail, and parsed run payload.
+- `evidence` turns a selected task or latest session into a read-only evidence bundle with selection metadata, prompt preview, log tail, parsed run payload, and optional `--output` export.
 - `events --summary` aggregates the filtered event set by label, task, source, blocker code, blocked task, latest blocked event, latest runner failure, and latest verification failure before optional JSON/export handling.
 - `events --limit N` merges `.codex-loop/state.json` history with hook execution logs into a readable timeline, and supports `--task-id`, `--event-type`, `--since`, `--until`, `--json`, and `--output` for focused inspection or export.
 - `cleanup` defaults to dry-run mode so operators can review what would be deleted before using `--apply`; its default retention policy now comes from `codex-loop.yaml`, and CLI flags such as `--keep`, `--older-than-days`, `--logs-keep`, or `--prompts-older-than-days` override config values per run.

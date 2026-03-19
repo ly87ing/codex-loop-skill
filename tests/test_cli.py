@@ -399,9 +399,61 @@ class CliTests(unittest.TestCase):
             self.assertEqual(stderr.getvalue(), "")
             payload = json.loads(stdout.getvalue())
             self.assertEqual(payload["task_id"], "001-foundation")
+            self.assertEqual(payload["selection"], "task_id")
             self.assertEqual(payload["prompt_preview"], "line one")
             self.assertEqual(payload["log_tail"], "log two")
             self.assertEqual(payload["run_payload"]["summary"], "Foundation run")
+
+    def test_evidence_command_can_write_json_to_output_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            prompts_dir = root / ".codex-loop" / "prompts"
+            logs_dir = root / ".codex-loop" / "logs"
+            runs_dir = root / ".codex-loop" / "runs"
+            prompts_dir.mkdir(parents=True, exist_ok=True)
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            runs_dir.mkdir(parents=True, exist_ok=True)
+            (prompts_dir / "0001-001-foundation.txt").write_text("line one\n", encoding="utf-8")
+            (logs_dir / "0001-001-foundation.jsonl").write_text("log one\n", encoding="utf-8")
+            (runs_dir / "001-foundation-last.json").write_text(
+                json.dumps({"status": "continue", "summary": "Foundation run"}),
+                encoding="utf-8",
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            store.record_iteration(
+                task_id="001-foundation",
+                summary="Foundation iteration.",
+                fingerprint="001|continue",
+                files_changed=["src/foundation.py"],
+                verification_passed=False,
+                agent_status="continue",
+                session_id="session-001",
+            )
+            output_path = root / "evidence.json"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "evidence",
+                        "--project-dir",
+                        str(root),
+                        "--task-id",
+                        "001-foundation",
+                        "--json",
+                        "--output",
+                        str(output_path),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertIn(str(output_path.resolve()), stdout.getvalue())
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["task_id"], "001-foundation")
+            self.assertEqual(payload["selection"], "task_id")
 
     def test_events_command_uses_config_default_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

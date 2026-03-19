@@ -63,6 +63,7 @@ Those warnings now include concrete remediation guidance so operators can tighte
 - `sessions --latest --json` for the most recent session seen by the loop
 - `sessions --task-id ... --json` for the latest task-specific session and artifact pointers
 - `evidence --task-id ... --json` for the latest evidence bundle of a task without manually opening multiple files
+- `evidence --latest --json --output <path>` for exporting a latest-session debug bundle to disk
 - `cleanup [--apply] --keep N [--older-than-days N]` for conservative local artifact and stale worktree pruning
 - `cleanup --logs-keep ... --runs-keep ... --prompts-older-than-days ...` for per-directory retention overrides
 - `operator.cleanup` in `codex-loop.yaml` for default retention policy, with CLI flags overriding config per invocation
