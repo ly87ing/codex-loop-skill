@@ -394,14 +394,17 @@ def _base_snapshots_summary(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
         "by_status": {},
         "by_selection": {},
         "by_blocker_code": {},
+        "by_watchdog_phase": {},
         "latest_snapshot": None,
         "latest_blocked": None,
+        "latest_watchdog_alert": None,
     }
     for snapshot in snapshots:
         task_id = str(snapshot.get("task_id", "none"))
         status = str(snapshot.get("overall_status", "unknown"))
         selection = str(snapshot.get("selection", "unknown"))
         timestamp = str(snapshot.get("generated_at", ""))
+        watchdog_phase = snapshot.get("watchdog_phase")
         summary["by_task"][task_id] = int(summary["by_task"].get(task_id, 0)) + 1
         summary["by_status"][status] = int(summary["by_status"].get(status, 0)) + 1
         summary["by_selection"][selection] = int(summary["by_selection"].get(selection, 0)) + 1
@@ -411,6 +414,11 @@ def _base_snapshots_summary(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
             blocker_key = str(blocker_code)
             summary["by_blocker_code"][blocker_key] = (
                 int(summary["by_blocker_code"].get(blocker_key, 0)) + 1
+            )
+        if watchdog_phase:
+            watchdog_key = str(watchdog_phase)
+            summary["by_watchdog_phase"][watchdog_key] = (
+                int(summary["by_watchdog_phase"].get(watchdog_key, 0)) + 1
             )
 
         latest_snapshot = summary["latest_snapshot"]
@@ -434,6 +442,24 @@ def _base_snapshots_summary(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
                     "generated_at": snapshot.get("generated_at"),
                     "snapshot_path": snapshot.get("snapshot_path"),
                 }
+        if watchdog_phase in {"restarting", "exhausted"}:
+            latest_watchdog_alert = summary["latest_watchdog_alert"]
+            if latest_watchdog_alert is None or timestamp >= str(
+                latest_watchdog_alert.get("generated_at", "")
+            ):
+                summary["latest_watchdog_alert"] = {
+                    "task_id": snapshot.get("task_id"),
+                    "watchdog_phase": watchdog_phase,
+                    "watchdog_restart_count": snapshot.get("watchdog_restart_count"),
+                    "watchdog_last_restart_reason": snapshot.get(
+                        "watchdog_last_restart_reason"
+                    ),
+                    "latest_watchdog_exhausted_reason": snapshot.get(
+                        "latest_watchdog_exhausted_reason"
+                    ),
+                    "generated_at": snapshot.get("generated_at"),
+                    "snapshot_path": snapshot.get("snapshot_path"),
+                }
     return summary
 
 
@@ -454,6 +480,7 @@ def summarize_snapshots(
             "grouped_counts": grouped_counts,
             "latest_snapshot": base_summary["latest_snapshot"],
             "latest_blocked": base_summary["latest_blocked"],
+            "latest_watchdog_alert": base_summary["latest_watchdog_alert"],
         }
     return _base_snapshots_summary(snapshots)
 
@@ -472,12 +499,18 @@ def format_snapshots_summary(
         for key in sorted(entries):
             lines.append(f"{key}: {entries[key]}")
     else:
-        for section_name in ("by_task", "by_status", "by_selection", "by_blocker_code"):
+        for section_name in (
+            "by_task",
+            "by_status",
+            "by_selection",
+            "by_blocker_code",
+            "by_watchdog_phase",
+        ):
             lines.append(f"{section_name}:")
             entries = summary[section_name]
             for key in sorted(entries):
                 lines.append(f"{key}: {entries[key]}")
-    for field_name in ("latest_snapshot", "latest_blocked"):
+    for field_name in ("latest_snapshot", "latest_blocked", "latest_watchdog_alert"):
         lines.append(f"{field_name}:")
         payload = summary[field_name]
         if payload is not None:

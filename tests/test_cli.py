@@ -771,6 +771,9 @@ class CliTests(unittest.TestCase):
             snapshot_entry = index_payload["snapshots"][0]
             self.assertEqual(snapshot_entry["task_id"], "001-foundation")
             self.assertEqual(snapshot_entry["selection"], "task_id")
+            self.assertIn("watchdog_phase", snapshot_entry)
+            self.assertIn("watchdog_restart_count", snapshot_entry)
+            self.assertIn("watchdog_last_restart_reason", snapshot_entry)
             self.assertEqual(snapshot_entry["snapshot_path"], str(snapshot_files[0].resolve()))
 
     def test_snapshots_command_can_render_json_from_index(self) -> None:

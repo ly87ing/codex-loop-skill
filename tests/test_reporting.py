@@ -554,6 +554,9 @@ class ReportingTests(unittest.TestCase):
                     "overall_status": "running",
                     "current_task": "001-foundation",
                     "last_blocker_code": None,
+                    "watchdog_phase": None,
+                    "watchdog_restart_count": None,
+                    "watchdog_last_restart_reason": None,
                     "snapshot_path": str(snapshot_dir / "one.json"),
                 },
                 {
@@ -564,6 +567,9 @@ class ReportingTests(unittest.TestCase):
                     "overall_status": "blocked",
                     "current_task": "002-polish",
                     "last_blocker_code": "no_progress_limit",
+                    "watchdog_phase": "exhausted",
+                    "watchdog_restart_count": 10,
+                    "watchdog_last_restart_reason": "stale_heartbeat",
                     "snapshot_path": str(snapshot_dir / "two.json"),
                 },
                 {
@@ -574,6 +580,9 @@ class ReportingTests(unittest.TestCase):
                     "overall_status": "completed",
                     "current_task": "done",
                     "last_blocker_code": None,
+                    "watchdog_phase": "running",
+                    "watchdog_restart_count": 1,
+                    "watchdog_last_restart_reason": "exit_code:2",
                     "snapshot_path": str(snapshot_dir / "three.json"),
                 },
             ]
@@ -585,11 +594,18 @@ class ReportingTests(unittest.TestCase):
             self.assertEqual(summary["by_status"]["blocked"], 1)
             self.assertEqual(summary["by_selection"]["latest_session"], 2)
             self.assertEqual(summary["by_blocker_code"]["no_progress_limit"], 1)
+            self.assertEqual(summary["by_watchdog_phase"]["exhausted"], 1)
+            self.assertEqual(summary["by_watchdog_phase"]["running"], 1)
             self.assertEqual(summary["latest_snapshot"]["task_id"], "002-polish")
             self.assertEqual(summary["latest_blocked"]["task_id"], "002-polish")
+            self.assertEqual(summary["latest_watchdog_alert"]["task_id"], "002-polish")
+            self.assertEqual(summary["latest_watchdog_alert"]["watchdog_phase"], "exhausted")
             self.assertIn("total_snapshots: 3", rendered)
             self.assertIn("by_status:", rendered)
             self.assertIn("no_progress_limit: 1", rendered)
+            self.assertIn("by_watchdog_phase:", rendered)
+            self.assertIn("exhausted: 1", rendered)
+            self.assertIn("latest_watchdog_alert:", rendered)
 
     def test_snapshots_summary_can_focus_on_single_group(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

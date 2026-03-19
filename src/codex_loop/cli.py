@@ -70,6 +70,14 @@ def _update_evidence_index(output_dir: Path, snapshot_path: Path, payload: dict[
     status_snapshot = payload.get("status_snapshot") if isinstance(payload, dict) else {}
     if not isinstance(status_snapshot, dict):
         status_snapshot = {}
+    watchdog_events_summary = (
+        payload.get("watchdog_events_summary") if isinstance(payload, dict) else {}
+    )
+    if not isinstance(watchdog_events_summary, dict):
+        watchdog_events_summary = {}
+    latest_watchdog_exhausted = watchdog_events_summary.get("latest_watchdog_exhausted")
+    if not isinstance(latest_watchdog_exhausted, dict):
+        latest_watchdog_exhausted = {}
     snapshot_entry = {
         "generated_at": (payload or {}).get("generated_at"),
         "task_id": (payload or {}).get("task_id"),
@@ -78,6 +86,14 @@ def _update_evidence_index(output_dir: Path, snapshot_path: Path, payload: dict[
         "overall_status": (payload or {}).get("overall_status"),
         "current_task": status_snapshot.get("current_task"),
         "last_blocker_code": status_snapshot.get("last_blocker_code"),
+        "watchdog_phase": status_snapshot.get("watchdog_phase"),
+        "watchdog_restart_count": status_snapshot.get("watchdog_restart_count"),
+        "watchdog_last_restart_reason": status_snapshot.get(
+            "watchdog_last_restart_reason"
+        ),
+        "latest_watchdog_exhausted_reason": latest_watchdog_exhausted.get(
+            "restart_reason"
+        ),
         "snapshot_path": str(snapshot_path.resolve()),
     }
     snapshots.append(snapshot_entry)
