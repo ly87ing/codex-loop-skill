@@ -769,6 +769,100 @@ class CliTests(unittest.TestCase):
             self.assertEqual(len(payload), 1)
             self.assertEqual(payload[0]["task_id"], "003-release")
 
+    def test_snapshots_command_can_write_json_output_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_dir = Path(tmpdir) / "snapshots"
+            snapshot_dir.mkdir(parents=True, exist_ok=True)
+            (snapshot_dir / "index.json").write_text(
+                json.dumps(
+                    {
+                        "snapshots": [
+                            {
+                                "generated_at": "2026-03-20T00:00:00+00:00",
+                                "task_id": "002-polish",
+                                "selection": "latest_session",
+                                "session_id": "session-002",
+                                "overall_status": "blocked",
+                                "current_task": "002-polish",
+                                "last_blocker_code": "no_progress_limit",
+                                "snapshot_path": str(snapshot_dir / "two.json"),
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output_path = Path(tmpdir) / "snapshots.json"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "snapshots",
+                        "--snapshot-dir",
+                        str(snapshot_dir),
+                        "--json",
+                        "--output",
+                        str(output_path),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertTrue(output_path.exists())
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(payload), 1)
+            self.assertEqual(payload[0]["task_id"], "002-polish")
+            self.assertIn("Wrote snapshots to", stdout.getvalue())
+
+    def test_snapshots_command_can_write_summary_output_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_dir = Path(tmpdir) / "snapshots"
+            snapshot_dir.mkdir(parents=True, exist_ok=True)
+            (snapshot_dir / "index.json").write_text(
+                json.dumps(
+                    {
+                        "snapshots": [
+                            {
+                                "generated_at": "2026-03-20T00:00:00+00:00",
+                                "task_id": "002-polish",
+                                "selection": "latest_session",
+                                "session_id": "session-002",
+                                "overall_status": "blocked",
+                                "current_task": "002-polish",
+                                "last_blocker_code": "no_progress_limit",
+                                "snapshot_path": str(snapshot_dir / "two.json"),
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output_path = Path(tmpdir) / "snapshots.txt"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "snapshots",
+                        "--snapshot-dir",
+                        str(snapshot_dir),
+                        "--summary",
+                        "--output",
+                        str(output_path),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertTrue(output_path.exists())
+            rendered = output_path.read_text(encoding="utf-8")
+            self.assertIn("total_snapshots: 1", rendered)
+            self.assertIn("by_blocker_code:", rendered)
+            self.assertIn("Wrote snapshots to", stdout.getvalue())
+
     def test_events_command_uses_config_default_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

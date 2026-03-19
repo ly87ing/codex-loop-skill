@@ -270,6 +270,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Emit structured JSON instead of formatted text.",
     )
+    snapshots_parser.add_argument(
+        "--output",
+        default=None,
+        help="Optional file path to write the rendered snapshots payload.",
+    )
 
     doctor_parser = subparsers.add_parser("doctor", help="Validate local loop files.")
     doctor_parser.add_argument(
@@ -536,15 +541,14 @@ def main(argv: list[str] | None = None) -> int:
             if args.summary:
                 summary = summarize_snapshots(payload)
                 if args.json:
-                    print(json.dumps(summary, indent=2, ensure_ascii=False))
+                    rendered = json.dumps(summary, indent=2, ensure_ascii=False)
                 else:
-                    print(format_snapshots_summary(payload))
-                return 0
-            if args.json:
-                print(json.dumps(payload, indent=2, ensure_ascii=False))
+                    rendered = format_snapshots_summary(payload)
             else:
-                print(
-                    format_snapshots_report(
+                if args.json:
+                    rendered = json.dumps(payload, indent=2, ensure_ascii=False)
+                else:
+                    rendered = format_snapshots_report(
                         snapshot_dir,
                         task_id=args.task_id,
                         status=args.status,
@@ -554,7 +558,12 @@ def main(argv: list[str] | None = None) -> int:
                         limit=args.limit,
                         latest=args.latest,
                     )
-                )
+            if args.output:
+                output_path = Path(args.output).resolve()
+                _write_output_file(output_path, rendered)
+                print(f"Wrote snapshots to {output_path}")
+            else:
+                print(rendered)
             return 0
 
         if args.command == "doctor":
