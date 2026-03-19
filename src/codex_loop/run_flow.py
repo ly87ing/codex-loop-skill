@@ -6,6 +6,7 @@ from typing import Callable
 
 from .codex_runner import CodexRunner
 from .config import CodexLoopConfig
+from .daemon_manager import write_daemon_heartbeat
 from .doctor import run_doctor
 from .git_ops import (
     create_worktree,
@@ -121,6 +122,7 @@ def run_project_continuously(
     retry_blocked: bool = False,
     cycle_sleep_seconds: float = 60.0,
     max_cycles: int | None = None,
+    heartbeat_path: Path | None = None,
     sleep_fn: Callable[[float], None] | None = None,
     run_once: Callable[[Path], LoopOutcome] | None = None,
 ) -> LoopOutcome:
@@ -128,10 +130,24 @@ def run_project_continuously(
     run_single = run_once or run_project
     cycles = 0
     while True:
+        next_cycle = cycles + 1
+        if heartbeat_path is not None:
+            write_daemon_heartbeat(
+                heartbeat_path,
+                phase="running",
+                cycle=next_cycle,
+            )
         if retry_blocked:
             retry_blocked_tasks_for_retry(project_dir)
         outcome = run_single(project_dir)
         cycles += 1
+        if heartbeat_path is not None:
+            write_daemon_heartbeat(
+                heartbeat_path,
+                phase="completed" if outcome == LoopOutcome.COMPLETED else "blocked",
+                cycle=cycles,
+                outcome=outcome.value,
+            )
         if outcome == LoopOutcome.COMPLETED:
             return outcome
         if not retry_blocked:

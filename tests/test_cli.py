@@ -92,6 +92,43 @@ class CliTests(unittest.TestCase):
             )
             self.assertIn("completed", stdout.getvalue())
 
+    def test_daemon_start_command_can_launch_background_worker(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with (
+                patch("codex_loop.cli.start_daemon") as start_mock,
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                start_mock.return_value = {
+                    "pid": 43210,
+                    "log_path": str(root / ".codex-loop" / "daemon.log"),
+                }
+                exit_code = main(
+                    [
+                        "daemon",
+                        "start",
+                        "--project-dir",
+                        str(root),
+                        "--retry-blocked",
+                        "--cycle-sleep-seconds",
+                        "45",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            start_mock.assert_called_once_with(
+                root.resolve(),
+                retry_blocked=True,
+                cycle_sleep_seconds=45.0,
+                max_cycles=None,
+            )
+            self.assertIn("pid=43210", stdout.getvalue())
+
     def test_logs_tail_prints_latest_log_lines(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

@@ -3,12 +3,14 @@ from __future__ import annotations
 import argparse
 from datetime import UTC, datetime
 import json
+import os
 from pathlib import Path
 import sys
 
 from .cleanup import render_cleanup_report, run_cleanup
 from .codex_runner import CodexRunner
 from .config import CodexLoopConfig
+from .daemon_manager import daemon_status, start_daemon, stop_daemon
 from .doctor import render_doctor_report, run_doctor
 from .hooks import HookRunner
 from .init_flow import initialize_project
@@ -310,6 +312,11 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional maximum number of continuous run cycles before returning.",
     )
+    run_parser.add_argument(
+        "--heartbeat-path",
+        default=None,
+        help=argparse.SUPPRESS,
+    )
 
     status_parser = subparsers.add_parser("status", help="Print local loop state.")
     status_parser.add_argument(
@@ -546,6 +553,62 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional directory for an auto-named snapshot exports file.",
     )
 
+    daemon_parser = subparsers.add_parser("daemon", help="Manage a background codex-loop worker.")
+    daemon_subparsers = daemon_parser.add_subparsers(dest="daemon_command", required=True)
+
+    daemon_start_parser = daemon_subparsers.add_parser("start", help="Start a background worker.")
+    daemon_start_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing codex-loop.yaml.",
+    )
+    daemon_start_parser.add_argument(
+        "--retry-blocked",
+        action="store_true",
+        help="Requeue blocked tasks between cycles in the background worker.",
+    )
+    daemon_start_parser.add_argument(
+        "--cycle-sleep-seconds",
+        type=float,
+        default=60.0,
+        help="Sleep duration between continuous run cycles.",
+    )
+    daemon_start_parser.add_argument(
+        "--max-cycles",
+        type=int,
+        default=None,
+        help="Optional maximum number of continuous run cycles before returning.",
+    )
+    daemon_start_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
+    )
+
+    daemon_status_parser = daemon_subparsers.add_parser("status", help="Show daemon status.")
+    daemon_status_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing .codex-loop.",
+    )
+    daemon_status_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
+    )
+
+    daemon_stop_parser = daemon_subparsers.add_parser("stop", help="Stop the daemon worker.")
+    daemon_stop_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing .codex-loop.",
+    )
+    daemon_stop_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
+    )
+
     doctor_parser = subparsers.add_parser("doctor", help="Validate local loop files.")
     doctor_parser.add_argument(
         "--project-dir",
@@ -723,11 +786,25 @@ def main(argv: list[str] | None = None) -> int:
             if args.max_cycles is not None and args.max_cycles <= 0:
                 raise ValueError("--max-cycles must be greater than zero.")
             if args.continuous:
+                continuous_kwargs = {
+                    "retry_blocked": args.retry_blocked,
+                    "cycle_sleep_seconds": args.cycle_sleep_seconds,
+                    "max_cycles": args.max_cycles,
+                }
+                heartbeat_path = (
+                    Path(args.heartbeat_path).resolve()
+                    if args.heartbeat_path
+                    else (
+                        Path(os.environ["CODEX_LOOP_HEARTBEAT_PATH"]).resolve()
+                        if os.environ.get("CODEX_LOOP_HEARTBEAT_PATH")
+                        else None
+                    )
+                )
+                if heartbeat_path is not None:
+                    continuous_kwargs["heartbeat_path"] = heartbeat_path
                 outcome = run_project_continuously(
                     project_dir,
-                    retry_blocked=args.retry_blocked,
-                    cycle_sleep_seconds=args.cycle_sleep_seconds,
-                    max_cycles=args.max_cycles,
+                    **continuous_kwargs,
                 )
             else:
                 if args.retry_blocked:
@@ -735,6 +812,49 @@ def main(argv: list[str] | None = None) -> int:
                 outcome = run_project(project_dir)
             print(outcome.value)
             return 0 if outcome.value == "completed" else 2
+
+        if args.command == "daemon" and args.daemon_command == "start":
+            if args.cycle_sleep_seconds < 0:
+                raise ValueError("--cycle-sleep-seconds must not be negative.")
+            if args.max_cycles is not None and args.max_cycles <= 0:
+                raise ValueError("--max-cycles must be greater than zero.")
+            payload = start_daemon(
+                project_dir,
+                retry_blocked=args.retry_blocked,
+                cycle_sleep_seconds=args.cycle_sleep_seconds,
+                max_cycles=args.max_cycles,
+            )
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(
+                    f"Started daemon pid={payload['pid']} log={payload['log_path']}"
+                )
+            return 0
+
+        if args.command == "daemon" and args.daemon_command == "status":
+            payload = daemon_status(project_dir)
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(
+                    f"running={payload.get('running')} "
+                    f"pid={payload.get('pid')} "
+                    f"phase={payload.get('phase')} "
+                    f"cycle={payload.get('cycle')} "
+                    f"log={payload.get('log_path')}"
+                )
+            return 0
+
+        if args.command == "daemon" and args.daemon_command == "stop":
+            payload = stop_daemon(project_dir)
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(
+                    f"Stopped daemon pid={payload['pid']} signal={payload['signal']}"
+                )
+            return 0
 
         if args.command == "status":
             if args.summary:
