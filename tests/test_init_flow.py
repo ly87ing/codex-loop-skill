@@ -55,11 +55,15 @@ class InitializeProjectTests(unittest.TestCase):
                 (project_dir / "tasks" / "002-execution-loop.md").exists()
             )
             state = json.loads((project_dir / ".codex-loop" / "state.json").read_text())
+            metrics = json.loads(
+                (project_dir / ".codex-loop" / "metrics.json").read_text()
+            )
             self.assertEqual(state["meta"]["source_prompt"], "Build me a loop")
             self.assertEqual(state["tasks"]["001-foundation"]["status"], "ready")
             self.assertEqual(state["tasks"]["002-execution-loop"]["status"], "pending")
+            self.assertEqual(metrics["tasks_total"], 2)
+            self.assertEqual(metrics["total_iterations"], 0)
 
 
 if __name__ == "__main__":
     unittest.main()
-

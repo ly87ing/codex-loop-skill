@@ -5,11 +5,19 @@ from pathlib import Path
 
 
 def format_status_summary(project_dir: Path) -> str:
-    state = json.loads((project_dir / ".codex-loop" / "state.json").read_text(encoding="utf-8"))
+    state = json.loads(
+        (project_dir / ".codex-loop" / "state.json").read_text(encoding="utf-8")
+    )
     project_name = state.get("meta", {}).get("project_name", project_dir.name)
     overall_status = state.get("meta", {}).get("overall_status", "unknown")
     iteration = state.get("meta", {}).get("iteration", 0)
     no_progress = state.get("meta", {}).get("no_progress_iterations", 0)
+    metrics_path = project_dir / ".codex-loop" / "metrics.json"
+    metrics = (
+        json.loads(metrics_path.read_text(encoding="utf-8"))
+        if metrics_path.exists()
+        else {}
+    )
     tasks = state.get("tasks", {})
     current_task_id = next(
         (
@@ -28,6 +36,14 @@ def format_status_summary(project_dir: Path) -> str:
         f"no_progress_iterations: {no_progress}",
         f"current_task: {current_task_id}",
     ]
+    if metrics:
+        lines.extend(
+            [
+                f"runner_failures_total: {metrics.get('runner_failures_total', 0)}",
+                f"verification_failures_total: {metrics.get('verification_failures_total', 0)}",
+                f"resume_fallbacks_total: {metrics.get('resume_fallbacks_total', 0)}",
+            ]
+        )
     if last_history:
         lines.append(f"last_summary: {last_history.get('summary', '')}")
     return "\n".join(lines)

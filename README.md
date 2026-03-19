@@ -15,8 +15,12 @@
   - creates a temporary worktree by default
   - calls `codex exec` / `codex exec resume`
   - falls back to a fresh `codex exec` if a saved resume session is no longer valid
+  - blocks on configurable runner-failure or verification-failure circuit breakers
+  - can run local `pre_iteration` and `post_iteration` hooks
   - runs local verification commands after each iteration
   - stops only on `completed` or `blocked`
+- `.codex-loop/metrics.json`:
+  - persists aggregate counters such as iterations, runner failures, verification failures, and resume fallbacks
 - `codex-loop doctor --repair`:
   - recreates a missing agent result schema
   - reconciles task files with `.codex-loop/state.json`
@@ -73,10 +77,12 @@ your-project/
     001-*.md
   .codex-loop/
     state.json
+    metrics.json
     agent_result.schema.json
     logs/
     runs/
     artifacts/
+    hooks/
 ```
 
 ## How Run Works
@@ -89,8 +95,10 @@ your-project/
 6. Ask Codex to work only on that task
 7. If `codex exec resume` fails because the session is stale, retry once with a fresh `codex exec`
 8. Run every command in `verification.commands`
-9. Record progress, files changed, session metadata, and verification results
-10. Continue until all tasks are done or a blocking threshold is reached
+9. Update circuit-breaker counters and metrics
+10. Run local iteration hooks when configured
+11. Record progress, files changed, session metadata, and verification results
+12. Continue until all tasks are done or a blocking threshold is reached
 
 ## Verification Model
 
@@ -102,6 +110,8 @@ The loop only stops with success when:
 The loop stops with `blocked` when:
 
 - Codex returns `blocked`
+- `max_consecutive_runner_failures` is reached
+- `max_consecutive_verification_failures` is reached when enabled
 - `max_iterations` is reached
 - `max_no_progress_iterations` is reached
 - `doctor` finds unrecoverable local state or task file problems
@@ -112,6 +122,7 @@ The loop stops with `blocked` when:
 - The runner requests `approval_policy="never"` through Codex config overrides
 - The supervisor keeps `.codex-loop/` local state outside normal task files
 - The supervisor can repair a missing schema and task/state drift before entering the loop
+- Hook execution is local and explicit through `codex-loop.yaml`; it is never inferred from prompts
 - The default finish mode is conservative: keep the worktree and branch
 
 ## Known Limits

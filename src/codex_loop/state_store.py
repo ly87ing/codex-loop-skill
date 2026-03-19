@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 import json
+from .metrics import write_metrics_snapshot
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,7 @@ def _default_task_state(index: int) -> dict[str, Any]:
         "iterations": 0,
         "last_summary": "",
         "files_changed": [],
+        "last_error": None,
         "resume_fallback_used": False,
         "resume_failure_reason": None,
         "updated_at": _now(),
@@ -58,6 +60,7 @@ class StateStore:
         tmp_path = self.path.with_suffix(self.path.suffix + ".tmp")
         tmp_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
         tmp_path.replace(self.path)
+        write_metrics_snapshot(self.path.parent / "metrics.json", state)
 
     def create_initial(
         self,
@@ -71,7 +74,10 @@ class StateStore:
                 "source_prompt": source_prompt,
                 "iteration": 0,
                 "no_progress_iterations": 0,
+                "consecutive_runner_failures": 0,
+                "consecutive_verification_failures": 0,
                 "last_fingerprint": "",
+                "last_error": None,
                 "overall_status": "initialized",
                 "archived_tasks": {},
                 "created_at": _now(),
@@ -90,6 +96,9 @@ class StateStore:
         state = self.load()
         meta = state["meta"]
         meta.setdefault("archived_tasks", {})
+        meta.setdefault("consecutive_runner_failures", 0)
+        meta.setdefault("consecutive_verification_failures", 0)
+        meta.setdefault("last_error", None)
         current_tasks = state.get("tasks", {})
         removed_task_ids = [task_id for task_id in current_tasks if task_id not in task_ids]
         for task_id in removed_task_ids:
@@ -102,6 +111,7 @@ class StateStore:
                 task_state = _default_task_state(index)
             task_state.setdefault("resume_fallback_used", False)
             task_state.setdefault("resume_failure_reason", None)
+            task_state.setdefault("last_error", None)
             rebuilt_tasks[task_id] = task_state
 
         _normalize_task_statuses(rebuilt_tasks)
@@ -123,6 +133,7 @@ class StateStore:
     def mark_task_done(self, task_id: str) -> dict[str, Any]:
         state = self.load()
         state["tasks"][task_id]["status"] = "done"
+        state["tasks"][task_id]["last_error"] = None
         state["tasks"][task_id]["updated_at"] = _now()
         next_pending = next(
             (key for key, task in state["tasks"].items() if task["status"] == "pending"),
@@ -141,9 +152,59 @@ class StateStore:
         state = self.load()
         state["tasks"][task_id]["status"] = "blocked"
         state["tasks"][task_id]["blocker_reason"] = reason
+        state["tasks"][task_id]["last_error"] = reason
         state["tasks"][task_id]["updated_at"] = _now()
+        state["meta"]["last_error"] = reason
         state["meta"]["overall_status"] = "blocked"
         state["meta"]["updated_at"] = _now()
+        self.save(state)
+        return state
+
+    def record_runner_failure(
+        self,
+        *,
+        task_id: str,
+        reason: str,
+        session_id: str | None = None,
+    ) -> dict[str, Any]:
+        state = self.load()
+        meta = state["meta"]
+        task = state["tasks"][task_id]
+        meta["iteration"] += 1
+        meta["updated_at"] = _now()
+        meta["no_progress_iterations"] += 1
+        meta["consecutive_runner_failures"] = int(
+            meta.get("consecutive_runner_failures", 0)
+        ) + 1
+        meta["consecutive_verification_failures"] = 0
+        meta["last_error"] = reason
+        meta["overall_status"] = "running"
+        task["iterations"] += 1
+        task["status"] = "in_progress"
+        task["last_summary"] = reason
+        task["last_error"] = reason
+        task["files_changed"] = []
+        if session_id is not None:
+            task["session_id"] = session_id
+        task["updated_at"] = _now()
+        state["history"].append(
+            {
+                "event_type": "runner_failure",
+                "iteration": meta["iteration"],
+                "task_id": task_id,
+                "summary": reason,
+                "fingerprint": f"{task_id}|runner_failure|{meta['iteration']}",
+                "files_changed": [],
+                "verification_passed": False,
+                "agent_status": "runner_failure",
+                "session_id": task.get("session_id"),
+                "verification_results": [],
+                "blockers": [],
+                "resume_fallback_used": False,
+                "resume_failure_reason": None,
+                "error": reason,
+            }
+        )
         self.save(state)
         return state
 
@@ -172,10 +233,19 @@ class StateStore:
             meta["no_progress_iterations"] += 1
         else:
             meta["no_progress_iterations"] = 0
+        meta["consecutive_runner_failures"] = 0
+        if verification_passed:
+            meta["consecutive_verification_failures"] = 0
+        else:
+            meta["consecutive_verification_failures"] = int(
+                meta.get("consecutive_verification_failures", 0)
+            ) + 1
+        meta["last_error"] = None if verification_passed else summary
         meta["last_fingerprint"] = fingerprint
         task["last_summary"] = summary
         task["files_changed"] = files_changed
         task["session_id"] = session_id
+        task["last_error"] = None if verification_passed else summary
         task["resume_fallback_used"] = resume_fallback_used
         task["resume_failure_reason"] = resume_failure_reason
         task["updated_at"] = _now()
@@ -189,6 +259,7 @@ class StateStore:
             meta["overall_status"] = "running"
         state["history"].append(
             {
+                "event_type": "iteration",
                 "iteration": meta["iteration"],
                 "task_id": task_id,
                 "summary": summary,

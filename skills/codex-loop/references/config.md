@@ -16,6 +16,8 @@
 - `approval`: intended approval policy
 - `max_iterations`: hard upper bound for loop iterations
 - `max_no_progress_iterations`: fail-safe for repeated non-progress
+- `max_consecutive_runner_failures`: circuit breaker for repeated Codex command failures
+- `max_consecutive_verification_failures`: optional circuit breaker for repeated red verification runs; `0` disables it
 - `iteration_timeout_seconds`: timeout for each `codex exec` or `codex exec resume` call
 - `iteration_backoff_seconds`: optional sleep between iterations
 - `resume_fallback_to_fresh`: retry once without `resume` when the saved session is stale
@@ -38,6 +40,12 @@
 `logging`
 - `save_prompts`: whether prompts should be persisted
 - `save_jsonl`: whether raw Codex JSONL should be persisted
+
+`hooks`
+- `post_init`: local commands run after `codex-loop init`
+- `pre_iteration`: local commands run before each task iteration
+- `post_iteration`: local commands run after each task iteration
+- `timeout_seconds`: timeout for each hook command
 
 ## Format Note
 

@@ -22,8 +22,10 @@ Those artifacts are written locally so future iterations do not depend on the or
 5. Call `codex exec` or `codex exec resume`
 6. If resume fails because the session is stale, retry once with a fresh `codex exec`
 7. Run local verification commands
-8. Persist iteration history and loop status
-9. Continue until `completed` or `blocked`
+8. Apply circuit-breaker thresholds for repeated runner or verification failures
+9. Persist iteration history, metrics, and loop status
+10. Run local iteration hooks when configured
+11. Continue until `completed` or `blocked`
 
 ## Doctor
 
@@ -35,6 +37,15 @@ Those artifacts are written locally so future iterations do not depend on the or
 - `.codex-loop/agent_result.schema.json`
 
 When repair is enabled, it can recreate the schema and realign task state with the current task files.
+
+## Hooks And Metrics
+
+`codex-loop` can run explicit local hooks and persist counters:
+
+- `post_init` after scaffolding
+- `pre_iteration` before each task iteration
+- `post_iteration` after each task iteration
+- `.codex-loop/metrics.json` for aggregate runtime counters
 
 ## Task Semantics
 

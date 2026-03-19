@@ -69,12 +69,15 @@ codex-loop status --summary
 codex-loop logs tail --lines 20
 ```
 
+`status --summary` now includes key runtime counters from `.codex-loop/metrics.json`.
+
 ## Key Rules
 
 - Treat generated files as the persistent source of truth, not the original prompt.
 - Strengthen `verification.commands` before trusting unattended execution.
 - Prefer fixing bad task decomposition at `init` time instead of hoping the loop self-corrects.
 - Use `doctor --repair` before reruns if tasks or state have been edited manually.
+- Keep hooks local and explicit in `codex-loop.yaml`; do not hide operational behavior in prompts alone.
 - If the loop reports `blocked`, inspect the blocker instead of retrying blindly.
 
 ## References

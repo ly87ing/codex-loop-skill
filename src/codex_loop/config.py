@@ -45,6 +45,8 @@ class ExecutionConfig:
     approval: str = "never"
     max_iterations: int = 30
     max_no_progress_iterations: int = 5
+    max_consecutive_runner_failures: int = 3
+    max_consecutive_verification_failures: int = 0
     lock_stale_seconds: int = 21600
     iteration_timeout_seconds: int = 1800
     iteration_backoff_seconds: int = 0
@@ -78,6 +80,14 @@ class LoggingConfig:
 
 
 @dataclass(slots=True)
+class HooksConfig:
+    post_init: list[str] = field(default_factory=list)
+    pre_iteration: list[str] = field(default_factory=list)
+    post_iteration: list[str] = field(default_factory=list)
+    timeout_seconds: int = 300
+
+
+@dataclass(slots=True)
 class CodexLoopConfig:
     project_dir: Path
     project: ProjectConfig
@@ -87,6 +97,7 @@ class CodexLoopConfig:
     verification: VerificationConfig = field(default_factory=VerificationConfig)
     tasks: TasksConfig = field(default_factory=TasksConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    hooks: HooksConfig = field(default_factory=HooksConfig)
 
     @classmethod
     def from_file(cls, path: Path) -> "CodexLoopConfig":
@@ -106,6 +117,12 @@ class CodexLoopConfig:
             max_no_progress_iterations=int(
                 execution_data.get("max_no_progress_iterations", 5)
             ),
+            max_consecutive_runner_failures=int(
+                execution_data.get("max_consecutive_runner_failures", 3)
+            ),
+            max_consecutive_verification_failures=int(
+                execution_data.get("max_consecutive_verification_failures", 0)
+            ),
             lock_stale_seconds=int(execution_data.get("lock_stale_seconds", 21600)),
             iteration_timeout_seconds=int(
                 execution_data.get("iteration_timeout_seconds", 1800)
@@ -122,6 +139,7 @@ class CodexLoopConfig:
         verification = VerificationConfig(**data.get("verification", {}))
         tasks = TasksConfig(**data.get("tasks", {}))
         logging = LoggingConfig(**data.get("logging", {}))
+        hooks = HooksConfig(**data.get("hooks", {}))
         config = cls(
             project_dir=project_dir,
             project=project,
@@ -131,6 +149,7 @@ class CodexLoopConfig:
             verification=verification,
             tasks=tasks,
             logging=logging,
+            hooks=hooks,
         )
         config.validate()
         return config
@@ -154,6 +173,12 @@ class CodexLoopConfig:
         if self.execution.max_no_progress_iterations <= 0:
             msg = "execution.max_no_progress_iterations must be greater than zero."
             raise ValueError(msg)
+        if self.execution.max_consecutive_runner_failures < 0:
+            msg = "execution.max_consecutive_runner_failures must not be negative."
+            raise ValueError(msg)
+        if self.execution.max_consecutive_verification_failures < 0:
+            msg = "execution.max_consecutive_verification_failures must not be negative."
+            raise ValueError(msg)
         if self.execution.lock_stale_seconds <= 0:
             msg = "execution.lock_stale_seconds must be greater than zero."
             raise ValueError(msg)
@@ -162,6 +187,9 @@ class CodexLoopConfig:
             raise ValueError(msg)
         if self.execution.iteration_backoff_seconds < 0:
             msg = "execution.iteration_backoff_seconds must not be negative."
+            raise ValueError(msg)
+        if self.hooks.timeout_seconds <= 0:
+            msg = "hooks.timeout_seconds must be greater than zero."
             raise ValueError(msg)
         if self.tasks.strategy != "sequential":
             msg = f"Unsupported tasks.strategy: {self.tasks.strategy}"

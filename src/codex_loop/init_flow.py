@@ -95,6 +95,8 @@ def initialize_project(
             "approval": "never",
             "max_iterations": 30,
             "max_no_progress_iterations": 5,
+            "max_consecutive_runner_failures": 3,
+            "max_consecutive_verification_failures": 0,
             "iteration_timeout_seconds": 1800,
             "iteration_backoff_seconds": 0,
             "resume_fallback_to_fresh": True,
@@ -111,6 +113,12 @@ def initialize_project(
         },
         "tasks": {"strategy": "sequential", "source_dir": "tasks"},
         "logging": {"save_prompts": True, "save_jsonl": True},
+        "hooks": {
+            "post_init": [],
+            "pre_iteration": [],
+            "post_iteration": [],
+            "timeout_seconds": 300,
+        },
     }
     (project_dir / "codex-loop.yaml").write_text(
         json.dumps(config, indent=2, ensure_ascii=False),

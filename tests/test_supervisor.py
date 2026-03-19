@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from codex_loop.config import CodexLoopConfig
+from codex_loop.hooks import HookRunner
 from codex_loop.state_store import StateStore
 from codex_loop.supervisor import LoopOutcome, Supervisor
 from codex_loop.task_graph import Task, TaskGraph
@@ -16,6 +18,15 @@ class StubRunner:
 
     def run_task(self, *, task: Task, resume_session: str | None) -> dict[str, object]:
         return self.results.pop(0)
+
+
+class FailingRunner:
+    def __init__(self, errors: list[str]) -> None:
+        self.errors = errors
+
+    def run_task(self, *, task: Task, resume_session: str | None) -> dict[str, object]:
+        del task, resume_session
+        raise RuntimeError(self.errors.pop(0))
 
 
 class StubVerifier:
@@ -84,6 +95,161 @@ class SupervisorTests(unittest.TestCase):
 
             self.assertEqual(outcome, LoopOutcome.BLOCKED)
 
+    def test_blocks_after_repeated_runner_failures(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {
+                        "max_iterations": 5,
+                        "max_consecutive_runner_failures": 2,
+                    },
+                    "verification": {"commands": ["python -m unittest"]},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            graph = TaskGraph(tasks_dir)
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=graph,
+                runner=FailingRunner(["runner failed 1", "runner failed 2"]),
+                verifier=StubVerifier([]),
+            )
+            outcome = supervisor.run()
+
+            state = store.load()
+            metrics = json.loads((root / ".codex-loop" / "metrics.json").read_text())
+            self.assertEqual(outcome, LoopOutcome.BLOCKED)
+            self.assertEqual(state["meta"]["consecutive_runner_failures"], 2)
+            self.assertEqual(state["tasks"]["001-foundation"]["status"], "blocked")
+            self.assertIn("runner failure circuit breaker", state["tasks"]["001-foundation"]["blocker_reason"].lower())
+            self.assertEqual(metrics["runner_failures_total"], 2)
+
+    def test_blocks_after_repeated_verification_failures(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {
+                        "max_iterations": 5,
+                        "max_no_progress_iterations": 10,
+                        "max_consecutive_verification_failures": 2,
+                    },
+                    "verification": {"commands": ["python -m unittest"]},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            graph = TaskGraph(tasks_dir)
+            runner = StubRunner(
+                [
+                    {
+                        "status": "continue",
+                        "summary": "Changed code",
+                        "files_changed": ["src/a.py"],
+                        "session_id": "s1",
+                    },
+                    {
+                        "status": "continue",
+                        "summary": "Changed code again",
+                        "files_changed": ["src/a.py"],
+                        "session_id": "s1",
+                    },
+                ]
+            )
+            verifier = StubVerifier([False, False])
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=graph,
+                runner=runner,
+                verifier=verifier,
+            )
+            outcome = supervisor.run()
+
+            state = store.load()
+            metrics = json.loads((root / ".codex-loop" / "metrics.json").read_text())
+            self.assertEqual(outcome, LoopOutcome.BLOCKED)
+            self.assertEqual(state["meta"]["consecutive_verification_failures"], 2)
+            self.assertEqual(state["tasks"]["001-foundation"]["status"], "blocked")
+            self.assertIn("verification failure circuit breaker", state["tasks"]["001-foundation"]["blocker_reason"].lower())
+            self.assertEqual(metrics["verification_failures_total"], 2)
+
+    def test_runs_iteration_hooks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+            pre_file = root / "pre.txt"
+            post_file = root / "post.txt"
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "verification": {"commands": ["python -m unittest"]},
+                    "tasks": {"source_dir": "tasks"},
+                    "hooks": {
+                        "pre_iteration": [
+                            f"python3 -c \"from pathlib import Path; import os; Path(r'{pre_file}').write_text(os.environ['CODEX_LOOP_TASK_ID'])\""
+                        ],
+                        "post_iteration": [
+                            f"python3 -c \"from pathlib import Path; import os; Path(r'{post_file}').write_text(os.environ['CODEX_LOOP_AGENT_STATUS'])\""
+                        ],
+                    },
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            graph = TaskGraph(tasks_dir)
+            runner = StubRunner(
+                [
+                    {
+                        "status": "continue",
+                        "summary": "Changed code",
+                        "files_changed": ["src/a.py"],
+                        "session_id": "s1",
+                    }
+                ]
+            )
+            verifier = StubVerifier([True])
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=graph,
+                runner=runner,
+                verifier=verifier,
+                hook_runner=HookRunner(root / ".codex-loop" / "hooks"),
+            )
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.COMPLETED)
+            self.assertEqual(pre_file.read_text(), "001-foundation")
+            self.assertEqual(post_file.read_text(), "continue")
+
     def test_blocks_when_state_has_incomplete_tasks_but_no_selectable_task(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -120,4 +286,3 @@ class SupervisorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

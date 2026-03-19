@@ -6,7 +6,9 @@ from pathlib import Path
 import sys
 
 from .codex_runner import CodexRunner
+from .config import CodexLoopConfig
 from .doctor import render_doctor_report, run_doctor
+from .hooks import HookRunner
 from .init_flow import initialize_project
 from .reporting import format_status_summary, tail_log_lines
 from .run_flow import run_project
@@ -94,6 +96,14 @@ def main(argv: list[str] | None = None) -> int:
                 prompt=args.prompt,
                 result=result,
                 force=args.force,
+            )
+            config = CodexLoopConfig.from_file(project_dir / "codex-loop.yaml")
+            HookRunner(project_dir / ".codex-loop" / "hooks").run(
+                event_name="post_init",
+                commands=config.hooks.post_init,
+                cwd=project_dir,
+                env={"CODEX_LOOP_PROJECT_DIR": str(project_dir)},
+                timeout_seconds=config.hooks.timeout_seconds,
             )
             print(f"Initialized codex-loop files in {project_dir}")
             return 0

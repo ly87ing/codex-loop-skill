@@ -11,6 +11,7 @@ from .git_ops import (
     resolve_project_working_directory,
     resolve_repo_root,
 )
+from .hooks import HookRunner
 from .run_lock import RunLock
 from .state_store import StateStore
 from .supervisor import LoopOutcome, Supervisor
@@ -97,5 +98,6 @@ def run_project(project_dir: Path) -> LoopOutcome:
             runner=runner,
             verifier=Verifier(),
             working_directory=working_directory,
+            hook_runner=HookRunner(project_dir / ".codex-loop" / "hooks"),
         )
         return supervisor.run()
