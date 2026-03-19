@@ -84,6 +84,19 @@ def _is_blocked_snapshot(snapshot: dict[str, Any]) -> bool:
     )
 
 
+def _snapshot_group_value(snapshot: dict[str, Any], group_by: str) -> str:
+    if group_by == "task":
+        return str(snapshot.get("task_id", "none"))
+    if group_by == "status":
+        return str(snapshot.get("overall_status", "unknown"))
+    if group_by == "selection":
+        return str(snapshot.get("selection", "unknown"))
+    if group_by == "blocker":
+        return str(snapshot.get("last_blocker_code") or "none")
+    msg = f"Unsupported snapshot group_by value: {group_by}"
+    raise ValueError(msg)
+
+
 def load_snapshots_index(
     snapshot_dir: Path,
     *,
@@ -183,7 +196,7 @@ def format_snapshots_report(
     return "\n".join(lines)
 
 
-def summarize_snapshots(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
+def _base_snapshots_summary(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
     summary: dict[str, Any] = {
         "total_snapshots": len(snapshots),
         "by_task": {},
@@ -233,14 +246,46 @@ def summarize_snapshots(snapshots: list[dict[str, Any]]) -> dict[str, Any]:
     return summary
 
 
-def format_snapshots_summary(snapshots: list[dict[str, Any]]) -> str:
-    summary = summarize_snapshots(snapshots)
+def summarize_snapshots(
+    snapshots: list[dict[str, Any]],
+    *,
+    group_by: str | None = None,
+) -> dict[str, Any]:
+    if group_by is not None:
+        grouped_counts: dict[str, int] = {}
+        for snapshot in snapshots:
+            key = _snapshot_group_value(snapshot, group_by)
+            grouped_counts[key] = int(grouped_counts.get(key, 0)) + 1
+        base_summary = _base_snapshots_summary(snapshots)
+        return {
+            "total_snapshots": base_summary["total_snapshots"],
+            "group_by": group_by,
+            "grouped_counts": grouped_counts,
+            "latest_snapshot": base_summary["latest_snapshot"],
+            "latest_blocked": base_summary["latest_blocked"],
+        }
+    return _base_snapshots_summary(snapshots)
+
+
+def format_snapshots_summary(
+    snapshots: list[dict[str, Any]],
+    *,
+    group_by: str | None = None,
+) -> str:
+    summary = summarize_snapshots(snapshots, group_by=group_by)
     lines = [f"total_snapshots: {summary['total_snapshots']}"]
-    for section_name in ("by_task", "by_status", "by_selection", "by_blocker_code"):
-        lines.append(f"{section_name}:")
-        entries = summary[section_name]
+    if group_by is not None:
+        lines.append(f"group_by: {group_by}")
+        lines.append("grouped_counts:")
+        entries = summary["grouped_counts"]
         for key in sorted(entries):
             lines.append(f"{key}: {entries[key]}")
+    else:
+        for section_name in ("by_task", "by_status", "by_selection", "by_blocker_code"):
+            lines.append(f"{section_name}:")
+            entries = summary[section_name]
+            for key in sorted(entries):
+                lines.append(f"{key}: {entries[key]}")
     for field_name in ("latest_snapshot", "latest_blocked"):
         lines.append(f"{field_name}:")
         payload = summary[field_name]

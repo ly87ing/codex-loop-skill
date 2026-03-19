@@ -497,6 +497,53 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("by_status:", rendered)
             self.assertIn("no_progress_limit: 1", rendered)
 
+    def test_snapshots_summary_can_focus_on_single_group(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_dir = Path(tmpdir)
+            snapshots = [
+                {
+                    "generated_at": "2026-03-19T00:00:00+00:00",
+                    "task_id": "001-foundation",
+                    "selection": "task_id",
+                    "session_id": "session-001",
+                    "overall_status": "running",
+                    "current_task": "001-foundation",
+                    "last_blocker_code": None,
+                    "snapshot_path": str(snapshot_dir / "one.json"),
+                },
+                {
+                    "generated_at": "2026-03-20T00:00:00+00:00",
+                    "task_id": "002-polish",
+                    "selection": "latest_session",
+                    "session_id": "session-002",
+                    "overall_status": "blocked",
+                    "current_task": "002-polish",
+                    "last_blocker_code": "no_progress_limit",
+                    "snapshot_path": str(snapshot_dir / "two.json"),
+                },
+                {
+                    "generated_at": "2026-03-21T00:00:00+00:00",
+                    "task_id": "003-release",
+                    "selection": "latest_session",
+                    "session_id": "session-003",
+                    "overall_status": "completed",
+                    "current_task": "done",
+                    "last_blocker_code": None,
+                    "snapshot_path": str(snapshot_dir / "three.json"),
+                },
+            ]
+
+            summary = summarize_snapshots(snapshots, group_by="blocker")
+            rendered = format_snapshots_summary(snapshots, group_by="blocker")
+
+            self.assertEqual(summary["group_by"], "blocker")
+            self.assertEqual(summary["grouped_counts"]["none"], 2)
+            self.assertEqual(summary["grouped_counts"]["no_progress_limit"], 1)
+            self.assertNotIn("by_task", summary)
+            self.assertIn("group_by: blocker", rendered)
+            self.assertIn("grouped_counts:", rendered)
+            self.assertIn("none: 2", rendered)
+
     def test_snapshots_index_can_filter_by_status_and_time_window(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             snapshot_dir = Path(tmpdir)

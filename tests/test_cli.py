@@ -647,6 +647,88 @@ class CliTests(unittest.TestCase):
             self.assertEqual(payload["by_status"]["blocked"], 1)
             self.assertEqual(payload["latest_snapshot"]["task_id"], "002-polish")
 
+    def test_snapshots_command_can_render_grouped_summary_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_dir = Path(tmpdir) / "snapshots"
+            snapshot_dir.mkdir(parents=True, exist_ok=True)
+            (snapshot_dir / "index.json").write_text(
+                json.dumps(
+                    {
+                        "snapshots": [
+                            {
+                                "generated_at": "2026-03-19T00:00:00+00:00",
+                                "task_id": "001-foundation",
+                                "selection": "task_id",
+                                "session_id": "session-001",
+                                "overall_status": "running",
+                                "current_task": "001-foundation",
+                                "last_blocker_code": None,
+                                "snapshot_path": str(snapshot_dir / "one.json"),
+                            },
+                            {
+                                "generated_at": "2026-03-20T00:00:00+00:00",
+                                "task_id": "002-polish",
+                                "selection": "latest_session",
+                                "session_id": "session-002",
+                                "overall_status": "blocked",
+                                "current_task": "002-polish",
+                                "last_blocker_code": "no_progress_limit",
+                                "snapshot_path": str(snapshot_dir / "two.json"),
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "snapshots",
+                        "--snapshot-dir",
+                        str(snapshot_dir),
+                        "--summary",
+                        "--group-by",
+                        "blocker",
+                        "--json",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["group_by"], "blocker")
+            self.assertEqual(payload["grouped_counts"]["none"], 1)
+            self.assertEqual(payload["grouped_counts"]["no_progress_limit"], 1)
+
+    def test_snapshots_command_rejects_group_by_without_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_dir = Path(tmpdir) / "snapshots"
+            snapshot_dir.mkdir(parents=True, exist_ok=True)
+            (snapshot_dir / "index.json").write_text(
+                json.dumps({"snapshots": []}),
+                encoding="utf-8",
+            )
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "snapshots",
+                        "--snapshot-dir",
+                        str(snapshot_dir),
+                        "--group-by",
+                        "task",
+                    ]
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertIn("Use --group-by only with --summary", stderr.getvalue())
+
     def test_snapshots_command_can_filter_by_status_and_time_window(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             snapshot_dir = Path(tmpdir) / "snapshots"

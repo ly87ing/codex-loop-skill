@@ -267,6 +267,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Render a grouped summary instead of the raw snapshot list.",
     )
     snapshots_parser.add_argument(
+        "--group-by",
+        choices=("task", "status", "blocker", "selection"),
+        default=None,
+        help="Optional summary grouping dimension; only valid with --summary.",
+    )
+    snapshots_parser.add_argument(
         "--since",
         default=None,
         help="Optional lower inclusive ISO timestamp bound for generated_at.",
@@ -540,6 +546,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "snapshots":
             if args.latest and args.latest_blocked:
                 raise ValueError("Use either --latest or --latest-blocked, not both.")
+            if args.group_by and not args.summary:
+                raise ValueError("Use --group-by only with --summary.")
             snapshot_dir = Path(args.snapshot_dir).resolve()
             payload = load_snapshots_index(
                 snapshot_dir,
@@ -554,11 +562,11 @@ def main(argv: list[str] | None = None) -> int:
                 latest_blocked=args.latest_blocked,
             )
             if args.summary:
-                summary = summarize_snapshots(payload)
+                summary = summarize_snapshots(payload, group_by=args.group_by)
                 if args.json:
                     rendered = json.dumps(summary, indent=2, ensure_ascii=False)
                 else:
-                    rendered = format_snapshots_summary(payload)
+                    rendered = format_snapshots_summary(payload, group_by=args.group_by)
             else:
                 if args.json:
                     rendered = json.dumps(payload, indent=2, ensure_ascii=False)
