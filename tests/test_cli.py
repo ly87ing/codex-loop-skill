@@ -1403,6 +1403,127 @@ class CliTests(unittest.TestCase):
             self.assertEqual(payload["grouped_counts"]["json"], 1)
             self.assertEqual(payload["grouped_counts"]["text"], 1)
 
+    def test_snapshots_exports_command_can_write_json_output_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exports_dir = Path(tmpdir) / "snapshot-reports"
+            exports_dir.mkdir(parents=True, exist_ok=True)
+            (exports_dir / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "exports": [
+                            {
+                                "generated_at": "2026-03-22T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-summary-b.txt"),
+                                "source_snapshot_dir": str(exports_dir / "source-b"),
+                                "snapshot_count": 2,
+                                "summary": True,
+                                "group_by": "status",
+                                "render_format": "text",
+                                "filters": {
+                                    "task_id": None,
+                                    "status": "blocked",
+                                    "blocker_code": "no_progress_limit",
+                                    "latest": False,
+                                    "latest_blocked": True,
+                                    "sort_order": "newest",
+                                    "since": "2026-03-22T00:00:00+00:00",
+                                    "until": None,
+                                },
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output_path = Path(tmpdir) / "exports.json"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "snapshots-exports",
+                        "--exports-dir",
+                        str(exports_dir),
+                        "--json",
+                        "--output",
+                        str(output_path),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(payload), 1)
+            self.assertEqual(payload[0]["render_format"], "text")
+            self.assertIn("Wrote snapshot exports to", stdout.getvalue())
+
+    def test_snapshots_exports_command_can_write_summary_to_output_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exports_dir = Path(tmpdir) / "snapshot-reports"
+            exports_dir.mkdir(parents=True, exist_ok=True)
+            (exports_dir / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "exports": [
+                            {
+                                "generated_at": "2026-03-22T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-summary-b.txt"),
+                                "source_snapshot_dir": str(exports_dir / "source-b"),
+                                "snapshot_count": 2,
+                                "summary": True,
+                                "group_by": "status",
+                                "render_format": "text",
+                                "filters": {
+                                    "task_id": None,
+                                    "status": "blocked",
+                                    "blocker_code": "no_progress_limit",
+                                    "latest": False,
+                                    "latest_blocked": True,
+                                    "sort_order": "newest",
+                                    "since": "2026-03-22T00:00:00+00:00",
+                                    "until": None,
+                                },
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            output_dir = Path(tmpdir) / "exports-archive"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "snapshots-exports",
+                        "--exports-dir",
+                        str(exports_dir),
+                        "--summary",
+                        "--group-by",
+                        "render",
+                        "--output-dir",
+                        str(output_dir),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            export_files = sorted(output_dir.glob("snapshot-exports-*.txt"))
+            self.assertEqual(len(export_files), 1)
+            rendered = export_files[0].read_text(encoding="utf-8")
+            self.assertIn("total_exports: 1", rendered)
+            index_path = output_dir / "index.json"
+            self.assertTrue(index_path.exists())
+            index_payload = json.loads(index_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(index_payload["exports"]), 1)
+            export_entry = index_payload["exports"][0]
+            self.assertEqual(export_entry["source_exports_dir"], str(exports_dir.resolve()))
+            self.assertTrue(export_entry["summary"])
+            self.assertEqual(export_entry["group_by"], "render")
+            self.assertIn("Wrote snapshot exports to", stdout.getvalue())
+
     def test_events_command_uses_config_default_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

@@ -186,6 +186,81 @@ def _snapshots_output_path(
     return output_dir.resolve() / f"{'-'.join(parts)}{suffix}"
 
 
+def _snapshots_exports_output_path(
+    output_dir: Path,
+    *,
+    json_output: bool,
+    summary: bool,
+    group_by: str | None,
+    latest: bool,
+    task_id: str | None,
+    status: str | None,
+    blocker_code: str | None,
+) -> Path:
+    parts = ["snapshot-exports", "summary" if summary else "list"]
+    if group_by:
+        parts.append(group_by)
+    if latest:
+        parts.append("latest")
+    if task_id:
+        parts.append(f"task-{_slugify_file_component(task_id)}")
+    if status:
+        parts.append(f"status-{_slugify_file_component(status)}")
+    if blocker_code:
+        parts.append(f"blocker-{_slugify_file_component(blocker_code)}")
+    timestamp = _slugify_file_component(
+        datetime.now(UTC).isoformat().replace(":", "-").replace("+", "-").replace(".", "-")
+    )
+    parts.append(timestamp)
+    suffix = ".json" if json_output else ".txt"
+    return output_dir.resolve() / f"{'-'.join(parts)}{suffix}"
+
+
+def _update_snapshots_exports_index(
+    output_dir: Path,
+    export_path: Path,
+    *,
+    source_exports_dir: Path,
+    export_count: int,
+    summary: bool,
+    group_by: str | None,
+    json_output: bool,
+    task_id: str | None,
+    status: str | None,
+    blocker_code: str | None,
+    latest: bool,
+    limit: int | None,
+) -> None:
+    index_path = output_dir.resolve() / "index.json"
+    if index_path.exists():
+        index_data = json.loads(index_path.read_text(encoding="utf-8"))
+    else:
+        index_data = {"exports": []}
+    exports = index_data.get("exports")
+    if not isinstance(exports, list):
+        exports = []
+    exports.append(
+        {
+            "generated_at": datetime.now(UTC).isoformat(),
+            "export_path": str(export_path.resolve()),
+            "source_exports_dir": str(source_exports_dir.resolve()),
+            "export_count": export_count,
+            "summary": summary,
+            "group_by": group_by,
+            "render_format": "json" if json_output else "text",
+            "filters": {
+                "task_id": task_id,
+                "status": status,
+                "blocker_code": blocker_code,
+                "latest": latest,
+                "limit": limit,
+            },
+        }
+    )
+    index_data["exports"] = exports
+    _write_output_file(index_path, json.dumps(index_data, indent=2, ensure_ascii=False))
+
+
 def _load_optional_config(project_dir: Path) -> CodexLoopConfig | None:
     config_path = project_dir / "codex-loop.yaml"
     if not config_path.exists():
@@ -437,6 +512,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--json",
         action="store_true",
         help="Emit structured JSON instead of formatted text.",
+    )
+    snapshots_exports_parser.add_argument(
+        "--output",
+        default=None,
+        help="Optional file path to write the rendered snapshot exports payload.",
+    )
+    snapshots_exports_parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Optional directory for an auto-named snapshot exports file.",
     )
 
     doctor_parser = subparsers.add_parser("doctor", help="Validate local loop files.")
@@ -778,6 +863,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "snapshots-exports":
             if args.group_by is not None and not args.summary:
                 raise ValueError("Use --group-by only with --summary.")
+            if args.output and args.output_dir:
+                raise ValueError(
+                    "Use either --output or --output-dir for snapshot exports, not both."
+                )
             exports_dir = Path(args.exports_dir).resolve()
             payload = load_snapshot_exports_manifest(
                 exports_dir,
@@ -808,7 +897,39 @@ def main(argv: list[str] | None = None) -> int:
                         latest=args.latest,
                         limit=args.limit,
                     )
-            print(rendered)
+            if args.output:
+                output_path = Path(args.output).resolve()
+                _write_output_file(output_path, rendered)
+                print(f"Wrote snapshot exports to {output_path}")
+            elif args.output_dir:
+                output_path = _snapshots_exports_output_path(
+                    Path(args.output_dir),
+                    json_output=bool(args.json),
+                    summary=bool(args.summary),
+                    group_by=args.group_by,
+                    latest=bool(args.latest),
+                    task_id=args.task_id,
+                    status=args.status,
+                    blocker_code=args.blocker_code,
+                )
+                _write_output_file(output_path, rendered)
+                _update_snapshots_exports_index(
+                    output_path.parent,
+                    output_path,
+                    source_exports_dir=exports_dir,
+                    export_count=len(payload),
+                    summary=bool(args.summary),
+                    group_by=args.group_by,
+                    json_output=bool(args.json),
+                    task_id=args.task_id,
+                    status=args.status,
+                    blocker_code=args.blocker_code,
+                    latest=bool(args.latest),
+                    limit=args.limit,
+                )
+                print(f"Wrote snapshot exports to {output_path}")
+            else:
+                print(rendered)
             return 0
 
         if args.command == "events":
