@@ -12,6 +12,7 @@ import sys
 from typing import Any, Callable
 
 from .daemon_manager import _parse_timestamp, _write_json
+from .watchdog_manager import build_watchdog_command
 
 
 DEFAULT_HEARTBEAT_STALE_SECONDS = 300
@@ -51,6 +52,7 @@ def service_paths(project_dir: Path, *, home_dir: Path | None = None) -> dict[st
         "loop_dir": loop_dir,
         "metadata": loop_dir / "service.json",
         "heartbeat": loop_dir / "service-heartbeat.json",
+        "watchdog": loop_dir / "service-watchdog.json",
         "log": loop_dir / "service.log",
         "plist": launch_agents_dir / f"{label}.plist",
     }
@@ -63,32 +65,6 @@ def _service_environment(heartbeat_path: Path) -> dict[str, str]:
         if value:
             env[key] = value
     return env
-
-
-def _service_command(
-    project_dir: Path,
-    *,
-    retry_blocked: bool,
-    cycle_sleep_seconds: float,
-    max_cycles: int | None,
-) -> list[str]:
-    command = [
-        sys.executable,
-        "-m",
-        "codex_loop",
-        "run",
-        "--project-dir",
-        str(project_dir.resolve()),
-        "--continuous",
-        "--retry-errors",
-        "--cycle-sleep-seconds",
-        str(cycle_sleep_seconds),
-    ]
-    if retry_blocked:
-        command.append("--retry-blocked")
-    if max_cycles is not None:
-        command.extend(["--max-cycles", str(max_cycles)])
-    return command
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -189,8 +165,10 @@ def install_service(
         paths["metadata"].unlink(missing_ok=True)
         paths["plist"].unlink(missing_ok=True)
 
-    command = _service_command(
+    command = build_watchdog_command(
         project_dir,
+        heartbeat_path=paths["heartbeat"],
+        watchdog_state_path=paths["watchdog"],
         retry_blocked=retry_blocked,
         cycle_sleep_seconds=cycle_sleep_seconds,
         max_cycles=max_cycles,
@@ -223,6 +201,7 @@ def install_service(
         "plist_path": str(paths["plist"]),
         "log_path": str(paths["log"]),
         "heartbeat_path": str(paths["heartbeat"]),
+        "watchdog_path": str(paths["watchdog"]),
         "command": command,
         "retry_blocked": retry_blocked,
         "cycle_sleep_seconds": cycle_sleep_seconds,
@@ -251,6 +230,7 @@ def service_status(
     domain = metadata.get("domain") or _domain_for_uid(uid)
     plist_path = Path(metadata.get("plist_path", paths["plist"]))
     heartbeat_path = Path(metadata.get("heartbeat_path", paths["heartbeat"]))
+    watchdog_path = Path(metadata.get("watchdog_path", paths["watchdog"]))
     log_path = Path(metadata.get("log_path", paths["log"]))
     installed = paths["metadata"].exists() or plist_path.exists()
 
@@ -268,6 +248,7 @@ def service_status(
         detail = ""
 
     heartbeat = _read_json(heartbeat_path)
+    watchdog = _read_json(watchdog_path)
     heartbeat_present = heartbeat_path.exists()
     missing_heartbeat = loaded and not heartbeat_present
     heartbeat_stale_seconds = metadata.get(
@@ -290,6 +271,7 @@ def service_status(
         "plist_path": str(plist_path),
         "log_path": str(log_path),
         "heartbeat_path": str(heartbeat_path),
+        "watchdog_path": str(watchdog_path),
         "heartbeat_present": heartbeat_present,
         "missing_heartbeat": missing_heartbeat,
         "command": metadata.get("command", []),
@@ -305,6 +287,12 @@ def service_status(
         "error_count": heartbeat.get("error_count"),
         "last_error": heartbeat.get("last_error"),
         "launchctl_detail": detail,
+        "watchdog_phase": watchdog.get("phase"),
+        "watchdog_pid": watchdog.get("watchdog_pid"),
+        "child_pid": watchdog.get("child_pid"),
+        "restart_count": watchdog.get("restart_count"),
+        "last_restart_reason": watchdog.get("last_restart_reason"),
+        "watchdog_updated_at": watchdog.get("updated_at"),
     }
 
 
@@ -342,5 +330,6 @@ def uninstall_service(
         "domain": domain,
         "plist_path": str(plist_path),
         "heartbeat_path": metadata.get("heartbeat_path", str(paths["heartbeat"])),
+        "watchdog_path": metadata.get("watchdog_path", str(paths["watchdog"])),
         "log_path": metadata.get("log_path", str(paths["log"])),
     }

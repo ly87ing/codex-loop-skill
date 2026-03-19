@@ -20,14 +20,14 @@
   - runs local verification commands after each iteration
   - stops only on `completed` or `blocked`
 - `codex-loop daemon start|status|stop`:
-  - starts a detached local background worker around `run --continuous`
-  - writes `.codex-loop/daemon.json` metadata and `.codex-loop/daemon-heartbeat.json`
-  - retries recoverable runtime errors inside the long-lived loop process
-  - reports pid, phase, cycle, heartbeat staleness, and log path for operator inspection
+  - starts a detached local watchdog around `run --continuous`
+  - writes `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, and `.codex-loop/daemon-watchdog.json`
+  - restarts the worker when the child exits unexpectedly or the heartbeat goes stale
+  - reports pid, phase, cycle, restart count, heartbeat staleness, and log path for operator inspection
 - `codex-loop service install|status|uninstall`:
   - installs a per-project macOS `launchd` agent under `~/Library/LaunchAgents`
   - keeps the loop alive across shell exits and future logins with `RunAtLoad` and `KeepAlive`
-  - writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, and `.codex-loop/service.log`
+  - writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, `.codex-loop/service-watchdog.json`, and `.codex-loop/service.log`
   - preserves `PATH`, `HOME`, `SHELL`, and `CODEX_HOME` for the long-running service process
   - refuses to install while a local `daemon` worker is already running, to avoid dual writers against the same loop state
 - `.codex-loop/metrics.json`:
@@ -152,9 +152,9 @@ your-project/
 
 For longer unattended runs, `codex-loop run --continuous --retry-blocked` adds an outer retry loop around the normal supervisor run. When a cycle blocks, it requeues blocked tasks, sleeps, and starts the next cycle until completion or `--max-cycles` is reached.
 
-For a detached local worker, `codex-loop daemon start --retry-blocked --cycle-sleep-seconds 60` launches that same continuous mode in the background, records daemon metadata plus a heartbeat file under `.codex-loop/`, and now retries recoverable runtime errors without exiting immediately.
+For a detached local worker, `codex-loop daemon start --retry-blocked --cycle-sleep-seconds 60` now launches a watchdog parent process in the background. That parent records watchdog metadata, starts the real continuous worker, and restarts it if the child exits unexpectedly or stops updating its heartbeat.
 
-For a longer-lived macOS login service, `codex-loop service install --retry-blocked --cycle-sleep-seconds 60` writes a `launchd` plist under `~/Library/LaunchAgents`, starts the loop with `RunAtLoad` and `KeepAlive`, and records separate service metadata, heartbeat, and logs under `.codex-loop/`.
+For a longer-lived macOS login service, `codex-loop service install --retry-blocked --cycle-sleep-seconds 60` writes a `launchd` plist under `~/Library/LaunchAgents`, starts that same watchdog parent with `RunAtLoad` and `KeepAlive`, and records separate service metadata, heartbeat, watchdog state, and logs under `.codex-loop/`.
 
 ## Verification Model
 
@@ -186,8 +186,8 @@ The loop stops with `blocked` when:
 
 - `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks, plus the current task session id when one exists.
 - `run --continuous --retry-blocked` is the current fastest path to a long-lived local worker: it wraps the normal run loop, requeues blocked tasks between cycles, and keeps going until completed or a cycle limit is reached.
-- `daemon start|status|stop` adds a lightweight detached supervisor layer on top of `run --continuous`, with `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, and `.codex-loop/daemon.log` for local operator visibility, plus dead-process and stale-heartbeat detection in `status`.
-- `service install|status|uninstall` is the macOS path for real unattended persistence: it installs a `launchd` agent, writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, and `.codex-loop/service.log`, preserves enough environment for the loop to keep finding the local Codex CLI after terminal sessions end, and now reports `healthy` plus `missing_heartbeat` so a loaded-but-stuck service is visible immediately.
+- `daemon start|status|stop` now runs through a detached watchdog parent, with `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, `.codex-loop/daemon-watchdog.json`, and `.codex-loop/daemon.log`; `status` surfaces dead-process and stale-heartbeat detection plus restart counters.
+- `service install|status|uninstall` is the macOS path for real unattended persistence: it installs a `launchd` agent, writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, `.codex-loop/service-watchdog.json`, and `.codex-loop/service.log`, preserves enough environment for the loop to keep finding the local Codex CLI after terminal sessions end, reports `healthy` plus `missing_heartbeat`, and now tracks watchdog restart counters too.
 - `daemon` and `service` are now intentionally mutually exclusive for the same project root; starting one while the other is active returns an error instead of risking conflicting writes into `.codex-loop/`.
 - `sessions` provides a workspace-scoped inventory of known Codex session ids per task, the latest `prompt/log/run` artifacts for each task, and a `--latest` view for the most recent resumable session seen by the loop.
 - `evidence` turns a selected task or latest session into a read-only evidence bundle with selection metadata, status/session snapshots, prompt preview, log tail, parsed run payload, recent task events, and optional `--output` or auto-named `--output-dir` export; directory exports also maintain a snapshot `index.json`.

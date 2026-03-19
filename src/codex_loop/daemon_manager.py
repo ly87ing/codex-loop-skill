@@ -9,6 +9,8 @@ import subprocess
 import sys
 from typing import Any, Callable
 
+from .watchdog_manager import build_watchdog_command
+
 
 def _now() -> str:
     return datetime.now(UTC).isoformat()
@@ -47,6 +49,7 @@ def daemon_paths(project_dir: Path) -> dict[str, Path]:
         "loop_dir": loop_dir,
         "metadata": loop_dir / "daemon.json",
         "heartbeat": loop_dir / "daemon-heartbeat.json",
+        "watchdog": loop_dir / "daemon-watchdog.json",
         "log": loop_dir / "daemon.log",
     }
 
@@ -82,32 +85,21 @@ def start_daemon(
             )
 
     paths = daemon_paths(project_dir)
-    command = [
-        sys.executable,
-        "-m",
-        "codex_loop",
-        "run",
-        "--project-dir",
-        str(project_dir),
-        "--continuous",
-        "--retry-errors",
-        "--cycle-sleep-seconds",
-        str(cycle_sleep_seconds),
-    ]
-    if retry_blocked:
-        command.append("--retry-blocked")
-    if max_cycles is not None:
-        command.extend(["--max-cycles", str(max_cycles)])
-
-    env = dict(os.environ)
-    env["CODEX_LOOP_HEARTBEAT_PATH"] = str(paths["heartbeat"])
+    command = build_watchdog_command(
+        project_dir,
+        heartbeat_path=paths["heartbeat"],
+        watchdog_state_path=paths["watchdog"],
+        retry_blocked=retry_blocked,
+        cycle_sleep_seconds=cycle_sleep_seconds,
+        max_cycles=max_cycles,
+    )
 
     paths["loop_dir"].mkdir(parents=True, exist_ok=True)
     with paths["log"].open("a", encoding="utf-8") as log_handle:
         process = popen_cls(
             command,
             cwd=str(project_dir),
-            env=env,
+            env=dict(os.environ),
             stdin=subprocess.DEVNULL,
             stdout=log_handle,
             stderr=log_handle,
@@ -120,6 +112,7 @@ def start_daemon(
         "project_dir": str(project_dir),
         "log_path": str(paths["log"]),
         "heartbeat_path": str(paths["heartbeat"]),
+        "watchdog_path": str(paths["watchdog"]),
         "command": command,
         "retry_blocked": retry_blocked,
         "cycle_sleep_seconds": cycle_sleep_seconds,
@@ -150,9 +143,15 @@ def daemon_status(
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     pid = int(metadata.get("pid", -1))
     heartbeat_path = Path(metadata.get("heartbeat_path", paths["heartbeat"]))
+    watchdog_path = Path(metadata.get("watchdog_path", paths["watchdog"]))
     heartbeat = (
         json.loads(heartbeat_path.read_text(encoding="utf-8"))
         if heartbeat_path.exists()
+        else {}
+    )
+    watchdog = (
+        json.loads(watchdog_path.read_text(encoding="utf-8"))
+        if watchdog_path.exists()
         else {}
     )
     heartbeat_stale_seconds = metadata.get("heartbeat_stale_seconds")
@@ -169,6 +168,7 @@ def daemon_status(
         "started_at": metadata.get("started_at"),
         "log_path": metadata.get("log_path", str(paths["log"])),
         "heartbeat_path": str(heartbeat_path),
+        "watchdog_path": str(watchdog_path),
         "command": metadata.get("command", []),
         "retry_blocked": metadata.get("retry_blocked", False),
         "cycle_sleep_seconds": metadata.get("cycle_sleep_seconds"),
@@ -182,6 +182,12 @@ def daemon_status(
         "outcome": heartbeat.get("outcome"),
         "error_count": heartbeat.get("error_count"),
         "last_error": heartbeat.get("last_error"),
+        "watchdog_phase": watchdog.get("phase"),
+        "watchdog_pid": watchdog.get("watchdog_pid"),
+        "child_pid": watchdog.get("child_pid"),
+        "restart_count": watchdog.get("restart_count"),
+        "last_restart_reason": watchdog.get("last_restart_reason"),
+        "watchdog_updated_at": watchdog.get("updated_at"),
     }
 
 
@@ -208,6 +214,7 @@ def stop_daemon(
         "pid": pid,
         "signal": "SIGTERM",
         "log_path": metadata.get("log_path", str(paths["log"])),
+        "watchdog_path": metadata.get("watchdog_path", str(paths["watchdog"])),
     }
 
 

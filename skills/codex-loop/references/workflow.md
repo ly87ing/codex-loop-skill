@@ -61,11 +61,11 @@ Those warnings now include concrete remediation guidance so operators can tighte
 - `events --task-id ... --event-type ... --json` for focused operator queries and export
 - `events --since ... --until ... --output <path>` for time-boxed exports
 - `run --continuous --retry-blocked --cycle-sleep-seconds 60 [--max-cycles N]` for a longer-lived outer worker that keeps requeuing blocked tasks between supervisor cycles
-- `daemon start --retry-blocked --cycle-sleep-seconds 60 [--max-cycles N]` for launching that continuous worker in the background with runtime-error retries enabled
-- `daemon status [--json]` for checking pid, heartbeat phase, cycle, stale/dead detection, and log path
+- `daemon start --retry-blocked --cycle-sleep-seconds 60 [--max-cycles N]` for launching a detached watchdog parent that starts and restarts the continuous worker in the background
+- `daemon status [--json]` for checking pid, heartbeat phase, cycle, stale/dead detection, watchdog restart counters, and log path
 - `daemon stop [--json]` for sending `SIGTERM` to the detached worker and clearing local daemon metadata
 - `service install --retry-blocked --cycle-sleep-seconds 60 [--max-cycles N]` for installing a `launchd` agent that survives shell exits and future logins on macOS
-- `service status [--json]` for checking whether that `launchd` agent is installed, loaded, healthy, and still producing fresh heartbeats; loaded-but-missing-heartbeat is now surfaced explicitly
+- `service status [--json]` for checking whether that `launchd` agent is installed, loaded, healthy, still producing fresh heartbeats, and whether the watchdog has restarted the child worker
 - `service uninstall [--json]` for removing the `launchd` plist and clearing local service metadata
 - `daemon start` refuses to run while a service is already loaded for the same project, and `service install` refuses to proceed while a daemon is already running, so one project root has only one long-lived supervisor at a time
 - `sessions --latest --json` for the most recent session seen by the loop

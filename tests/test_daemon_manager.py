@@ -54,10 +54,12 @@ class DaemonManagerTests(unittest.TestCase):
             self.assertTrue(metadata["retry_blocked"])
             self.assertEqual(metadata["cycle_sleep_seconds"], 45.0)
             self.assertEqual(metadata["max_cycles"], 7)
-            self.assertIn("run", metadata["command"])
-            self.assertIn("--retry-errors", metadata["command"])
+            self.assertIn("watchdog", metadata["command"])
+            self.assertIn("--heartbeat-path", metadata["command"])
+            self.assertIn("--watchdog-state-path", metadata["command"])
             self.assertEqual(result["pid"], 43210)
             self.assertEqual(result["log_path"], metadata["log_path"])
+            self.assertEqual(result["watchdog_path"], metadata["watchdog_path"])
 
     def test_daemon_status_reads_metadata_and_heartbeat(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

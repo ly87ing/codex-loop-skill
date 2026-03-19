@@ -1,0 +1,127 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from codex_loop.watchdog_manager import run_watchdog
+
+
+class _FakeProcess:
+    def __init__(self, pid: int, polls: list[int | None]) -> None:
+        self.pid = pid
+        self._polls = list(polls)
+        self.terminated = False
+        self.killed = False
+        self.wait_calls: list[float | None] = []
+
+    def poll(self) -> int | None:
+        if len(self._polls) > 1:
+            return self._polls.pop(0)
+        return self._polls[0]
+
+    def terminate(self) -> None:
+        self.terminated = True
+        self._polls = [0]
+
+    def kill(self) -> None:
+        self.killed = True
+        self._polls = [0]
+
+    def wait(self, timeout: float | None = None) -> int:
+        self.wait_calls.append(timeout)
+        return 0
+
+
+class WatchdogManagerTests(unittest.TestCase):
+    def test_run_watchdog_restarts_stale_worker(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            heartbeat_path = root / "heartbeat.json"
+            state_path = root / "watchdog.json"
+            stale_ts = (datetime(2026, 3, 19, tzinfo=UTC) - timedelta(seconds=10)).isoformat()
+            fresh_ts = datetime(2026, 3, 19, tzinfo=UTC).isoformat()
+            first = _FakeProcess(1001, [None, None, None])
+            second = _FakeProcess(1002, [0])
+            processes = [first, second]
+
+            def worker_factory(args, **kwargs):
+                process = processes.pop(0)
+                if process.pid == 1001:
+                    heartbeat_path.write_text(
+                        json.dumps({"updated_at": stale_ts, "phase": "running", "cycle": 1}),
+                        encoding="utf-8",
+                    )
+                else:
+                    heartbeat_path.write_text(
+                        json.dumps({"updated_at": fresh_ts, "phase": "running", "cycle": 2}),
+                        encoding="utf-8",
+                    )
+                return process
+
+            exit_code = run_watchdog(
+                root,
+                heartbeat_path=heartbeat_path,
+                watchdog_state_path=state_path,
+                retry_blocked=True,
+                cycle_sleep_seconds=60.0,
+                max_cycles=None,
+                stale_after_seconds=1.0,
+                poll_interval_seconds=0.0,
+                restart_backoff_seconds=0.0,
+                worker_factory=worker_factory,
+                sleep_fn=lambda seconds: None,
+                now_fn=lambda: datetime(2026, 3, 19, tzinfo=UTC),
+            )
+
+            self.assertEqual(exit_code, 0)
+            self.assertTrue(first.terminated)
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertEqual(state["restart_count"], 1)
+            self.assertEqual(state["last_restart_reason"], "stale_heartbeat")
+            self.assertEqual(state["child_pid"], 1002)
+
+    def test_run_watchdog_restarts_worker_after_non_zero_exit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            heartbeat_path = root / "heartbeat.json"
+            state_path = root / "watchdog.json"
+            ts = datetime(2026, 3, 19, tzinfo=UTC).isoformat()
+            first = _FakeProcess(2001, [2])
+            second = _FakeProcess(2002, [0])
+            processes = [first, second]
+
+            def worker_factory(args, **kwargs):
+                process = processes.pop(0)
+                heartbeat_path.write_text(
+                    json.dumps({"updated_at": ts, "phase": "running", "cycle": process.pid}),
+                    encoding="utf-8",
+                )
+                return process
+
+            exit_code = run_watchdog(
+                root,
+                heartbeat_path=heartbeat_path,
+                watchdog_state_path=state_path,
+                retry_blocked=False,
+                cycle_sleep_seconds=60.0,
+                max_cycles=None,
+                stale_after_seconds=30.0,
+                poll_interval_seconds=0.0,
+                restart_backoff_seconds=0.0,
+                worker_factory=worker_factory,
+                sleep_fn=lambda seconds: None,
+                now_fn=lambda: datetime(2026, 3, 19, tzinfo=UTC),
+            )
+
+            self.assertEqual(exit_code, 0)
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertEqual(state["restart_count"], 1)
+            self.assertEqual(state["last_restart_reason"], "exit_code:2")
+            self.assertEqual(state["child_pid"], 2002)
+
+
+if __name__ == "__main__":
+    unittest.main()

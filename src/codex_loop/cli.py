@@ -37,6 +37,7 @@ from .reporting import (
 from .run_flow import run_project, run_project_continuously, retry_blocked_tasks_for_retry
 from .service_manager import install_service, service_status, uninstall_service
 from .state_store import StateStore
+from .watchdog_manager import run_watchdog
 
 
 def _collect_cleanup_overrides(args: argparse.Namespace) -> tuple[dict[str, int], dict[str, int]]:
@@ -329,6 +330,19 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help=argparse.SUPPRESS,
     )
+
+    watchdog_parser = subparsers.add_parser("watchdog", help=argparse.SUPPRESS)
+    watchdog_parser.add_argument("--project-dir", default=".")
+    watchdog_parser.add_argument("--heartbeat-path", required=True, help=argparse.SUPPRESS)
+    watchdog_parser.add_argument("--watchdog-state-path", required=True, help=argparse.SUPPRESS)
+    watchdog_parser.add_argument("--retry-blocked", action="store_true", help=argparse.SUPPRESS)
+    watchdog_parser.add_argument("--cycle-sleep-seconds", type=float, default=60.0, help=argparse.SUPPRESS)
+    watchdog_parser.add_argument("--max-cycles", type=int, default=None, help=argparse.SUPPRESS)
+    watchdog_parser.add_argument("--stale-after-seconds", type=float, default=300.0, help=argparse.SUPPRESS)
+    watchdog_parser.add_argument("--poll-interval-seconds", type=float, default=5.0, help=argparse.SUPPRESS)
+    watchdog_parser.add_argument("--restart-backoff-seconds", type=float, default=5.0, help=argparse.SUPPRESS)
+    watchdog_parser.add_argument("--terminate-timeout-seconds", type=float, default=10.0, help=argparse.SUPPRESS)
+    watchdog_parser.add_argument("--max-restarts", type=int, default=None, help=argparse.SUPPRESS)
 
     status_parser = subparsers.add_parser("status", help="Print local loop state.")
     status_parser.add_argument(
@@ -897,6 +911,35 @@ def main(argv: list[str] | None = None) -> int:
             print(outcome.value)
             return 0 if outcome.value == "completed" else 2
 
+        if args.command == "watchdog":
+            if args.cycle_sleep_seconds < 0:
+                raise ValueError("--cycle-sleep-seconds must not be negative.")
+            if args.max_cycles is not None and args.max_cycles <= 0:
+                raise ValueError("--max-cycles must be greater than zero.")
+            if args.stale_after_seconds <= 0:
+                raise ValueError("--stale-after-seconds must be greater than zero.")
+            if args.poll_interval_seconds < 0:
+                raise ValueError("--poll-interval-seconds must not be negative.")
+            if args.restart_backoff_seconds < 0:
+                raise ValueError("--restart-backoff-seconds must not be negative.")
+            if args.terminate_timeout_seconds <= 0:
+                raise ValueError("--terminate-timeout-seconds must be greater than zero.")
+            if args.max_restarts is not None and args.max_restarts < 0:
+                raise ValueError("--max-restarts must not be negative.")
+            return run_watchdog(
+                project_dir,
+                heartbeat_path=Path(args.heartbeat_path).resolve(),
+                watchdog_state_path=Path(args.watchdog_state_path).resolve(),
+                retry_blocked=args.retry_blocked,
+                cycle_sleep_seconds=args.cycle_sleep_seconds,
+                max_cycles=args.max_cycles,
+                stale_after_seconds=args.stale_after_seconds,
+                poll_interval_seconds=args.poll_interval_seconds,
+                restart_backoff_seconds=args.restart_backoff_seconds,
+                terminate_timeout_seconds=args.terminate_timeout_seconds,
+                max_restarts=args.max_restarts,
+            )
+
         if args.command == "daemon" and args.daemon_command == "start":
             if args.cycle_sleep_seconds < 0:
                 raise ValueError("--cycle-sleep-seconds must not be negative.")
@@ -926,6 +969,8 @@ def main(argv: list[str] | None = None) -> int:
                     f"dead_process={payload.get('dead_process')} "
                     f"stale_heartbeat={payload.get('stale_heartbeat')} "
                     f"pid={payload.get('pid')} "
+                    f"restart_count={payload.get('restart_count')} "
+                    f"last_restart_reason={payload.get('last_restart_reason')} "
                     f"phase={payload.get('phase')} "
                     f"cycle={payload.get('cycle')} "
                     f"error_count={payload.get('error_count')} "
@@ -973,6 +1018,8 @@ def main(argv: list[str] | None = None) -> int:
                     f"healthy={payload.get('healthy')} "
                     f"stale_heartbeat={payload.get('stale_heartbeat')} "
                     f"missing_heartbeat={payload.get('missing_heartbeat')} "
+                    f"restart_count={payload.get('restart_count')} "
+                    f"last_restart_reason={payload.get('last_restart_reason')} "
                     f"label={payload.get('label')} "
                     f"phase={payload.get('phase')} "
                     f"cycle={payload.get('cycle')} "

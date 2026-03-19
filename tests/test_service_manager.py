@@ -77,8 +77,9 @@ class ServiceManagerTests(unittest.TestCase):
             self.assertTrue(plist_path.exists())
             plist_payload = plistlib.loads(plist_path.read_bytes())
             self.assertEqual(plist_payload["Label"], label)
-            self.assertIn("--continuous", plist_payload["ProgramArguments"])
-            self.assertIn("--retry-errors", plist_payload["ProgramArguments"])
+            self.assertIn("watchdog", plist_payload["ProgramArguments"])
+            self.assertIn("--heartbeat-path", plist_payload["ProgramArguments"])
+            self.assertIn("--watchdog-state-path", plist_payload["ProgramArguments"])
             self.assertIn("--retry-blocked", plist_payload["ProgramArguments"])
             env = plist_payload["EnvironmentVariables"]
             self.assertEqual(
@@ -92,6 +93,10 @@ class ServiceManagerTests(unittest.TestCase):
             )
             self.assertEqual(result["label"], label)
             self.assertEqual(result["plist_path"], str(plist_path.resolve()))
+            self.assertEqual(
+                result["watchdog_path"],
+                str((root / ".codex-loop" / "service-watchdog.json").resolve()),
+            )
 
     def test_service_status_reports_loaded_heartbeat_and_domain(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
