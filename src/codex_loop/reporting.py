@@ -646,6 +646,90 @@ def _iter_hook_events(project_dir: Path) -> list[dict[str, Any]]:
     return events
 
 
+def _history_timeline_entries(state: dict[str, Any]) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    next_order = 0
+    for entry in state.get("history", []):
+        entries.append(
+            {
+                "_order": next_order,
+                "timestamp": str(entry.get("timestamp", "")),
+                "label": _history_label(entry),
+                "event_type": str(entry.get("event_type", "event")),
+                "task_id": entry.get("task_id"),
+                "blocker_code": entry.get("blocker_code"),
+                "restart_reason": entry.get("restart_reason"),
+                "restart_count": entry.get("restart_count"),
+                "child_pid": entry.get("child_pid"),
+                "child_exit_code": entry.get("child_exit_code"),
+                "verification_passed": entry.get("verification_passed"),
+                "agent_status": entry.get("agent_status"),
+                "summary": str(entry.get("summary", "")).strip(),
+                "source": "history",
+            }
+        )
+        next_order += 1
+    return entries
+
+
+def _select_recent_events(
+    combined: list[dict[str, Any]],
+    *,
+    limit: int,
+    task_id: str | None = None,
+    event_type: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
+) -> list[dict[str, Any]]:
+    filtered = list(combined)
+    if task_id is not None:
+        filtered = [entry for entry in filtered if entry.get("task_id") == task_id]
+    if event_type is not None:
+        filtered = [
+            entry
+            for entry in filtered
+            if entry.get("label") == event_type or entry.get("event_type") == event_type
+        ]
+    if since is not None or until is not None:
+        since_ts = _parse_timestamp(since) if since is not None else None
+        until_ts = _parse_timestamp(until) if until is not None else None
+        time_filtered: list[dict[str, Any]] = []
+        for entry in filtered:
+            try:
+                event_ts = _parse_timestamp(str(entry.get("timestamp", "")))
+            except ValueError:
+                continue
+            if since_ts is not None and event_ts < since_ts:
+                continue
+            if until_ts is not None and event_ts > until_ts:
+                continue
+            time_filtered.append(entry)
+        filtered = time_filtered
+    if not filtered:
+        return []
+    filtered.sort(
+        key=lambda entry: (
+            str(entry.get("timestamp", "")),
+            int(entry.get("_order", 0)),
+        )
+    )
+    selected = filtered[-limit:]
+    for entry in selected:
+        entry.pop("_order", None)
+    return selected
+
+
+def _load_recent_watchdog_events(project_dir: Path, *, limit: int) -> list[dict[str, Any]]:
+    state = _load_state(project_dir)
+    history_events = _history_timeline_entries(state)
+    watchdog_events = [
+        entry
+        for entry in history_events
+        if entry.get("event_type") in {"watchdog_restart", "watchdog_exhausted"}
+    ]
+    return _select_recent_events(watchdog_events, limit=limit)
+
+
 def load_events_timeline(
     project_dir: Path,
     *,
@@ -660,71 +744,22 @@ def load_events_timeline(
         msg = f"No state file found at {state_path}"
         raise FileNotFoundError(msg)
     state = json.loads(state_path.read_text(encoding="utf-8"))
-    combined: list[dict[str, Any]] = []
-    next_order = 0
-    for entry in state.get("history", []):
-        combined.append(
-            (
-                {
-                    "_order": next_order,
-                    "timestamp": str(entry.get("timestamp", "")),
-                    "label": _history_label(entry),
-                    "event_type": str(entry.get("event_type", "event")),
-                    "task_id": entry.get("task_id"),
-                    "blocker_code": entry.get("blocker_code"),
-                    "restart_reason": entry.get("restart_reason"),
-                    "restart_count": entry.get("restart_count"),
-                    "child_pid": entry.get("child_pid"),
-                    "child_exit_code": entry.get("child_exit_code"),
-                    "verification_passed": entry.get("verification_passed"),
-                    "agent_status": entry.get("agent_status"),
-                    "summary": str(entry.get("summary", "")).strip(),
-                    "source": "history",
-                }
-            )
-        )
-        next_order += 1
+    combined = _history_timeline_entries(state)
+    next_order = len(combined)
     hook_events = _iter_hook_events(project_dir)
     for entry in hook_events:
         event = dict(entry)
         event["_order"] = next_order
         combined.append(event)
         next_order += 1
-    if task_id is not None:
-        combined = [entry for entry in combined if entry.get("task_id") == task_id]
-    if event_type is not None:
-        combined = [
-            entry
-            for entry in combined
-            if entry.get("label") == event_type or entry.get("event_type") == event_type
-        ]
-    if since is not None or until is not None:
-        since_ts = _parse_timestamp(since) if since is not None else None
-        until_ts = _parse_timestamp(until) if until is not None else None
-        filtered: list[dict[str, Any]] = []
-        for entry in combined:
-            try:
-                event_ts = _parse_timestamp(str(entry.get("timestamp", "")))
-            except ValueError:
-                continue
-            if since_ts is not None and event_ts < since_ts:
-                continue
-            if until_ts is not None and event_ts > until_ts:
-                continue
-            filtered.append(entry)
-        combined = filtered
-    if not combined:
-        return []
-    combined.sort(
-        key=lambda entry: (
-            str(entry.get("timestamp", "")),
-            int(entry.get("_order", 0)),
-        )
+    return _select_recent_events(
+        combined,
+        limit=limit,
+        task_id=task_id,
+        event_type=event_type,
+        since=since,
+        until=until,
     )
-    selected = combined[-limit:]
-    for entry in selected:
-        entry.pop("_order", None)
-    return selected
 
 
 def format_events_timeline(
@@ -922,6 +957,7 @@ def build_evidence_bundle(
         if selected_task_id
         else []
     )
+    recent_watchdog_events = _load_recent_watchdog_events(project_dir, limit=event_limit)
     artifacts = dict(session.get("artifacts", {}))
     return {
         "project_name": inventory.get("project_name"),
@@ -939,6 +975,8 @@ def build_evidence_bundle(
         "artifacts": artifacts,
         "events_summary": summarize_events(recent_events),
         "recent_events": recent_events,
+        "watchdog_events_summary": summarize_events(recent_watchdog_events),
+        "recent_watchdog_events": recent_watchdog_events,
         "prompt_preview": _read_text_preview(
             artifacts.get("prompt"),
             lines=prompt_lines,
@@ -1005,6 +1043,14 @@ def format_evidence_report(
     lines.append("recent_events:")
     lines.append(
         json.dumps(evidence.get("recent_events"), indent=2, ensure_ascii=False)
+    )
+    lines.append("watchdog_events_summary:")
+    lines.append(
+        json.dumps(evidence.get("watchdog_events_summary"), indent=2, ensure_ascii=False)
+    )
+    lines.append("recent_watchdog_events:")
+    lines.append(
+        json.dumps(evidence.get("recent_watchdog_events"), indent=2, ensure_ascii=False)
     )
     lines.append("run_payload:")
     lines.append(json.dumps(evidence.get("run_payload"), indent=2, ensure_ascii=False))

@@ -762,6 +762,8 @@ class CliTests(unittest.TestCase):
             payload = json.loads(snapshot_files[0].read_text(encoding="utf-8"))
             self.assertEqual(payload["task_id"], "001-foundation")
             self.assertEqual(payload["status_snapshot"]["current_task"], "001-foundation")
+            self.assertIn("watchdog_events_summary", payload)
+            self.assertIn("recent_watchdog_events", payload)
             index_path = output_dir / "index.json"
             self.assertTrue(index_path.exists())
             index_payload = json.loads(index_path.read_text(encoding="utf-8"))

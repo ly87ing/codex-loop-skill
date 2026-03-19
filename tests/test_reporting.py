@@ -431,6 +431,21 @@ class ReportingTests(unittest.TestCase):
                 reason="Reached no-progress limit.",
                 code="no_progress_limit",
             )
+            store.record_watchdog_event(
+                event_type="watchdog_restart",
+                summary="Restarting worker after stale heartbeat.",
+                restart_reason="stale_heartbeat",
+                restart_count=1,
+                child_pid=1001,
+            )
+            store.record_watchdog_event(
+                event_type="watchdog_exhausted",
+                summary="Watchdog exhausted restart budget.",
+                restart_reason="exit_code:2",
+                restart_count=10,
+                child_pid=1002,
+                child_exit_code=2,
+            )
 
             evidence = build_evidence_bundle(
                 root,
@@ -460,11 +475,27 @@ class ReportingTests(unittest.TestCase):
             self.assertEqual(evidence["events_summary"]["by_blocker_code"]["no_progress_limit"], 1)
             self.assertEqual(len(evidence["recent_events"]), 2)
             self.assertEqual(evidence["recent_events"][-1]["label"], "blocked:no_progress_limit")
+            self.assertEqual(evidence["watchdog_events_summary"]["total_events"], 2)
+            self.assertEqual(
+                evidence["watchdog_events_summary"]["latest_watchdog_restart"]["restart_reason"],
+                "stale_heartbeat",
+            )
+            self.assertEqual(
+                evidence["watchdog_events_summary"]["latest_watchdog_exhausted"]["child_exit_code"],
+                2,
+            )
+            self.assertEqual(len(evidence["recent_watchdog_events"]), 2)
+            self.assertEqual(
+                evidence["recent_watchdog_events"][-1]["label"],
+                "watchdog_exhausted:exit_code:2",
+            )
             self.assertIn("prompt_preview:", rendered)
             self.assertIn("status_snapshot:", rendered)
             self.assertIn("session_snapshot:", rendered)
             self.assertIn("events_summary:", rendered)
             self.assertIn("recent_events:", rendered)
+            self.assertIn("watchdog_events_summary:", rendered)
+            self.assertIn("recent_watchdog_events:", rendered)
             self.assertIn("run_payload:", rendered)
 
     def test_snapshots_index_can_filter_and_render_latest(self) -> None:
