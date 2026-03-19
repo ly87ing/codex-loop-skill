@@ -145,6 +145,8 @@ def load_events_timeline(
                     "event_type": str(entry.get("event_type", "event")),
                     "task_id": entry.get("task_id"),
                     "blocker_code": entry.get("blocker_code"),
+                    "verification_passed": entry.get("verification_passed"),
+                    "agent_status": entry.get("agent_status"),
                     "summary": str(entry.get("summary", "")).strip(),
                     "source": "history",
                 }
@@ -219,15 +221,38 @@ def summarize_events(events: list[dict[str, Any]]) -> dict[str, Any]:
         "by_blocker_code": {},
         "blocked_tasks": [],
         "latest_blocked": None,
+        "latest_runner_failure": None,
+        "latest_verification_failure": None,
     }
     blocked_seen: set[str] = set()
     for event in events:
         label = str(event.get("label", "unknown"))
         task_id = str(event.get("task_id", "none"))
         source = str(event.get("source", "unknown"))
+        event_type = str(event.get("event_type", ""))
         summary["by_label"][label] = int(summary["by_label"].get(label, 0)) + 1
         summary["by_task"][task_id] = int(summary["by_task"].get(task_id, 0)) + 1
         summary["by_source"][source] = int(summary["by_source"].get(source, 0)) + 1
+        if event_type == "runner_failure":
+            latest_runner_failure = summary["latest_runner_failure"]
+            if latest_runner_failure is None or str(event.get("timestamp", "")) >= str(
+                latest_runner_failure.get("timestamp", "")
+            ):
+                summary["latest_runner_failure"] = {
+                    "task_id": event.get("task_id"),
+                    "timestamp": event.get("timestamp"),
+                    "summary": event.get("summary"),
+                }
+        if event_type == "iteration" and event.get("verification_passed") is False:
+            latest_verification_failure = summary["latest_verification_failure"]
+            if latest_verification_failure is None or str(event.get("timestamp", "")) >= str(
+                latest_verification_failure.get("timestamp", "")
+            ):
+                summary["latest_verification_failure"] = {
+                    "task_id": event.get("task_id"),
+                    "timestamp": event.get("timestamp"),
+                    "summary": event.get("summary"),
+                }
         blocker_code = event.get("blocker_code")
         if blocker_code:
             blocker_key = str(blocker_code)
@@ -266,4 +291,10 @@ def format_events_summary(events: list[dict[str, Any]]) -> str:
     if latest_blocked is not None:
         for key in ("task_id", "blocker_code", "timestamp", "summary"):
             lines.append(f"{key}: {latest_blocked.get(key, '')}")
+    for field_name in ("latest_runner_failure", "latest_verification_failure"):
+        lines.append(f"{field_name}:")
+        payload = summary[field_name]
+        if payload is not None:
+            for key in ("task_id", "timestamp", "summary"):
+                lines.append(f"{key}: {payload.get(key, '')}")
     return "\n".join(lines)

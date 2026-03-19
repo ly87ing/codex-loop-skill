@@ -40,6 +40,7 @@ Those artifacts are written locally so future iterations do not depend on the or
 When repair is enabled, it can recreate the schema and realign task state with the current task files.
 It can also backfill missing `operator.events` and `operator.cleanup` defaults in `codex-loop.yaml`.
 Even without repair, it warns when `operator.cleanup` defaults are aggressive enough to delete all retained artifacts on apply.
+Those warnings now include concrete remediation guidance so operators can tighten retention without guessing the right keys.
 
 ## Hooks And Metrics
 
@@ -54,7 +55,7 @@ Even without repair, it warns when `operator.cleanup` defaults are aggressive en
 - `status --summary` for the latest blocker code and reason
 - `events --limit N` for a merged timeline across loop history and hook logs
 - `events --summary` for grouped counts across the filtered event set
-- `events --summary` includes blocker-code counts, blocked task ids, and the latest blocked event when blocked events exist
+- `events --summary` includes blocker-code counts, blocked task ids, the latest blocked event, and the latest runner or verification failure when those events exist
 - `events --task-id ... --event-type ... --json` for focused operator queries and export
 - `events --since ... --until ... --output <path>` for time-boxed exports
 - `cleanup [--apply] --keep N [--older-than-days N]` for conservative local artifact and stale worktree pruning

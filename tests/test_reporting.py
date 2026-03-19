@@ -217,6 +217,39 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("latest_blocked:", rendered)
             self.assertIn("runner_failure_circuit_breaker", rendered)
 
+    def test_events_summary_tracks_latest_runner_and_verification_failures(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-polish"])
+            store.record_runner_failure(
+                task_id="001-foundation",
+                reason="Runner failed once.",
+            )
+            store.record_iteration(
+                task_id="002-polish",
+                summary="Verification failed on pytest.",
+                fingerprint="002|continue",
+                files_changed=["tests/test_polish.py"],
+                verification_passed=False,
+                agent_status="continue",
+            )
+            state = store.load()
+            state["history"][-2]["timestamp"] = "2026-03-19T00:00:00+00:00"
+            state["history"][-1]["timestamp"] = "2026-03-20T00:00:00+00:00"
+            store.save(state)
+
+            summary = summarize_events(load_events_timeline(root, limit=10))
+            rendered = format_events_summary(load_events_timeline(root, limit=10))
+
+            self.assertEqual(summary["latest_runner_failure"]["task_id"], "001-foundation")
+            self.assertEqual(
+                summary["latest_verification_failure"]["task_id"],
+                "002-polish",
+            )
+            self.assertIn("latest_runner_failure:", rendered)
+            self.assertIn("latest_verification_failure:", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()

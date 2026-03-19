@@ -119,6 +119,7 @@ class DoctorTests(unittest.TestCase):
             self.assertTrue(report.warnings)
             self.assertTrue(any("operator.cleanup.keep=0" in item for item in report.warnings))
             self.assertTrue(any("directory_keep.logs=0" in item for item in report.warnings))
+            self.assertTrue(any("Suggested remediation" in item for item in report.warnings))
 
 
 if __name__ == "__main__":

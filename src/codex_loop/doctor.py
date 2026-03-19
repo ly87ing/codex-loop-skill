@@ -36,7 +36,7 @@ def _append_operator_cleanup_warnings(report: DoctorReport, config: CodexLoopCon
     cleanup = config.operator.cleanup
     if cleanup.keep == 0 and cleanup.older_than_days is None:
         report.warnings.append(
-            "operator.cleanup.keep=0 with no older_than_days will delete all matching artifacts on apply."
+            "operator.cleanup.keep=0 with no older_than_days will delete all matching artifacts on apply. Suggested remediation: set operator.cleanup.keep to at least 1 or add operator.cleanup.older_than_days."
         )
     for directory_name, keep_value in cleanup.directory_keep.items():
         directory_age = cleanup.directory_older_than_days.get(
@@ -45,7 +45,7 @@ def _append_operator_cleanup_warnings(report: DoctorReport, config: CodexLoopCon
         )
         if keep_value == 0 and directory_age is None:
             report.warnings.append(
-                f"operator.cleanup.directory_keep.{directory_name}=0 with no age threshold will delete all {directory_name} artifacts on apply."
+                f"operator.cleanup.directory_keep.{directory_name}=0 with no age threshold will delete all {directory_name} artifacts on apply. Suggested remediation: set operator.cleanup.directory_keep.{directory_name} to at least 1 or add operator.cleanup.directory_older_than_days.{directory_name}."
             )
 
 
