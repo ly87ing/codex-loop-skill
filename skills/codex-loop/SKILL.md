@@ -104,6 +104,7 @@ codex-loop cleanup --logs-keep 20 --prompts-older-than-days 30
 ```
 
 `status --summary` now includes key runtime counters from `.codex-loop/metrics.json`.
+`health` is the one-command operator overview: it combines current status, doctor warnings/errors, event health signals, daemon/service runtime state, and any available snapshot/export summaries.
 When blocked, it also surfaces the latest `blocker_code` and reason, and when a task has an active session it shows that too. It now also surfaces watchdog exhaustion and the latest watchdog restart reason.
 `run --continuous --retry-blocked` is the fastest current path to a long-lived local worker: it wraps the normal run loop, requeues blocked tasks between cycles, and keeps going until completion or a configured cycle limit.
 `daemon start|status|stop` now runs through a lightweight detached watchdog layer on top of `run --continuous`, with `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, `.codex-loop/daemon-watchdog.json`, and `.codex-loop/daemon.log` for local operator visibility, plus dead-process and stale-heartbeat detection, restart counters, restart policy, and a stop path that waits for the watchdog to really exit before clearing metadata.

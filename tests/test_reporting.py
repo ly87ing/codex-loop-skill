@@ -6,9 +6,11 @@ import unittest
 from pathlib import Path
 
 from codex_loop.reporting import (
+    build_health_snapshot,
     build_session_inventory,
     build_status_snapshot,
     build_evidence_bundle,
+    format_health_report,
     format_status_summary,
     format_snapshot_exports_report,
     format_snapshot_exports_summary,
@@ -25,10 +27,127 @@ from codex_loop.reporting import (
     summarize_snapshots,
     summarize_events,
 )
+from codex_loop.init_flow import AGENT_RESULT_SCHEMA
 from codex_loop.state_store import StateStore
 
 
 class ReportingTests(unittest.TestCase):
+    def test_health_snapshot_aggregates_status_events_and_snapshots(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "codex-loop.yaml").write_text(
+                json.dumps(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                        "verification": {"commands": ["python -m unittest"]},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True, exist_ok=True)
+            (tasks_dir / "001-foundation.md").write_text(
+                "# 001-foundation\n",
+                encoding="utf-8",
+            )
+            schema_path = root / ".codex-loop" / "agent_result.schema.json"
+            schema_path.parent.mkdir(parents=True, exist_ok=True)
+            schema_path.write_text(
+                json.dumps(AGENT_RESULT_SCHEMA, indent=2),
+                encoding="utf-8",
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            store.mark_blocked(
+                "001-foundation",
+                reason="Reached no-progress limit.",
+                code="no_progress_limit",
+            )
+            store.record_watchdog_event(
+                event_type="watchdog_exhausted",
+                summary="Watchdog exhausted restart budget.",
+                restart_reason="stale_heartbeat",
+                restart_count=10,
+                child_pid=1002,
+            )
+            (root / ".codex-loop" / "daemon-watchdog.json").write_text(
+                json.dumps(
+                    {
+                        "phase": "exhausted",
+                        "restart_count": 10,
+                        "last_restart_reason": "stale_heartbeat",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            snapshots_dir = root / "snapshots"
+            snapshots_dir.mkdir(parents=True, exist_ok=True)
+            (snapshots_dir / "index.json").write_text(
+                json.dumps(
+                    {
+                        "snapshots": [
+                            {
+                                "generated_at": "2026-03-22T00:00:00+00:00",
+                                "task_id": "001-foundation",
+                                "selection": "task_id",
+                                "session_id": "session-001",
+                                "overall_status": "blocked",
+                                "current_task": "001-foundation",
+                                "last_blocker_code": "no_progress_limit",
+                                "watchdog_phase": "exhausted",
+                                "snapshot_path": str(snapshots_dir / "one.json"),
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            exports_dir = root / "snapshot-reports"
+            exports_dir.mkdir(parents=True, exist_ok=True)
+            (exports_dir / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "exports": [
+                            {
+                                "generated_at": "2026-03-22T00:00:00+00:00",
+                                "export_path": str(exports_dir / "summary.json"),
+                                "source_snapshot_dir": str(snapshots_dir),
+                                "snapshot_count": 1,
+                                "summary": True,
+                                "group_by": "status",
+                                "render_format": "json",
+                                "filters": {
+                                    "task_id": None,
+                                    "status": "blocked",
+                                    "blocker_code": "no_progress_limit",
+                                    "watchdog_phase": "exhausted",
+                                    "latest": False,
+                                    "latest_blocked": True,
+                                    "sort_order": "newest",
+                                    "since": None,
+                                    "until": None,
+                                },
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            snapshot = build_health_snapshot(root)
+            rendered = format_health_report(root)
+
+            self.assertEqual(snapshot["health"], "degraded")
+            self.assertEqual(snapshot["status"]["overall_status"], "blocked")
+            self.assertEqual(snapshot["doctor"]["errors"], [])
+            self.assertEqual(snapshot["events"]["latest_blocked"]["task_id"], "001-foundation")
+            self.assertEqual(snapshot["snapshots"]["by_watchdog_phase"]["exhausted"], 1)
+            self.assertEqual(snapshot["snapshot_exports"]["by_watchdog_phase"]["exhausted"], 1)
+            self.assertIn("health: degraded", rendered)
+            self.assertIn("snapshot_watchdog_phase: exhausted", rendered)
+            self.assertIn("latest_watchdog_restart_reason: stale_heartbeat", rendered)
+
     def test_status_snapshot_includes_exhausted_watchdog(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

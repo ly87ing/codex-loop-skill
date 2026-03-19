@@ -16,10 +16,12 @@ from .hooks import HookRunner
 from .init_flow import initialize_project
 from .reporting import (
     build_evidence_bundle,
+    build_health_snapshot,
     build_session_inventory,
     format_evidence_report,
     format_events_summary,
     format_events_timeline,
+    format_health_report,
     format_snapshot_exports_report,
     format_snapshot_exports_summary,
     format_snapshots_report,
@@ -380,6 +382,37 @@ def _build_parser() -> argparse.ArgumentParser:
         "--summary",
         action="store_true",
         help="Print a concise human-readable summary instead of raw JSON.",
+    )
+
+    health_parser = subparsers.add_parser(
+        "health",
+        help="Print a consolidated local health view.",
+    )
+    health_parser.add_argument(
+        "--project-dir",
+        default=".",
+        help="Project directory containing codex-loop.yaml.",
+    )
+    health_parser.add_argument(
+        "--events-limit",
+        type=int,
+        default=20,
+        help="Maximum number of recent events to include in the health view.",
+    )
+    health_parser.add_argument(
+        "--snapshot-dir",
+        default=None,
+        help="Optional snapshots directory override; defaults to ./snapshots under the project.",
+    )
+    health_parser.add_argument(
+        "--exports-dir",
+        default=None,
+        help="Optional snapshot exports directory override; defaults to ./snapshot-reports under the project.",
+    )
+    health_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured JSON instead of formatted text.",
     )
 
     sessions_parser = subparsers.add_parser(
@@ -1181,6 +1214,28 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 state = StateStore(project_dir / ".codex-loop" / "state.json").load()
                 print(json.dumps(state, indent=2, ensure_ascii=False))
+            return 0
+
+        if args.command == "health":
+            snapshot_dir = Path(args.snapshot_dir).resolve() if args.snapshot_dir else None
+            exports_dir = Path(args.exports_dir).resolve() if args.exports_dir else None
+            payload = build_health_snapshot(
+                project_dir,
+                events_limit=args.events_limit,
+                snapshot_dir=snapshot_dir,
+                exports_dir=exports_dir,
+            )
+            if args.json:
+                print(json.dumps(payload, indent=2, ensure_ascii=False))
+            else:
+                print(
+                    format_health_report(
+                        project_dir,
+                        events_limit=args.events_limit,
+                        snapshot_dir=snapshot_dir,
+                        exports_dir=exports_dir,
+                    )
+                )
             return 0
 
         if args.command == "sessions":

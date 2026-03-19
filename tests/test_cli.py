@@ -16,6 +16,34 @@ from codex_loop.supervisor import LoopOutcome
 
 
 class CliTests(unittest.TestCase):
+    def test_health_command_can_emit_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            payload = {
+                "project": "demo",
+                "health": "degraded",
+                "status": {"overall_status": "blocked"},
+                "doctor": {"errors": [], "warnings": ["warn"]},
+                "events": {"total_events": 3},
+                "snapshots": {"total_snapshots": 1},
+                "snapshot_exports": {"total_exports": 1},
+                "daemon": {"running": False},
+                "service": {"installed": False},
+            }
+
+            with (
+                patch("codex_loop.cli.build_health_snapshot", return_value=payload),
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                exit_code = main(["health", "--project-dir", str(root), "--json"])
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertEqual(json.loads(stdout.getvalue()), payload)
+
     def test_status_summary_prints_current_task(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

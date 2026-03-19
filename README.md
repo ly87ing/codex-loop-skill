@@ -86,6 +86,8 @@ codex-loop service install --retry-blocked --cycle-sleep-seconds 60
 codex-loop service reinstall --retry-blocked --cycle-sleep-seconds 60
 codex-loop service status --json
 codex-loop service uninstall
+codex-loop health
+codex-loop health --json
 codex-loop status --summary
 codex-loop sessions
 codex-loop sessions --latest --json
@@ -192,6 +194,7 @@ The loop stops with `blocked` when:
 
 - `status --summary` now includes `last_blocker_code` and `last_blocker_reason` when the loop blocks, plus the current task session id when one exists.
 - `status --summary` now also surfaces watchdog exhaustion and the latest watchdog restart reason so an operator can see when unattended recovery has stopped succeeding.
+- `health` is the fastest operator overview when you want one answer instead of switching between `status`, `events`, `snapshots`, `doctor`, and daemon/service status; it aggregates those signals into one local summary or JSON payload.
 - `run --continuous --retry-blocked` is the current fastest path to a long-lived local worker: it wraps the normal run loop, requeues blocked tasks between cycles, and keeps going until completed or a cycle limit is reached.
 - `daemon start|status|stop` now runs through a detached watchdog parent, with `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, `.codex-loop/daemon-watchdog.json`, and `.codex-loop/daemon.log`; `status` surfaces dead-process and stale-heartbeat detection plus restart counters and restart policy, while `stop` waits for the watchdog to really exit before deleting metadata.
 - `daemon restart` is the operator shortcut for an explicit stop-then-start cycle without manually sequencing both commands.

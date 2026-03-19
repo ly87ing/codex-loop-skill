@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import json
 from pathlib import Path
+import sys
 from typing import Any
 
 
@@ -629,6 +630,185 @@ def format_status_summary(project_dir: Path) -> str:
         lines.append(
             "watchdog_last_restart_reason: "
             f"{snapshot.get('watchdog_last_restart_reason')}"
+        )
+    return "\n".join(lines)
+
+
+def _classify_health(
+    *,
+    status_snapshot: dict[str, Any],
+    doctor_errors: list[str],
+    daemon: dict[str, Any],
+    service: dict[str, Any] | None,
+    events_summary: dict[str, Any] | None,
+    snapshots_summary: dict[str, Any] | None,
+) -> str:
+    if doctor_errors:
+        return "error"
+    if status_snapshot.get("overall_status") == "blocked":
+        return "degraded"
+    if status_snapshot.get("watchdog_phase") == "exhausted":
+        return "degraded"
+    if daemon.get("running") and (
+        daemon.get("dead_process")
+        or daemon.get("stale_heartbeat")
+        or daemon.get("watchdog_phase") == "exhausted"
+    ):
+        return "degraded"
+    if service is not None and service.get("installed") and (
+        service.get("missing_heartbeat")
+        or service.get("stale_heartbeat")
+        or service.get("watchdog_phase") == "exhausted"
+    ):
+        return "degraded"
+    if events_summary is not None and events_summary.get("latest_watchdog_exhausted") is not None:
+        return "degraded"
+    if snapshots_summary is not None and snapshots_summary.get("latest_watchdog_alert") is not None:
+        return "degraded"
+    return "ok"
+
+
+def build_health_snapshot(
+    project_dir: Path,
+    *,
+    events_limit: int = 20,
+    snapshot_dir: Path | None = None,
+    exports_dir: Path | None = None,
+) -> dict[str, Any]:
+    from .daemon_manager import daemon_status
+    from .doctor import run_doctor
+
+    project_dir = project_dir.resolve()
+    status_snapshot = build_status_snapshot(project_dir)
+    doctor_report = run_doctor(project_dir, repair=False)
+    daemon = daemon_status(project_dir)
+    service: dict[str, Any] | None = None
+    if sys.platform == "darwin":
+        from .service_manager import service_status
+
+        service = service_status(project_dir)
+    events_summary: dict[str, Any] | None
+    try:
+        events_summary = summarize_events(
+            load_events_timeline(project_dir, limit=events_limit)
+        )
+    except FileNotFoundError:
+        events_summary = None
+
+    resolved_snapshot_dir = (
+        snapshot_dir.resolve()
+        if snapshot_dir is not None
+        else (project_dir / "snapshots").resolve()
+    )
+    snapshots_summary: dict[str, Any] | None = None
+    if (resolved_snapshot_dir / "index.json").exists():
+        snapshots_summary = summarize_snapshots(
+            load_snapshots_index(resolved_snapshot_dir)
+        )
+
+    resolved_exports_dir = (
+        exports_dir.resolve()
+        if exports_dir is not None
+        else (project_dir / "snapshot-reports").resolve()
+    )
+    snapshot_exports_summary: dict[str, Any] | None = None
+    if (resolved_exports_dir / "manifest.json").exists():
+        snapshot_exports_summary = summarize_snapshot_exports(
+            load_snapshot_exports_manifest(resolved_exports_dir)
+        )
+
+    health = _classify_health(
+        status_snapshot=status_snapshot,
+        doctor_errors=doctor_report.errors,
+        daemon=daemon,
+        service=service,
+        events_summary=events_summary,
+        snapshots_summary=snapshots_summary,
+    )
+    return {
+        "project": status_snapshot.get("project"),
+        "project_dir": str(project_dir),
+        "health": health,
+        "status": status_snapshot,
+        "doctor": {
+            "errors": list(doctor_report.errors),
+            "warnings": list(doctor_report.warnings),
+            "checked": list(doctor_report.checked),
+        },
+        "events": events_summary,
+        "snapshots": snapshots_summary,
+        "snapshot_exports": snapshot_exports_summary,
+        "daemon": daemon,
+        "service": service,
+        "snapshot_dir": str(resolved_snapshot_dir),
+        "snapshot_exports_dir": str(resolved_exports_dir),
+    }
+
+
+def format_health_report(
+    project_dir: Path,
+    *,
+    events_limit: int = 20,
+    snapshot_dir: Path | None = None,
+    exports_dir: Path | None = None,
+) -> str:
+    payload = build_health_snapshot(
+        project_dir,
+        events_limit=events_limit,
+        snapshot_dir=snapshot_dir,
+        exports_dir=exports_dir,
+    )
+    lines = [
+        f"project: {payload.get('project')}",
+        f"health: {payload.get('health')}",
+        f"overall_status: {payload['status'].get('overall_status')}",
+        f"current_task: {payload['status'].get('current_task')}",
+        f"doctor_errors: {len(payload['doctor'].get('errors', []))}",
+        f"doctor_warnings: {len(payload['doctor'].get('warnings', []))}",
+    ]
+    daemon = payload.get("daemon") or {}
+    lines.append(
+        "daemon: "
+        f"running={daemon.get('running')} "
+        f"phase={daemon.get('phase') or 'none'} "
+        f"watchdog_phase={daemon.get('watchdog_phase') or 'none'}"
+    )
+    service = payload.get("service")
+    if isinstance(service, dict):
+        lines.append(
+            "service: "
+            f"installed={service.get('installed')} "
+            f"loaded={service.get('loaded')} "
+            f"healthy={service.get('healthy')}"
+        )
+    events = payload.get("events") or {}
+    lines.append(f"events_total: {events.get('total_events', 0)}")
+    latest_blocked = events.get("latest_blocked") if isinstance(events, dict) else None
+    if latest_blocked is not None:
+        lines.append(
+            f"latest_blocked_code: {latest_blocked.get('blocker_code') or 'none'}"
+        )
+    latest_watchdog_exhausted = (
+        events.get("latest_watchdog_exhausted") if isinstance(events, dict) else None
+    )
+    if latest_watchdog_exhausted is not None:
+        lines.append(
+            "latest_watchdog_restart_reason: "
+            f"{latest_watchdog_exhausted.get('restart_reason') or 'none'}"
+        )
+    snapshots = payload.get("snapshots") or {}
+    if isinstance(snapshots, dict):
+        lines.append(f"snapshots_total: {snapshots.get('total_snapshots', 0)}")
+        latest_watchdog_alert = snapshots.get("latest_watchdog_alert")
+        if latest_watchdog_alert is not None:
+            lines.append(
+                "snapshot_watchdog_phase: "
+                f"{latest_watchdog_alert.get('watchdog_phase') or 'none'}"
+            )
+    snapshot_exports = payload.get("snapshot_exports") or {}
+    if isinstance(snapshot_exports, dict):
+        lines.append(
+            f"snapshot_exports_total: {snapshot_exports.get('total_exports', 0)}"
         )
     return "\n".join(lines)
 
