@@ -4,6 +4,7 @@ from pathlib import Path
 
 from .codex_runner import CodexRunner
 from .config import CodexLoopConfig
+from .doctor import run_doctor
 from .git_ops import (
     create_worktree,
     ensure_local_state_ignored,
@@ -44,6 +45,10 @@ class LoopTaskRunner:
 
 def run_project(project_dir: Path) -> LoopOutcome:
     config = CodexLoopConfig.from_file(project_dir / "codex-loop.yaml")
+    report = run_doctor(project_dir, repair=True)
+    if report.errors:
+        msg = "; ".join(report.errors)
+        raise RuntimeError(f"codex-loop doctor found blocking issues: {msg}")
     state_store = StateStore(project_dir / ".codex-loop" / "state.json")
     repo_root = resolve_repo_root(project_dir)
     ensure_local_state_ignored(repo_root)

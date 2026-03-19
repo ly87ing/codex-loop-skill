@@ -6,6 +6,7 @@
 - durable state
 - explicit verification gates
 - conservative completion behavior
+- recoverable local state drift
 
 ## What It Does Not Promise
 
@@ -20,4 +21,4 @@
 - Prefer a clean repository before starting a long unattended run.
 - If a task is too broad, rerun `init` with a narrower prompt or edit the generated task docs.
 - If Codex repeatedly makes no file changes, the loop should block instead of spinning forever.
-
+- If a saved resume session goes stale, prefer a controlled fresh exec over blind repeated resume attempts.

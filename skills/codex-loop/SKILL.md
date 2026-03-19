@@ -40,7 +40,17 @@ This generates `codex-loop.yaml`, `spec/`, `plan/`, `tasks/`, and `.codex-loop/s
 - Tighten verification commands in `codex-loop.yaml` if the defaults are weak.
 - Remove obviously unnecessary tasks before starting the loop.
 
-### 3. Start the supervisor
+### 3. Repair local drift before the long run
+
+Run:
+
+```bash
+codex-loop doctor --repair
+```
+
+Use this when task files or local state may have changed since `init`.
+
+### 4. Start the supervisor
 
 Run:
 
@@ -50,12 +60,13 @@ codex-loop run
 
 The supervisor will keep iterating until all tasks are done and verification passes, or until it reaches a real block such as no progress or max iterations.
 
-### 4. Inspect status when needed
+### 5. Inspect status when needed
 
 Run:
 
 ```bash
-codex-loop status
+codex-loop status --summary
+codex-loop logs tail --lines 20
 ```
 
 ## Key Rules
@@ -63,6 +74,7 @@ codex-loop status
 - Treat generated files as the persistent source of truth, not the original prompt.
 - Strengthen `verification.commands` before trusting unattended execution.
 - Prefer fixing bad task decomposition at `init` time instead of hoping the loop self-corrects.
+- Use `doctor --repair` before reruns if tasks or state have been edited manually.
 - If the loop reports `blocked`, inspect the blocker instead of retrying blindly.
 
 ## References

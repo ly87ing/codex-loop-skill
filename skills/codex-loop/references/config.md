@@ -16,6 +16,9 @@
 - `approval`: intended approval policy
 - `max_iterations`: hard upper bound for loop iterations
 - `max_no_progress_iterations`: fail-safe for repeated non-progress
+- `iteration_timeout_seconds`: timeout for each `codex exec` or `codex exec resume` call
+- `iteration_backoff_seconds`: optional sleep between iterations
+- `resume_fallback_to_fresh`: retry once without `resume` when the saved session is stale
 - `worktree.enabled`: whether to run inside a temporary worktree
 - `worktree.branch_prefix`: branch prefix for generated worktree branches
 
@@ -39,4 +42,3 @@
 ## Format Note
 
 The generated file is JSON-compatible YAML. That keeps the first version dependency-light while staying valid YAML.
-

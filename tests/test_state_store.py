@@ -41,7 +41,28 @@ class StateStoreTests(unittest.TestCase):
             self.assertEqual(state["meta"]["no_progress_iterations"], 1)
             self.assertEqual(state["tasks"]["001-foundation"]["status"], "in_progress")
 
+    def test_reconciles_task_state_with_task_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            state = store.create_initial(
+                project_name="demo",
+                source_prompt="Build it",
+                tasks=["001-foundation", "002-loop"],
+            )
+            state["tasks"]["001-foundation"]["status"] = "done"
+            store.save(state)
+
+            updated = store.reconcile_tasks(["001-foundation", "003-polish"])
+
+            self.assertEqual(updated["tasks"]["001-foundation"]["status"], "done")
+            self.assertEqual(updated["tasks"]["003-polish"]["status"], "ready")
+            self.assertNotIn("002-loop", updated["tasks"])
+            self.assertEqual(
+                updated["meta"]["archived_tasks"]["002-loop"]["status"],
+                "pending",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
-

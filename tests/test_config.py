@@ -52,7 +52,30 @@ class ConfigTests(unittest.TestCase):
                     root,
                 )
 
+    def test_rejects_invalid_timeout_and_backoff(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            with self.assertRaises(ValueError):
+                CodexLoopConfig.from_dict(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["tests pass"]},
+                        "execution": {"iteration_timeout_seconds": 0},
+                        "verification": {"commands": ["python -m unittest"]},
+                    },
+                    root,
+                )
+            with self.assertRaises(ValueError):
+                CodexLoopConfig.from_dict(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["tests pass"]},
+                        "execution": {"iteration_backoff_seconds": -1},
+                        "verification": {"commands": ["python -m unittest"]},
+                    },
+                    root,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
-

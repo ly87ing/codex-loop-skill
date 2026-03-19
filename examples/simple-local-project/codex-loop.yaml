@@ -15,6 +15,9 @@
     "approval": "never",
     "max_iterations": 20,
     "max_no_progress_iterations": 4,
+    "iteration_timeout_seconds": 1800,
+    "iteration_backoff_seconds": 0,
+    "resume_fallback_to_fresh": true,
     "worktree": {
       "enabled": true,
       "branch_prefix": "codex-loop/"
@@ -40,4 +43,3 @@
     "save_jsonl": true
   }
 }
-

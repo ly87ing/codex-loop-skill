@@ -95,6 +95,9 @@ def initialize_project(
             "approval": "never",
             "max_iterations": 30,
             "max_no_progress_iterations": 5,
+            "iteration_timeout_seconds": 1800,
+            "iteration_backoff_seconds": 0,
+            "resume_fallback_to_fresh": True,
             "worktree": {"enabled": True, "branch_prefix": "codex-loop/"},
         },
         "codex": {
@@ -139,4 +142,3 @@ def initialize_project(
         source_prompt=prompt,
         tasks=task_ids,
     )
-

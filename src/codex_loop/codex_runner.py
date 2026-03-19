@@ -78,6 +78,15 @@ def _read_json_file(path: Path) -> dict[str, Any]:
     return loaded
 
 
+def _resume_error_reason(message: str) -> str:
+    lines = [line.strip() for line in message.splitlines() if line.strip()]
+    for line in reversed(lines):
+        if line.startswith(("Command:", "STDOUT:", "STDERR:")):
+            continue
+        return line
+    return "resume failed"
+
+
 @dataclass(slots=True)
 class CodexRunner:
     project_dir: Path
@@ -147,7 +156,12 @@ class CodexRunner:
                 "-",
             ]
             init_prompt = self._build_init_prompt(prompt)
-            self._invoke(command, init_prompt, self.project_dir)
+            self._invoke(
+                command,
+                init_prompt,
+                self.project_dir,
+                timeout_seconds=1800,
+            )
             result = _read_json_file(output_path)
         self._validate_init_result(result)
         return InitResult(
@@ -182,6 +196,8 @@ class CodexRunner:
         schema_path = config.project_dir / config.codex.output_schema
         prompt = self._build_run_prompt(config, task, state)
         self._write_prompt_artifact(config, task.task_id, prompt)
+        if output_path.exists():
+            output_path.unlink()
         command = self.build_run_command(
             task=task,
             prompt=prompt,
@@ -192,10 +208,49 @@ class CodexRunner:
             sandbox=config.execution.sandbox,
             approval=config.execution.approval,
         )
-        stdout = self._invoke(command, prompt, working_directory)
+        resume_fallback_used = False
+        resume_failure_reason: str | None = None
+        try:
+            stdout = self._invoke(
+                command,
+                prompt,
+                working_directory,
+                timeout_seconds=config.execution.iteration_timeout_seconds,
+            )
+        except RuntimeError as exc:
+            if (
+                resume_session
+                and config.execution.resume_fallback_to_fresh
+                and self._should_retry_without_resume(str(exc))
+            ):
+                resume_fallback_used = True
+                resume_failure_reason = _resume_error_reason(str(exc))
+                if output_path.exists():
+                    output_path.unlink()
+                fallback_command = self.build_run_command(
+                    task=task,
+                    prompt=prompt,
+                    schema_path=schema_path,
+                    output_path=output_path,
+                    session_id=None,
+                    model=config.codex.model,
+                    sandbox=config.execution.sandbox,
+                    approval=config.execution.approval,
+                )
+                stdout = self._invoke(
+                    fallback_command,
+                    prompt,
+                    working_directory,
+                    timeout_seconds=config.execution.iteration_timeout_seconds,
+                )
+            else:
+                raise
         self._write_stdout_artifact(config, task.task_id, stdout)
         result = _read_json_file(output_path)
         self._validate_run_result(result, task.task_id)
+        result["resume_attempted"] = bool(resume_session)
+        result["resume_fallback_used"] = resume_fallback_used
+        result["resume_failure_reason"] = resume_failure_reason
         if "session_id" not in result:
             session_id = _extract_session_id(stdout)
             if session_id:
@@ -203,14 +258,31 @@ class CodexRunner:
         return result
 
     @staticmethod
-    def _invoke(command: list[str], prompt: str, cwd: Path) -> str:
-        completed = subprocess.run(
-            command,
-            cwd=cwd,
-            input=prompt,
-            capture_output=True,
-            text=True,
-        )
+    def _invoke(
+        command: list[str],
+        prompt: str,
+        cwd: Path,
+        *,
+        timeout_seconds: int,
+    ) -> str:
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=cwd,
+                input=prompt,
+                capture_output=True,
+                text=True,
+                timeout=timeout_seconds,
+            )
+        except subprocess.TimeoutExpired as exc:
+            msg = (
+                "Codex command timed out.\n"
+                f"Command: {' '.join(command)}\n"
+                f"Timeout: {timeout_seconds}s\n"
+                f"STDOUT:\n{exc.stdout or ''}\n"
+                f"STDERR:\n{exc.stderr or ''}"
+            )
+            raise RuntimeError(msg) from exc
         if completed.returncode != 0:
             msg = (
                 "Codex command failed.\n"
@@ -220,6 +292,20 @@ class CodexRunner:
             )
             raise RuntimeError(msg)
         return completed.stdout
+
+    @staticmethod
+    def _should_retry_without_resume(message: str) -> bool:
+        lowered = message.lower()
+        return any(
+            token in lowered
+            for token in (
+                "session not found",
+                "invalid session",
+                "conversation not found",
+                "resume",
+                "expired",
+            )
+        )
 
     @staticmethod
     def _build_init_prompt(user_prompt: str) -> str:

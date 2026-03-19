@@ -11,10 +11,17 @@
   - `tasks/`
   - `.codex-loop/state.json`
 - `codex-loop run`:
+  - runs `doctor --repair` before the supervisor starts
   - creates a temporary worktree by default
   - calls `codex exec` / `codex exec resume`
+  - falls back to a fresh `codex exec` if a saved resume session is no longer valid
   - runs local verification commands after each iteration
   - stops only on `completed` or `blocked`
+- `codex-loop doctor --repair`:
+  - recreates a missing agent result schema
+  - reconciles task files with `.codex-loop/state.json`
+- `codex-loop status --summary` and `codex-loop logs tail`:
+  - provide concise operator-facing visibility during unattended runs
 
 ## Why This Exists
 
@@ -47,8 +54,10 @@ Inside a local Git repository:
 
 ```bash
 codex-loop init --prompt "Build a local autonomous loop that edits code until tests pass."
+codex-loop doctor --repair
 codex-loop run
-codex-loop status
+codex-loop status --summary
+codex-loop logs tail --lines 20
 ```
 
 ## Generated Project Layout
@@ -73,13 +82,15 @@ your-project/
 ## How Run Works
 
 1. Load `codex-loop.yaml`
-2. Read `tasks/` in filename order
-3. Pick the next `ready` or `in_progress` task from `.codex-loop/state.json`
-4. Create or reuse a temporary worktree
-5. Ask Codex to work only on that task
-6. Run every command in `verification.commands`
-7. Record progress, files changed, session id, and verification results
-8. Continue until all tasks are done or a blocking threshold is reached
+2. Run a lightweight repair pass so schema/state/task drift does not wedge the loop
+3. Read `tasks/` in filename order
+4. Pick the next `ready` or `in_progress` task from `.codex-loop/state.json`
+5. Create or reuse a temporary worktree
+6. Ask Codex to work only on that task
+7. If `codex exec resume` fails because the session is stale, retry once with a fresh `codex exec`
+8. Run every command in `verification.commands`
+9. Record progress, files changed, session metadata, and verification results
+10. Continue until all tasks are done or a blocking threshold is reached
 
 ## Verification Model
 
@@ -93,18 +104,21 @@ The loop stops with `blocked` when:
 - Codex returns `blocked`
 - `max_iterations` is reached
 - `max_no_progress_iterations` is reached
+- `doctor` finds unrecoverable local state or task file problems
 
 ## Safety Model
 
 - The generated config targets `sandbox_mode="workspace-write"`
 - The runner requests `approval_policy="never"` through Codex config overrides
 - The supervisor keeps `.codex-loop/` local state outside normal task files
+- The supervisor can repair a missing schema and task/state drift before entering the loop
 - The default finish mode is conservative: keep the worktree and branch
 
 ## Known Limits
 
 - The generated `codex-loop.yaml` is JSON-compatible YAML. It works today without a YAML dependency, but full YAML editing is only supported when `PyYAML` is installed.
 - Codex CLI approval behavior can vary by CLI version. This project asks for `approval_policy="never"`, but some Codex releases have known approval edge cases.
+- Some Codex resume failures are only detectable from CLI error text, so session fallback is heuristic rather than protocol-level.
 - Task execution is sequential in the first version. There is no parallel task scheduler yet.
 
 ## Skill

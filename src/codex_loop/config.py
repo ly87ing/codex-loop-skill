@@ -46,6 +46,9 @@ class ExecutionConfig:
     max_iterations: int = 30
     max_no_progress_iterations: int = 5
     lock_stale_seconds: int = 21600
+    iteration_timeout_seconds: int = 1800
+    iteration_backoff_seconds: int = 0
+    resume_fallback_to_fresh: bool = True
     worktree: WorktreeConfig = field(default_factory=WorktreeConfig)
 
 
@@ -104,6 +107,15 @@ class CodexLoopConfig:
                 execution_data.get("max_no_progress_iterations", 5)
             ),
             lock_stale_seconds=int(execution_data.get("lock_stale_seconds", 21600)),
+            iteration_timeout_seconds=int(
+                execution_data.get("iteration_timeout_seconds", 1800)
+            ),
+            iteration_backoff_seconds=int(
+                execution_data.get("iteration_backoff_seconds", 0)
+            ),
+            resume_fallback_to_fresh=bool(
+                execution_data.get("resume_fallback_to_fresh", True)
+            ),
             worktree=worktree,
         )
         codex = CodexConfig(**data.get("codex", {}))
@@ -144,6 +156,12 @@ class CodexLoopConfig:
             raise ValueError(msg)
         if self.execution.lock_stale_seconds <= 0:
             msg = "execution.lock_stale_seconds must be greater than zero."
+            raise ValueError(msg)
+        if self.execution.iteration_timeout_seconds <= 0:
+            msg = "execution.iteration_timeout_seconds must be greater than zero."
+            raise ValueError(msg)
+        if self.execution.iteration_backoff_seconds < 0:
+            msg = "execution.iteration_backoff_seconds must not be negative."
             raise ValueError(msg)
         if self.tasks.strategy != "sequential":
             msg = f"Unsupported tasks.strategy: {self.tasks.strategy}"

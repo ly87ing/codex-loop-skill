@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
+import time
 
 from .config import CodexLoopConfig
 from .state_store import StateStore
@@ -69,6 +70,12 @@ class Supervisor:
                     for item in result.get("blockers", [])
                     if isinstance(item, str)
                 ],
+                resume_fallback_used=bool(result.get("resume_fallback_used", False)),
+                resume_failure_reason=(
+                    str(result["resume_failure_reason"])
+                    if result.get("resume_failure_reason")
+                    else None
+                ),
             )
             if str(result.get("status")) == "blocked":
                 return LoopOutcome.BLOCKED
@@ -82,6 +89,8 @@ class Supervisor:
             ):
                 self.state_store.mark_blocked(task.task_id, "Reached no-progress limit.")
                 return LoopOutcome.BLOCKED
+            if self.config.execution.iteration_backoff_seconds > 0:
+                time.sleep(self.config.execution.iteration_backoff_seconds)
         state = self.state_store.load()
         remaining = [
             task_id

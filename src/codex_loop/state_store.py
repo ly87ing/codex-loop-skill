@@ -15,6 +15,37 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _default_task_state(index: int) -> dict[str, Any]:
+    return {
+        "status": _default_task_status(index),
+        "session_id": None,
+        "iterations": 0,
+        "last_summary": "",
+        "files_changed": [],
+        "resume_fallback_used": False,
+        "resume_failure_reason": None,
+        "updated_at": _now(),
+    }
+
+
+def _normalize_task_statuses(tasks: dict[str, dict[str, Any]]) -> None:
+    active_seen = False
+    for task in tasks.values():
+        status = task.get("status")
+        if status in {"done", "blocked"}:
+            continue
+        if not active_seen and status in {"ready", "in_progress"}:
+            active_seen = True
+            continue
+        task["status"] = "pending"
+    if active_seen:
+        return
+    for task in tasks.values():
+        if task.get("status") not in {"done", "blocked"}:
+            task["status"] = "ready"
+            break
+
+
 @dataclass(slots=True)
 class StateStore:
     path: Path
@@ -42,22 +73,50 @@ class StateStore:
                 "no_progress_iterations": 0,
                 "last_fingerprint": "",
                 "overall_status": "initialized",
+                "archived_tasks": {},
                 "created_at": _now(),
                 "updated_at": _now(),
             },
             "tasks": {
-                task_id: {
-                    "status": _default_task_status(index),
-                    "session_id": None,
-                    "iterations": 0,
-                    "last_summary": "",
-                    "files_changed": [],
-                    "updated_at": _now(),
-                }
+                task_id: _default_task_state(index)
                 for index, task_id in enumerate(tasks)
             },
             "history": [],
         }
+        self.save(state)
+        return state
+
+    def reconcile_tasks(self, task_ids: list[str]) -> dict[str, Any]:
+        state = self.load()
+        meta = state["meta"]
+        meta.setdefault("archived_tasks", {})
+        current_tasks = state.get("tasks", {})
+        removed_task_ids = [task_id for task_id in current_tasks if task_id not in task_ids]
+        for task_id in removed_task_ids:
+            meta["archived_tasks"][task_id] = current_tasks.pop(task_id)
+
+        rebuilt_tasks: dict[str, dict[str, Any]] = {}
+        for index, task_id in enumerate(task_ids):
+            task_state = current_tasks.get(task_id)
+            if task_state is None:
+                task_state = _default_task_state(index)
+            task_state.setdefault("resume_fallback_used", False)
+            task_state.setdefault("resume_failure_reason", None)
+            rebuilt_tasks[task_id] = task_state
+
+        _normalize_task_statuses(rebuilt_tasks)
+        state["tasks"] = rebuilt_tasks
+        if rebuilt_tasks and all(
+            task["status"] == "done" for task in rebuilt_tasks.values()
+        ):
+            meta["overall_status"] = "completed"
+        elif any(task["status"] == "blocked" for task in rebuilt_tasks.values()):
+            meta["overall_status"] = "blocked"
+        elif rebuilt_tasks:
+            meta["overall_status"] = "running"
+        else:
+            meta["overall_status"] = "initialized"
+        meta["updated_at"] = _now()
         self.save(state)
         return state
 
@@ -100,6 +159,8 @@ class StateStore:
         session_id: str | None = None,
         verification_results: list[dict[str, Any]] | None = None,
         blockers: list[str] | None = None,
+        resume_fallback_used: bool = False,
+        resume_failure_reason: str | None = None,
     ) -> dict[str, Any]:
         state = self.load()
         meta = state["meta"]
@@ -115,6 +176,8 @@ class StateStore:
         task["last_summary"] = summary
         task["files_changed"] = files_changed
         task["session_id"] = session_id
+        task["resume_fallback_used"] = resume_fallback_used
+        task["resume_failure_reason"] = resume_failure_reason
         task["updated_at"] = _now()
         if agent_status == "blocked":
             task["status"] = "blocked"
@@ -136,6 +199,8 @@ class StateStore:
                 "session_id": session_id,
                 "verification_results": verification_results or [],
                 "blockers": blockers or [],
+                "resume_fallback_used": resume_fallback_used,
+                "resume_failure_reason": resume_failure_reason,
             }
         )
         self.save(state)
