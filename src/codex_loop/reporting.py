@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 import json
 from pathlib import Path
 from typing import Any
@@ -21,6 +21,10 @@ def _current_task_id(tasks: dict[str, dict[str, Any]]) -> str:
         ),
         next(iter(tasks), "none"),
     )
+
+
+def _now() -> str:
+    return datetime.now(UTC).isoformat()
 
 
 def _latest_task_artifact(
@@ -74,7 +78,7 @@ def _read_json_payload(path: str | None) -> Any:
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def format_status_summary(project_dir: Path) -> str:
+def build_status_snapshot(project_dir: Path) -> dict[str, Any]:
     state = _load_state(project_dir)
     project_name = state.get("meta", {}).get("project_name", project_dir.name)
     overall_status = state.get("meta", {}).get("overall_status", "unknown")
@@ -90,35 +94,55 @@ def format_status_summary(project_dir: Path) -> str:
     current_task_id = _current_task_id(tasks)
     current_task_state = tasks.get(current_task_id, {}) if current_task_id != "none" else {}
     last_history = state.get("history", [])[-1] if state.get("history") else None
+    return {
+        "project": project_name,
+        "overall_status": overall_status,
+        "iteration": iteration,
+        "no_progress_iterations": no_progress,
+        "current_task": current_task_id,
+        "current_task_session": current_task_state.get("session_id"),
+        "current_task_resume_failure_reason": current_task_state.get(
+            "resume_failure_reason"
+        ),
+        "runner_failures_total": metrics.get("runner_failures_total", 0),
+        "verification_failures_total": metrics.get("verification_failures_total", 0),
+        "resume_fallbacks_total": metrics.get("resume_fallbacks_total", 0),
+        "last_blocker_code": metrics.get("last_blocker_code"),
+        "last_blocker_reason": metrics.get("last_blocker_reason"),
+        "last_summary": last_history.get("summary", "") if last_history else "",
+    }
+
+
+def format_status_summary(project_dir: Path) -> str:
+    snapshot = build_status_snapshot(project_dir)
 
     lines = [
-        f"project: {project_name}",
-        f"overall_status: {overall_status}",
-        f"iteration: {iteration}",
-        f"no_progress_iterations: {no_progress}",
-        f"current_task: {current_task_id}",
+        f"project: {snapshot['project']}",
+        f"overall_status: {snapshot['overall_status']}",
+        f"iteration: {snapshot['iteration']}",
+        f"no_progress_iterations: {snapshot['no_progress_iterations']}",
+        f"current_task: {snapshot['current_task']}",
     ]
-    if current_task_state.get("session_id"):
-        lines.append(f"current_task_session: {current_task_state.get('session_id')}")
-    if current_task_state.get("resume_failure_reason"):
+    if snapshot.get("current_task_session"):
+        lines.append(f"current_task_session: {snapshot.get('current_task_session')}")
+    if snapshot.get("current_task_resume_failure_reason"):
         lines.append(
             "current_task_resume_failure_reason: "
-            f"{current_task_state.get('resume_failure_reason')}"
+            f"{snapshot.get('current_task_resume_failure_reason')}"
         )
-    if metrics:
-        lines.extend(
-            [
-                f"runner_failures_total: {metrics.get('runner_failures_total', 0)}",
-                f"verification_failures_total: {metrics.get('verification_failures_total', 0)}",
-                f"resume_fallbacks_total: {metrics.get('resume_fallbacks_total', 0)}",
-            ]
-        )
-        if metrics.get("last_blocker_code"):
-            lines.append(f"last_blocker_code: {metrics.get('last_blocker_code')}")
-        if metrics.get("last_blocker_reason"):
-            lines.append(f"last_blocker_reason: {metrics.get('last_blocker_reason')}")
-    if last_history:
-        lines.append(f"last_summary: {last_history.get('summary', '')}")
+    lines.extend(
+        [
+            f"runner_failures_total: {snapshot.get('runner_failures_total', 0)}",
+            f"verification_failures_total: {snapshot.get('verification_failures_total', 0)}",
+            f"resume_fallbacks_total: {snapshot.get('resume_fallbacks_total', 0)}",
+        ]
+    )
+    if snapshot.get("last_blocker_code"):
+        lines.append(f"last_blocker_code: {snapshot.get('last_blocker_code')}")
+    if snapshot.get("last_blocker_reason"):
+        lines.append(f"last_blocker_reason: {snapshot.get('last_blocker_reason')}")
+    if snapshot.get("last_summary"):
+        lines.append(f"last_summary: {snapshot.get('last_summary')}")
     return "\n".join(lines)
 
 
@@ -464,6 +488,7 @@ def build_evidence_bundle(
     return {
         "project_name": inventory.get("project_name"),
         "overall_status": inventory.get("overall_status"),
+        "generated_at": _now(),
         "task_id": session.get("task_id"),
         "session_id": session.get("session_id"),
         "timestamp": session.get("timestamp") or session.get("updated_at"),
@@ -471,6 +496,8 @@ def build_evidence_bundle(
         "agent_status": session.get("agent_status") or session.get("status"),
         "summary": session.get("summary") or session.get("last_summary"),
         "selection": selection,
+        "status_snapshot": build_status_snapshot(project_dir),
+        "session_snapshot": dict(session),
         "artifacts": artifacts,
         "events_summary": summarize_events(recent_events),
         "recent_events": recent_events,
@@ -511,6 +538,7 @@ def format_evidence_report(
         f"overall_status: {evidence.get('overall_status')}",
         f"task_id: {evidence.get('task_id')}",
         f"session_id: {evidence.get('session_id') or 'none'}",
+        f"generated_at: {evidence.get('generated_at') or ''}",
         f"timestamp: {evidence.get('timestamp') or ''}",
         f"event_type: {evidence.get('event_type') or ''}",
         f"agent_status: {evidence.get('agent_status') or ''}",
@@ -524,6 +552,14 @@ def format_evidence_report(
     lines.append(evidence.get("prompt_preview") or "")
     lines.append("log_tail:")
     lines.append(evidence.get("log_tail") or "")
+    lines.append("status_snapshot:")
+    lines.append(
+        json.dumps(evidence.get("status_snapshot"), indent=2, ensure_ascii=False)
+    )
+    lines.append("session_snapshot:")
+    lines.append(
+        json.dumps(evidence.get("session_snapshot"), indent=2, ensure_ascii=False)
+    )
     lines.append("events_summary:")
     lines.append(
         json.dumps(evidence.get("events_summary"), indent=2, ensure_ascii=False)

@@ -419,6 +419,8 @@ class CliTests(unittest.TestCase):
             self.assertEqual(payload["selection"], "task_id")
             self.assertEqual(payload["prompt_preview"], "line one")
             self.assertEqual(payload["log_tail"], "log two")
+            self.assertEqual(payload["status_snapshot"]["current_task"], "001-foundation")
+            self.assertEqual(payload["session_snapshot"]["task_id"], "001-foundation")
             self.assertEqual(payload["events_summary"]["total_events"], 1)
             self.assertEqual(len(payload["recent_events"]), 1)
             self.assertEqual(payload["recent_events"][0]["label"], "blocked:no_progress_limit")
@@ -474,6 +476,59 @@ class CliTests(unittest.TestCase):
             payload = json.loads(output_path.read_text(encoding="utf-8"))
             self.assertEqual(payload["task_id"], "001-foundation")
             self.assertEqual(payload["selection"], "task_id")
+
+    def test_evidence_command_can_write_json_to_output_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            prompts_dir = root / ".codex-loop" / "prompts"
+            logs_dir = root / ".codex-loop" / "logs"
+            runs_dir = root / ".codex-loop" / "runs"
+            prompts_dir.mkdir(parents=True, exist_ok=True)
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            runs_dir.mkdir(parents=True, exist_ok=True)
+            (prompts_dir / "0001-001-foundation.txt").write_text("line one\n", encoding="utf-8")
+            (logs_dir / "0001-001-foundation.jsonl").write_text("log one\n", encoding="utf-8")
+            (runs_dir / "001-foundation-last.json").write_text(
+                json.dumps({"status": "continue", "summary": "Foundation run"}),
+                encoding="utf-8",
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            store.record_iteration(
+                task_id="001-foundation",
+                summary="Foundation iteration.",
+                fingerprint="001|continue",
+                files_changed=["src/foundation.py"],
+                verification_passed=False,
+                agent_status="continue",
+                session_id="session-001",
+            )
+            output_dir = root / "snapshots"
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                exit_code = main(
+                    [
+                        "evidence",
+                        "--project-dir",
+                        str(root),
+                        "--task-id",
+                        "001-foundation",
+                        "--json",
+                        "--output-dir",
+                        str(output_dir),
+                    ]
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(stderr.getvalue(), "")
+            files = sorted(output_dir.glob("*.json"))
+            self.assertEqual(len(files), 1)
+            self.assertIn("001-foundation", files[0].name)
+            payload = json.loads(files[0].read_text(encoding="utf-8"))
+            self.assertEqual(payload["task_id"], "001-foundation")
+            self.assertEqual(payload["status_snapshot"]["current_task"], "001-foundation")
 
     def test_events_command_uses_config_default_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -45,6 +45,27 @@ def _write_output_file(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
+def _slugify_file_component(value: str) -> str:
+    cleaned = "".join(char if char.isalnum() or char in {"-", "_"} else "-" for char in value)
+    return cleaned.strip("-_") or "snapshot"
+
+
+def _evidence_output_path(
+    output_dir: Path,
+    payload: dict[str, object] | None,
+    *,
+    json_output: bool,
+) -> Path:
+    task_id = _slugify_file_component(str((payload or {}).get("task_id") or "task"))
+    selection = _slugify_file_component(str((payload or {}).get("selection") or "snapshot"))
+    generated_at = str((payload or {}).get("generated_at") or "generated")
+    timestamp = _slugify_file_component(
+        generated_at.replace(":", "-").replace("+", "-").replace(".", "-")
+    )
+    suffix = ".json" if json_output else ".txt"
+    return output_dir.resolve() / f"evidence-{task_id}-{selection}-{timestamp}{suffix}"
+
+
 def _load_optional_config(project_dir: Path) -> CodexLoopConfig | None:
     config_path = project_dir / "codex-loop.yaml"
     if not config_path.exists():
@@ -156,6 +177,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output",
         default=None,
         help="Optional file path to write the rendered evidence payload.",
+    )
+    evidence_parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Optional directory for an auto-named evidence snapshot file.",
     )
 
     doctor_parser = subparsers.add_parser("doctor", help="Validate local loop files.")
@@ -370,6 +396,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "evidence":
+            if args.output and args.output_dir:
+                raise ValueError("Use either --output or --output-dir for evidence, not both.")
             payload = build_evidence_bundle(
                 project_dir,
                 task_id=args.task_id,
@@ -391,6 +419,14 @@ def main(argv: list[str] | None = None) -> int:
                 )
             if args.output:
                 output_path = Path(args.output).resolve()
+                _write_output_file(output_path, rendered)
+                print(f"Wrote evidence to {output_path}")
+            elif args.output_dir:
+                output_path = _evidence_output_path(
+                    Path(args.output_dir),
+                    payload,
+                    json_output=bool(args.json),
+                )
                 _write_output_file(output_path, rendered)
                 print(f"Wrote evidence to {output_path}")
             else:
