@@ -83,6 +83,7 @@ codex-loop snapshots --snapshot-dir ./snapshots --summary --group-by blocker --j
 codex-loop snapshots --snapshot-dir ./snapshots --summary --output ./snapshots-summary.txt
 codex-loop snapshots --snapshot-dir ./snapshots --latest-blocked --json --output-dir ./snapshot-reports
 codex-loop snapshots-exports --exports-dir ./snapshot-reports --latest --json
+codex-loop snapshots-exports --exports-dir ./snapshot-reports --status blocked --summary --group-by render --json
 codex-loop events --limit 20
 codex-loop events --summary --json
 codex-loop events --task-id 001-foundation --event-type iteration:continue --json
@@ -162,7 +163,7 @@ The loop stops with `blocked` when:
 - `sessions` provides a workspace-scoped inventory of known Codex session ids per task, the latest `prompt/log/run` artifacts for each task, and a `--latest` view for the most recent resumable session seen by the loop.
 - `evidence` turns a selected task or latest session into a read-only evidence bundle with selection metadata, status/session snapshots, prompt preview, log tail, parsed run payload, recent task events, and optional `--output` or auto-named `--output-dir` export; directory exports also maintain a snapshot `index.json`.
 - `snapshots` reads that directory-level `index.json` back as an operator view, with task filtering, status filtering, blocker-code filtering, sort control via `--sort newest|oldest`, `--latest`, the `--latest-blocked` shortcut for the newest blocked snapshot, ISO time windows via `--since/--until`, raw JSON output, file export via `--output`, auto-named archive export via `--output-dir`, and a `--summary` aggregation over task, status, selection, blocker code, and latest snapshot markers; `--group-by task|status|blocker|selection` narrows that summary to one chosen view, and `--output-dir` now maintains a sibling `manifest.json` for exported query results.
-- `snapshots-exports` reads that archive `manifest.json` back as a read-only inventory of saved snapshot queries, with `--latest`, `--limit`, and `--json` for fast operator inspection.
+- `snapshots-exports` reads that archive `manifest.json` back as a read-only inventory of saved snapshot queries, supports nested task/status/blocker filters plus `--latest` and `--limit`, and can render `--summary` views grouped by task, status, blocker, render format, or summary/list shape.
 - `events --summary` aggregates the filtered event set by label, task, source, blocker code, blocked task, latest blocked event, latest runner failure, and latest verification failure before optional JSON/export handling.
 - `events --limit N` merges `.codex-loop/state.json` history with hook execution logs into a readable timeline, and supports `--task-id`, `--event-type`, `--since`, `--until`, `--json`, and `--output` for focused inspection or export.
 - `cleanup` defaults to dry-run mode so operators can review what would be deleted before using `--apply`; its default retention policy now comes from `codex-loop.yaml`, and CLI flags such as `--keep`, `--older-than-days`, `--logs-keep`, or `--prompts-older-than-days` override config values per run.

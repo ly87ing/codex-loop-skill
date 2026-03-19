@@ -19,6 +19,7 @@ from .reporting import (
     format_events_summary,
     format_events_timeline,
     format_snapshot_exports_report,
+    format_snapshot_exports_summary,
     format_snapshots_report,
     format_snapshots_summary,
     format_sessions_report,
@@ -26,6 +27,7 @@ from .reporting import (
     load_events_timeline,
     load_snapshot_exports_manifest,
     load_snapshots_index,
+    summarize_snapshot_exports,
     summarize_snapshots,
     summarize_events,
     tail_log_lines,
@@ -400,6 +402,32 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Only emit the latest archived export entry.",
     )
     snapshots_exports_parser.add_argument(
+        "--task-id",
+        default=None,
+        help="Optional archived export task filter, for example 001-foundation.",
+    )
+    snapshots_exports_parser.add_argument(
+        "--status",
+        default=None,
+        help="Optional archived export status filter, for example blocked.",
+    )
+    snapshots_exports_parser.add_argument(
+        "--blocker-code",
+        default=None,
+        help="Optional archived export blocker code filter, for example no_progress_limit.",
+    )
+    snapshots_exports_parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="Render a grouped summary instead of the raw export list.",
+    )
+    snapshots_exports_parser.add_argument(
+        "--group-by",
+        choices=("task", "status", "blocker", "render", "summary"),
+        default=None,
+        help="Optional summary grouping dimension; only valid with --summary.",
+    )
+    snapshots_exports_parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -748,20 +776,38 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "snapshots-exports":
+            if args.group_by is not None and not args.summary:
+                raise ValueError("Use --group-by only with --summary.")
             exports_dir = Path(args.exports_dir).resolve()
             payload = load_snapshot_exports_manifest(
                 exports_dir,
+                task_id=args.task_id,
+                status=args.status,
+                blocker_code=args.blocker_code,
                 latest=args.latest,
                 limit=args.limit,
             )
-            if args.json:
-                rendered = json.dumps(payload, indent=2, ensure_ascii=False)
+            if args.summary:
+                summary = summarize_snapshot_exports(payload, group_by=args.group_by)
+                if args.json:
+                    rendered = json.dumps(summary, indent=2, ensure_ascii=False)
+                else:
+                    rendered = format_snapshot_exports_summary(
+                        payload,
+                        group_by=args.group_by,
+                    )
             else:
-                rendered = format_snapshot_exports_report(
-                    exports_dir,
-                    latest=args.latest,
-                    limit=args.limit,
-                )
+                if args.json:
+                    rendered = json.dumps(payload, indent=2, ensure_ascii=False)
+                else:
+                    rendered = format_snapshot_exports_report(
+                        exports_dir,
+                        task_id=args.task_id,
+                        status=args.status,
+                        blocker_code=args.blocker_code,
+                        latest=args.latest,
+                        limit=args.limit,
+                    )
             print(rendered)
             return 0
 

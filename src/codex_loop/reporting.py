@@ -97,9 +97,33 @@ def _snapshot_group_value(snapshot: dict[str, Any], group_by: str) -> str:
     raise ValueError(msg)
 
 
+def _snapshot_export_filters(entry: dict[str, Any]) -> dict[str, Any]:
+    filters = entry.get("filters")
+    return filters if isinstance(filters, dict) else {}
+
+
+def _snapshot_export_group_value(entry: dict[str, Any], group_by: str) -> str:
+    filters = _snapshot_export_filters(entry)
+    if group_by == "task":
+        return str(filters.get("task_id") or "all")
+    if group_by == "status":
+        return str(filters.get("status") or "all")
+    if group_by == "blocker":
+        return str(filters.get("blocker_code") or "none")
+    if group_by == "render":
+        return str(entry.get("render_format") or "unknown")
+    if group_by == "summary":
+        return "summary" if bool(entry.get("summary")) else "list"
+    msg = f"Unsupported snapshot export group_by value: {group_by}"
+    raise ValueError(msg)
+
+
 def load_snapshot_exports_manifest(
     exports_dir: Path,
     *,
+    task_id: str | None = None,
+    status: str | None = None,
+    blocker_code: str | None = None,
     latest: bool = False,
     limit: int | None = None,
 ) -> list[dict[str, Any]]:
@@ -112,6 +136,20 @@ def load_snapshot_exports_manifest(
     if not isinstance(exports, list):
         return []
     filtered = [item for item in exports if isinstance(item, dict)]
+    if task_id is not None:
+        filtered = [
+            item for item in filtered if _snapshot_export_filters(item).get("task_id") == task_id
+        ]
+    if status is not None:
+        filtered = [
+            item for item in filtered if _snapshot_export_filters(item).get("status") == status
+        ]
+    if blocker_code is not None:
+        filtered = [
+            item
+            for item in filtered
+            if _snapshot_export_filters(item).get("blocker_code") == blocker_code
+        ]
     filtered.sort(key=lambda item: str(item.get("generated_at", "")))
     if latest:
         return filtered[-1:] if filtered else []
@@ -123,17 +161,25 @@ def load_snapshot_exports_manifest(
 def format_snapshot_exports_report(
     exports_dir: Path,
     *,
+    task_id: str | None = None,
+    status: str | None = None,
+    blocker_code: str | None = None,
     latest: bool = False,
     limit: int | None = None,
 ) -> str:
-    exports = load_snapshot_exports_manifest(exports_dir, latest=latest, limit=limit)
+    exports = load_snapshot_exports_manifest(
+        exports_dir,
+        task_id=task_id,
+        status=status,
+        blocker_code=blocker_code,
+        latest=latest,
+        limit=limit,
+    )
     if not exports:
         return "No snapshot exports recorded."
     lines = [f"exports_dir: {exports_dir.resolve()}", f"count: {len(exports)}", "exports:"]
     for entry in exports:
-        filters = entry.get("filters")
-        if not isinstance(filters, dict):
-            filters = {}
+        filters = _snapshot_export_filters(entry)
         lines.append(
             f"{entry.get('generated_at', '')} "
             f"render={entry.get('render_format', '')} "
@@ -145,6 +191,100 @@ def format_snapshot_exports_report(
             f"blocker={filters.get('blocker_code') or 'none'} "
             f"path={entry.get('export_path', '')}"
         )
+    return "\n".join(lines)
+
+
+def _base_snapshot_exports_summary(exports: list[dict[str, Any]]) -> dict[str, Any]:
+    summary: dict[str, Any] = {
+        "total_exports": len(exports),
+        "by_task": {},
+        "by_status": {},
+        "by_blocker_code": {},
+        "by_render_format": {},
+        "by_summary": {},
+        "latest_export": None,
+    }
+    for entry in exports:
+        filters = _snapshot_export_filters(entry)
+        task_key = str(filters.get("task_id") or "all")
+        status_key = str(filters.get("status") or "all")
+        blocker_key = str(filters.get("blocker_code") or "none")
+        render_key = str(entry.get("render_format") or "unknown")
+        summary_key = "summary" if bool(entry.get("summary")) else "list"
+        timestamp = str(entry.get("generated_at", ""))
+        summary["by_task"][task_key] = int(summary["by_task"].get(task_key, 0)) + 1
+        summary["by_status"][status_key] = int(summary["by_status"].get(status_key, 0)) + 1
+        summary["by_blocker_code"][blocker_key] = (
+            int(summary["by_blocker_code"].get(blocker_key, 0)) + 1
+        )
+        summary["by_render_format"][render_key] = (
+            int(summary["by_render_format"].get(render_key, 0)) + 1
+        )
+        summary["by_summary"][summary_key] = int(summary["by_summary"].get(summary_key, 0)) + 1
+        latest_export = summary["latest_export"]
+        if latest_export is None or timestamp >= str(latest_export.get("generated_at", "")):
+            summary["latest_export"] = {
+                "generated_at": entry.get("generated_at"),
+                "export_path": entry.get("export_path"),
+                "render_format": entry.get("render_format"),
+                "summary": entry.get("summary"),
+                "task_id": filters.get("task_id"),
+                "status": filters.get("status"),
+                "blocker_code": filters.get("blocker_code"),
+            }
+    return summary
+
+
+def summarize_snapshot_exports(
+    exports: list[dict[str, Any]],
+    *,
+    group_by: str | None = None,
+) -> dict[str, Any]:
+    if group_by is not None:
+        grouped_counts: dict[str, int] = {}
+        for entry in exports:
+            key = _snapshot_export_group_value(entry, group_by)
+            grouped_counts[key] = int(grouped_counts.get(key, 0)) + 1
+        base_summary = _base_snapshot_exports_summary(exports)
+        return {
+            "total_exports": base_summary["total_exports"],
+            "group_by": group_by,
+            "grouped_counts": grouped_counts,
+            "latest_export": base_summary["latest_export"],
+        }
+    return _base_snapshot_exports_summary(exports)
+
+
+def format_snapshot_exports_summary(
+    exports: list[dict[str, Any]],
+    *,
+    group_by: str | None = None,
+) -> str:
+    summary = summarize_snapshot_exports(exports, group_by=group_by)
+    lines = [f"total_exports: {summary['total_exports']}"]
+    if group_by is not None:
+        lines.append(f"group_by: {group_by}")
+        lines.append("grouped_counts:")
+        entries = summary["grouped_counts"]
+        for key in sorted(entries):
+            lines.append(f"{key}: {entries[key]}")
+    else:
+        for section_name in (
+            "by_task",
+            "by_status",
+            "by_blocker_code",
+            "by_render_format",
+            "by_summary",
+        ):
+            lines.append(f"{section_name}:")
+            entries = summary[section_name]
+            for key in sorted(entries):
+                lines.append(f"{key}: {entries[key]}")
+    lines.append("latest_export:")
+    payload = summary["latest_export"]
+    if payload is not None:
+        for key, value in payload.items():
+            lines.append(f"{key}: {value}")
     return "\n".join(lines)
 
 

@@ -75,7 +75,8 @@ Those warnings now include concrete remediation guidance so operators can tighte
 - `snapshots --snapshot-dir <dir> --summary --group-by blocker [--json]` for a focused summary on one aggregation dimension; `--group-by` is only valid with `--summary`
 - `snapshots --snapshot-dir <dir> ... --output <path>` for exporting a filtered list or summary after operator-side triage
 - `snapshots --snapshot-dir <dir> ... --output-dir <dir>` for auto-named archive exports of filtered list or summary views, plus a `manifest.json` describing the archived query exports
-- `snapshots-exports --exports-dir <dir> [--latest] [--limit N] [--json]` for reading that query-export `manifest.json` back as a saved operator inventory
+- `snapshots-exports --exports-dir <dir> [--task-id ...] [--status ...] [--blocker-code ...] [--latest] [--limit N] [--json]` for reading that query-export `manifest.json` back as a saved operator inventory
+- `snapshots-exports --exports-dir <dir> --summary --group-by render [--json]` for a grouped digest of archived snapshot queries by render format, task, status, blocker, or summary/list shape
 - `cleanup [--apply] --keep N [--older-than-days N]` for conservative local artifact and stale worktree pruning
 - `cleanup --logs-keep ... --runs-keep ... --prompts-older-than-days ...` for per-directory retention overrides
 - `operator.cleanup` in `codex-loop.yaml` for default retention policy, with CLI flags overriding config per invocation

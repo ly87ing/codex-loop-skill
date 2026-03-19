@@ -9,6 +9,7 @@ from codex_loop.reporting import (
     build_session_inventory,
     build_evidence_bundle,
     format_snapshot_exports_report,
+    format_snapshot_exports_summary,
     format_snapshots_report,
     format_snapshots_summary,
     format_events_summary,
@@ -18,6 +19,7 @@ from codex_loop.reporting import (
     load_snapshot_exports_manifest,
     load_snapshots_index,
     load_events_timeline,
+    summarize_snapshot_exports,
     summarize_snapshots,
     summarize_events,
 )
@@ -787,6 +789,92 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("count: 2", rendered)
             self.assertIn("render=text", rendered)
             self.assertIn("snapshot_count=2", rendered)
+
+    def test_snapshot_exports_manifest_can_filter_and_summarize(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exports_dir = Path(tmpdir)
+            (exports_dir / "manifest.json").write_text(
+                json.dumps(
+                    {
+                        "exports": [
+                            {
+                                "generated_at": "2026-03-21T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-list-a.json"),
+                                "source_snapshot_dir": str(exports_dir / "source-a"),
+                                "snapshot_count": 1,
+                                "summary": False,
+                                "group_by": None,
+                                "render_format": "json",
+                                "filters": {
+                                    "task_id": "001-foundation",
+                                    "status": "running",
+                                    "blocker_code": None,
+                                    "latest": False,
+                                    "latest_blocked": False,
+                                    "sort_order": "oldest",
+                                    "since": None,
+                                    "until": None,
+                                },
+                            },
+                            {
+                                "generated_at": "2026-03-22T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-summary-b.txt"),
+                                "source_snapshot_dir": str(exports_dir / "source-b"),
+                                "snapshot_count": 2,
+                                "summary": True,
+                                "group_by": "status",
+                                "render_format": "text",
+                                "filters": {
+                                    "task_id": None,
+                                    "status": "blocked",
+                                    "blocker_code": "no_progress_limit",
+                                    "latest": False,
+                                    "latest_blocked": True,
+                                    "sort_order": "newest",
+                                    "since": "2026-03-22T00:00:00+00:00",
+                                    "until": None,
+                                },
+                            },
+                            {
+                                "generated_at": "2026-03-23T00:00:00+00:00",
+                                "export_path": str(exports_dir / "snapshots-summary-c.json"),
+                                "source_snapshot_dir": str(exports_dir / "source-c"),
+                                "snapshot_count": 3,
+                                "summary": True,
+                                "group_by": "blocker",
+                                "render_format": "json",
+                                "filters": {
+                                    "task_id": "003-release",
+                                    "status": "blocked",
+                                    "blocker_code": "runner_failure_limit",
+                                    "latest": False,
+                                    "latest_blocked": False,
+                                    "sort_order": "newest",
+                                    "since": None,
+                                    "until": None,
+                                },
+                            },
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            filtered = load_snapshot_exports_manifest(
+                exports_dir,
+                status="blocked",
+            )
+            summary = summarize_snapshot_exports(filtered, group_by="render")
+            rendered = format_snapshot_exports_summary(filtered, group_by="render")
+
+            self.assertEqual(len(filtered), 2)
+            self.assertEqual(summary["total_exports"], 2)
+            self.assertEqual(summary["group_by"], "render")
+            self.assertEqual(summary["grouped_counts"]["json"], 1)
+            self.assertEqual(summary["grouped_counts"]["text"], 1)
+            self.assertIn("total_exports: 2", rendered)
+            self.assertIn("group_by: render", rendered)
+            self.assertIn("json: 1", rendered)
 
 
 if __name__ == "__main__":
