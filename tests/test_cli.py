@@ -40,9 +40,67 @@ class CliTests(unittest.TestCase):
             ):
                 exit_code = main(["health", "--project-dir", str(root), "--json"])
 
-            self.assertEqual(exit_code, 0)
+            self.assertEqual(exit_code, 2)
             self.assertEqual(stderr.getvalue(), "")
             self.assertEqual(json.loads(stdout.getvalue()), payload)
+
+    def test_health_command_returns_degraded_exit_code(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            payload = {
+                "project": "demo",
+                "health": "degraded",
+                "status": {"overall_status": "blocked"},
+                "doctor": {"errors": [], "warnings": []},
+                "events": None,
+                "snapshots": None,
+                "snapshot_exports": None,
+                "daemon": {"running": False},
+                "service": {"installed": False},
+            }
+
+            with (
+                patch("codex_loop.cli.build_health_snapshot", return_value=payload),
+                patch("codex_loop.cli.format_health_report", return_value="health: degraded"),
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                exit_code = main(["health", "--project-dir", str(root)])
+
+            self.assertEqual(exit_code, 2)
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertIn("health: degraded", stdout.getvalue())
+
+    def test_health_command_returns_error_exit_code(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            payload = {
+                "project": "demo",
+                "health": "error",
+                "status": {"overall_status": "unknown"},
+                "doctor": {"errors": ["bad config"], "warnings": []},
+                "events": None,
+                "snapshots": None,
+                "snapshot_exports": None,
+                "daemon": {"running": False},
+                "service": {"installed": False},
+            }
+
+            with (
+                patch("codex_loop.cli.build_health_snapshot", return_value=payload),
+                patch("codex_loop.cli.format_health_report", return_value="health: error"),
+                contextlib.redirect_stdout(stdout),
+                contextlib.redirect_stderr(stderr),
+            ):
+                exit_code = main(["health", "--project-dir", str(root)])
+
+            self.assertEqual(exit_code, 3)
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertIn("health: error", stdout.getvalue())
 
     def test_status_summary_prints_current_task(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -42,6 +42,14 @@ from .state_store import StateStore
 from .watchdog_manager import run_watchdog
 
 
+def _health_exit_code(health: str | None) -> int:
+    if health == "error":
+        return 3
+    if health == "degraded":
+        return 2
+    return 0
+
+
 def _collect_cleanup_overrides(args: argparse.Namespace) -> tuple[dict[str, int], dict[str, int]]:
     keep_overrides: dict[str, int] = {}
     age_overrides: dict[str, int] = {}
@@ -1236,7 +1244,7 @@ def main(argv: list[str] | None = None) -> int:
                         exports_dir=exports_dir,
                     )
                 )
-            return 0
+            return _health_exit_code(str(payload.get("health")))
 
         if args.command == "sessions":
             inventory = build_session_inventory(project_dir)

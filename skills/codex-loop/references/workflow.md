@@ -53,6 +53,7 @@ Those warnings now include concrete remediation guidance so operators can tighte
 - hook `failure_policy` can block `post_init`, `pre_iteration`, and `post_iteration`
 - `.codex-loop/metrics.json` for aggregate runtime counters
 - `health [--json]` for a consolidated operator view across status, doctor, event, daemon/service, and snapshot signals
+  Exit code contract: `0=ok`, `2=degraded`, `3=error`
 - `status --summary` for the latest blocker code, reason, and current task session id
 - `sessions` for a workspace-scoped inventory of known task session ids and their latest prompt/log/run artifacts
 - `evidence` for a read-only prompt/log/run bundle tied to the current task, a specific task, or the latest session, including recent watchdog restart/exhausted history for debugging long-running failures
