@@ -99,6 +99,12 @@ cd ..   # go back — next, cd into YOUR project directory (not this one)
 
 > **Note:** `-e` (editable install) means the `codex-loop-skill` directory must stay where it is — do not move or delete it after installing.
 
+> **If you get "externally managed environment" error** (common on macOS with Homebrew Python):
+> use `pipx` instead (see Tip below), or add `--break-system-packages` to the pip command:
+> ```bash
+> python3 -m pip install -e . --break-system-packages
+> ```
+
 > **Tip:** if you use virtual environments and want `codex-loop` available everywhere without activating one,
 > install with `pipx` instead:
 > ```bash
@@ -556,6 +562,23 @@ Or run it directly without installing:
 
 ```bash
 python3 -m codex_loop.cli --help
+```
+
+### "error: externally-managed-environment" during install
+
+On macOS with Homebrew Python (or some Linux distros), pip refuses to install globally.
+The recommended fix is `pipx`:
+
+```bash
+pipx install -e ./codex-loop-skill
+pipx ensurepath
+# Then open a new terminal
+```
+
+Or override the restriction (fine for a personal tool install):
+
+```bash
+python3 -m pip install -e . --break-system-packages
 ```
 
 ### "Codex could not authenticate" / API key error
