@@ -18,16 +18,17 @@ It shows a beginner-friendly task: build a command-line todo list tool in Python
 > Make sure you have completed the [Prerequisites](../../README.md#prerequisites) first.
 
 ```bash
-# 1. Copy this directory into a fresh Git repository
+# 1. Install codex-loop (skip if already installed)
+git clone https://github.com/ly87ing/codex-loop-skill.git
+python3 -m pip install -e codex-loop-skill/
+
+# 2. Copy this example into a fresh Git repository
 git init my-todo-project
-cp -r examples/simple-local-project/* my-todo-project/
+cp -r codex-loop-skill/examples/simple-local-project/* my-todo-project/
 cd my-todo-project
 
-# 2. Trust the directory in Codex (run once interactively)
+# 3. Trust the directory in Codex (run once interactively, then Ctrl-C)
 codex
-
-# 3. Install codex-loop
-pip install -e /path/to/codex-loop-skill
 
 # 4. Run the loop
 codex-loop run

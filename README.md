@@ -63,8 +63,8 @@ Before installing `codex-loop`, make sure you have:
 3. **OpenAI API key** — set `OPENAI_API_KEY` in your shell
 4. **A local Git repository** — run `git init` first if needed
 5. **Project directory trusted by Codex** — without this, `codex exec` will immediately fail with
-   "Not inside a trusted directory". Trust it once interactively by running `codex` inside the
-   directory, or add manually to `~/.codex/config.toml`:
+   "Not inside a trusted directory". Trust it once by running `codex` inside the directory
+   (accept the trust prompt, then Ctrl-C to exit), or add manually to `~/.codex/config.toml`:
    ```toml
    [projects."<absolute-path-to-your-project>"]
    trust_level = "trusted"
