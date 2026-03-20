@@ -145,12 +145,10 @@ codex-loop init --prompt "Add input validation to every form in this app"
 # 3. Run the loop — it will keep working until done or genuinely blocked
 #    Each iteration calls Codex and waits up to 30 minutes for a response.
 #    A typical small task takes 3–10 iterations (15 minutes to a few hours).
-#    The terminal will be silent between iterations — that is normal.
-#    To see what Codex is doing, open another terminal and run:
-#      codex-loop logs tail --lines 20
-#    You can press Ctrl-C at any time to stop safely; the next run picks up where it left off.
-#    To watch what Codex is doing in real time, open a second terminal and run:
+#    The terminal will be silent while Codex works — that is normal.
+#    To watch what Codex is doing, open another terminal and run:
 #      codex-loop logs tail --lines 50
+#    You can press Ctrl-C at any time to stop safely; the next run picks up where it left off.
 codex-loop run
 # You will see output like:
 #   [iteration 1/30] task: 001-foundation  (0/2 done, running Codex...) [14:23:01]
@@ -172,10 +170,13 @@ codex-loop run
 # Note: Codex makes changes in an isolated Git branch (at ../.codex-loop-worktrees/).
 #       You won't see the changes in your project directory until you merge in step 4.
 
-# 4. Merge the changes — copy the exact branch name printed above, then run:
-git checkout main   # or master, or whatever your default branch is
-git merge codex-loop/<branch-name-printed-above>
-# Optional: clean up old log/run artifacts (does NOT delete your code or git history):
+# 4. Merge the changes
+#    When the loop completes, it prints the exact commands to run. Copy and run them:
+#      git checkout main   # or master, or your default branch
+#      git merge codex-loop/<branch>   # use the branch name printed above
+#    If you need to find the branch name later:
+#      git branch | grep codex-loop
+#    After merging, clean up old log/run artifacts (does NOT delete your code or git history):
 codex-loop cleanup --apply
 
 # 5. Check status at any time
