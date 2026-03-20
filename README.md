@@ -133,8 +133,10 @@ cat codex-loop.yaml
 # 3. Run the loop — it will keep working until done or genuinely blocked
 #    Each iteration calls Codex and waits up to 30 minutes for a response.
 #    A typical small task takes 3–10 iterations (15 minutes to a few hours).
-#    The terminal will be silent while Codex works — that is normal.
-#    To see a human-readable summary of what happened, open another terminal and run:
+#    Each iteration shows one progress line before Codex starts, then goes quiet
+#    while Codex works (up to 30 min per iteration) — silence during that gap is normal.
+#    A result line is printed after each iteration completes.
+#    To see a human-readable timeline at any time, open another terminal and run:
 #      codex-loop events --limit 10
 #    (For raw Codex output: codex-loop logs tail --lines 50)
 #    You can press Ctrl-C at any time to stop safely; the next run picks up where it left off.

@@ -35,8 +35,10 @@ git commit -m "init"
 #    Then type "hello", press Enter, accept the trust prompt (type y), then Ctrl-C.
 
 # 4. Run the loop
-#    Each iteration waits up to 30 minutes for Codex — silence is normal.
-#    To watch progress in another terminal: codex-loop events --limit 10
+#    Each iteration prints a progress line, then goes quiet while Codex works
+#    (up to 30 min per iteration) — silence during that gap is normal.
+#    A result line is printed after each iteration completes.
+#    To watch the timeline in another terminal: codex-loop events --limit 10
 codex-loop run
 # When it finishes you will see something like:
 #   completed
