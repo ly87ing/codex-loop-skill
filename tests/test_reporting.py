@@ -1209,5 +1209,22 @@ class ReportingTests(unittest.TestCase):
             self.assertEqual(filtered[0]["render_format"], "text")
 
 
+    def test_load_snapshots_index_raises_on_corrupt_index(self) -> None:
+        """load_snapshots_index raises ValueError when index.json is corrupt."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            snapshot_dir = Path(tmpdir)
+            (snapshot_dir / "index.json").write_text("not valid json{", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_snapshots_index(snapshot_dir)
+
+    def test_load_snapshot_exports_manifest_raises_on_corrupt_manifest(self) -> None:
+        """load_snapshot_exports_manifest raises ValueError when manifest.json is corrupt."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            exports_dir = Path(tmpdir)
+            (exports_dir / "manifest.json").write_text("{broken", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                load_snapshot_exports_manifest(exports_dir)
+
+
 if __name__ == "__main__":
     unittest.main()

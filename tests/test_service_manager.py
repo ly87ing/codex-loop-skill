@@ -308,5 +308,30 @@ class ServiceManagerTests(unittest.TestCase):
             self.assertTrue(metadata_path.exists())
 
 
+    def test_service_status_handles_corrupt_metadata_gracefully(self) -> None:
+        """service_status returns sane defaults when service.json is corrupt JSON."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "project"
+            home_dir = Path(tmpdir) / "home"
+            root.mkdir(parents=True, exist_ok=True)
+            loop_dir = root / ".codex-loop"
+            loop_dir.mkdir(parents=True, exist_ok=True)
+            (loop_dir / "service.json").write_text("{bad json", encoding="utf-8")
+
+            status = service_status(
+                root,
+                uid=501,
+                home_dir=home_dir,
+                platform="darwin",
+                run_cmd=lambda *a, **kw: type(
+                    "R", (), {"returncode": 1, "stdout": "", "stderr": ""}
+                )(),
+            )
+
+            self.assertFalse(status["loaded"])
+            self.assertFalse(status["healthy"])
+            self.assertIsNotNone(status["label"])
+
+
 if __name__ == "__main__":
     unittest.main()
