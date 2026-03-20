@@ -141,5 +141,23 @@ class CodexRunnerTests(unittest.TestCase):
             self.assertEqual(result["resume_failure_reason"], "Session not found")
 
 
+    def test_invoke_timeout_error_message_is_str_not_bytes(self) -> None:
+        """TimeoutExpired.stdout/stderr are bytes even with text=True; _invoke must
+        decode them so the RuntimeError message is a clean string, not b'...' repr."""
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            runner = CodexRunner(root)
+            command = ["python3", "-c",
+                       "import sys, time; sys.stdout.write('partial'); sys.stdout.flush(); time.sleep(10)"]
+            with self.assertRaises(RuntimeError) as ctx:
+                runner._invoke(command, "", root, timeout_seconds=1)
+            msg = str(ctx.exception)
+            self.assertIn("timed out", msg.lower())
+            # Must not contain the bytes repr prefix.
+            self.assertNotIn("b'", msg)
+            self.assertNotIn('b"', msg)
+
+
 if __name__ == "__main__":
     unittest.main()

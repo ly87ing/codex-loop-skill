@@ -275,12 +275,16 @@ class CodexRunner:
                 timeout=timeout_seconds,
             )
         except subprocess.TimeoutExpired as exc:
+            def _decode(raw: bytes | str | None) -> str:
+                if raw is None:
+                    return ""
+                return raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else raw
             msg = (
                 "Codex command timed out.\n"
                 f"Command: {' '.join(command)}\n"
                 f"Timeout: {timeout_seconds}s\n"
-                f"STDOUT:\n{exc.stdout or ''}\n"
-                f"STDERR:\n{exc.stderr or ''}"
+                f"STDOUT:\n{_decode(exc.stdout)}\n"
+                f"STDERR:\n{_decode(exc.stderr)}"
             )
             raise RuntimeError(msg) from exc
         except FileNotFoundError as exc:
