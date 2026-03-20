@@ -1055,6 +1055,8 @@ def main(argv: list[str] | None = None) -> int:
                     "  git init && git add -A -- ':!.codex-loop' && git commit -m 'init'\n",
                     flush=True,
                 )
+            if args.force:
+                print("Warning: --force will overwrite existing codex-loop files and reset all run history.", flush=True)
             print("Generating spec, plan, and tasks from your prompt...", flush=True)
             print("(This calls Codex to produce your project files — usually takes 30–90 seconds.)", flush=True)
             runner = CodexRunner(project_dir)
