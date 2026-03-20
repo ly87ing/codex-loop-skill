@@ -896,7 +896,7 @@ def _build_parser() -> argparse.ArgumentParser:
     doctor_parser.add_argument(
         "--repair",
         action="store_true",
-        help="Repair schema/state/task drift where possible.",
+        help="Auto-fix common problems: recreate missing files, sync task state with task files.",
     )
 
     events_parser = subparsers.add_parser("events", help="Render a concise loop timeline.")
