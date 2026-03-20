@@ -57,6 +57,8 @@ Before installing `codex-loop`, make sure you have:
 
 ## Install
 
+`codex-loop` has no third-party Python dependencies — just Python 3.11+ and the tools you already have.
+
 ```bash
 git clone https://github.com/ly87ing/codex-loop-skill.git
 cd codex-loop-skill
