@@ -129,6 +129,8 @@ codex-loop init --prompt "Add input validation to every form in this app"
 #      - verification.commands matches how you run your tests (e.g. "python -m pytest tests/ -q")
 #      - codex.model is the OpenAI model passed to Codex (default: gpt-5.4, leave as-is unless you have a reason to change)
 #    Also skim spec/, plan/, and tasks/ to make sure the goal was captured correctly.
+#    If the output looks wrong, re-run with a better prompt:
+#      codex-loop init --prompt "..." --force
 
 # 3. Run the loop — it will keep working until done or genuinely blocked
 codex-loop run
