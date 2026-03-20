@@ -654,6 +654,14 @@ def format_status_summary(project_dir: Path) -> str:
         lines.append(f"last_blocker_reason: {snapshot.get('last_blocker_reason')}")
     if snapshot.get("overall_status") == "blocked":
         lines.append("hint: run 'codex-loop run --retry-blocked' to retry, or 'codex-loop events --limit 20' for full details")
+    if snapshot.get("overall_status") == "completed" and snapshot.get("worktree_branch"):
+        branch = snapshot["worktree_branch"]
+        lines.append("")
+        lines.append("Next steps (all tasks done):")
+        lines.append(f"  git diff --stat main..{branch}")
+        lines.append( "  git checkout main")
+        lines.append(f"  git merge {branch}")
+        lines.append( "  codex-loop cleanup --apply")
     if snapshot.get("last_summary"):
         lines.append(f"last_summary: {snapshot.get('last_summary')}")
     if snapshot.get("watchdog_phase"):
