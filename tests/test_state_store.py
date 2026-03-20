@@ -216,5 +216,38 @@ class StateStoreTests(unittest.TestCase):
             self.assertEqual(state["tasks"]["001-task"]["session_id"], "session-abc")
 
 
+    def test_transient_runner_failure_does_not_increment_no_progress(self) -> None:
+        """Transient errors (network, timeout, kill) are infrastructure blips and must
+        not advance the no_progress_iterations counter, which would wrongly trigger
+        the no_progress_limit circuit breaker."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial(
+                project_name="demo",
+                source_prompt="Build it",
+                tasks=["001-foundation"],
+            )
+
+            store.record_runner_failure(
+                task_id="001-foundation",
+                reason="connection reset by peer",
+                transient=True,
+            )
+            state = store.load()
+            self.assertEqual(state["meta"]["no_progress_iterations"], 0)
+            self.assertEqual(state["meta"]["consecutive_runner_failures"], 0)
+
+            # Non-transient failure DOES increment both counters.
+            store.record_runner_failure(
+                task_id="001-foundation",
+                reason="codex command failed with exit code 1",
+                transient=False,
+            )
+            state = store.load()
+            self.assertEqual(state["meta"]["no_progress_iterations"], 1)
+            self.assertEqual(state["meta"]["consecutive_runner_failures"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

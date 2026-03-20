@@ -291,9 +291,12 @@ class StateStore:
         task = state["tasks"][task_id]
         meta["iteration"] += 1
         meta["updated_at"] = _now()
-        meta["no_progress_iterations"] += 1
-        # Transient failures (network, timeout, kill signal) do not count toward
-        # the structural runner-failure circuit breaker.
+        # Transient failures (network, timeout, kill signal) are infrastructure
+        # blips, not real loop stalls — do not penalise the no-progress counter.
+        if not transient:
+            meta["no_progress_iterations"] += 1
+        # Transient failures do not count toward the structural runner-failure
+        # circuit breaker either.
         if not transient:
             meta["consecutive_runner_failures"] = int(
                 meta.get("consecutive_runner_failures", 0)
