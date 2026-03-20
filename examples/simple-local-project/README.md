@@ -49,6 +49,8 @@ codex-loop run
 #    If you need to find it later:
 git branch | grep codex-loop
 #    or: codex-loop status --summary  (shows worktree_branch)
+#    After merging, clean up old artifacts:
+codex-loop cleanup --apply
 
 # 6. Watch progress (or inspect after a blocked run)
 codex-loop status --summary
@@ -80,6 +82,7 @@ If the loop stops before completing, the reason is printed directly in the termi
 blocked
 Blocked: [no_progress_limit] No file changes detected for 4 consecutive iterations.
 Run 'codex-loop status --summary' for full details.
+To retry: codex-loop run --retry-blocked
 ```
 
 For more detail and to retry:
