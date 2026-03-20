@@ -109,6 +109,11 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
         return report
     _append_operator_cleanup_warnings(report, config)
     _append_watchdog_warnings(report, project_dir)
+    if not config.verification.commands:
+        report.warnings.append(
+            "verification.commands is empty — the loop will treat every iteration as passing. "
+            "Add at least one test command (e.g. 'python -m pytest tests/ -q') to codex-loop.yaml."
+        )
 
     tasks_dir = project_dir / config.tasks.source_dir
     task_graph = TaskGraph(tasks_dir)
