@@ -115,12 +115,12 @@ class CodexRunner:
                 "--json",
                 "--model",
                 model,
-                "--output-schema",
-                str(schema_path),
-                "--output-last-message",
-                str(output_path),
             ]
         )
+        # `codex exec resume` does not accept --output-schema; only fresh exec does.
+        if not session_id:
+            base.extend(["--output-schema", str(schema_path)])
+        base.extend(["--output-last-message", str(output_path)])
         if session_id:
             base.extend([session_id, "-"])
         else:

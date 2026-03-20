@@ -64,6 +64,9 @@ class CodexRunnerTests(unittest.TestCase):
             self.assertIn("session-123", command)
             self.assertIn('approval_policy="on-request"', command)
             self.assertIn('sandbox_mode="read-only"', command)
+            # codex exec resume does not accept --output-schema
+            self.assertNotIn("--output-schema", command)
+            self.assertIn("--output-last-message", command)
 
     def test_falls_back_to_fresh_exec_when_resume_session_is_invalid(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
