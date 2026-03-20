@@ -204,9 +204,6 @@ class CodexLoopConfig:
         if not self.goal.done_when:
             msg = "goal.done_when must include at least one completion criterion."
             raise ValueError(msg)
-        if not self.verification.commands:
-            msg = "verification.commands must contain at least one command."
-            raise ValueError(msg)
         if self.execution.max_iterations <= 0:
             msg = "execution.max_iterations must be greater than zero."
             raise ValueError(msg)

@@ -776,5 +776,124 @@ class SupervisorTests(unittest.TestCase):
             self.assertEqual(outcome, LoopOutcome.BLOCKED)
 
 
+    def test_no_verification_commands_completes_without_verifier(self) -> None:
+        """When no verification commands are configured, all-done tasks should
+        yield COMPLETED without calling verifier (avoids permanent BLOCKED)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-task.md").write_text("# Task\n\nDo it.\n")
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Done"]},
+                    "execution": {"max_iterations": 5, "max_no_progress_iterations": 5},
+                    "verification": {"commands": []},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-task"])
+
+            class NeverCallVerifier:
+                def run(self, commands, cwd, pass_requires_all=True, timeout_seconds=300):
+                    raise AssertionError("verifier.run() called despite empty commands")
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=StubRunner([
+                    {"status": "complete", "summary": "done", "task_id": "001-task",
+                     "files_changed": ["f.py"], "verification_expected": [],
+                     "needs_resume": False, "blockers": [], "next_action": "done"},
+                ]),
+                verifier=NeverCallVerifier(),
+            )
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.COMPLETED)
+
+    def test_circuit_breaker_skipped_dep_unblocks_downstream(self) -> None:
+        """A downstream task whose dependency was skipped by the task-level
+        circuit breaker should still be selectable and run to completion."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-hard.md").write_text("# Hard\n\nDo it.\n")
+            (tasks_dir / "002-downstream.md").write_text(
+                "<!-- depends_on: 001-hard -->\n# Downstream\n\nDo it.\n"
+            )
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Done"]},
+                    "execution": {
+                        "max_iterations": 10,
+                        "max_no_progress_iterations": 10,
+                        "max_consecutive_task_failures": 1,
+                    },
+                    "verification": {"commands": ["python3 -c 'raise SystemExit(0)'"]},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-hard", "002-downstream"])
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=StubRunner([
+                    {"status": "continue", "summary": "fail", "task_id": "001-hard",
+                     "files_changed": [], "verification_expected": [],
+                     "needs_resume": False, "blockers": [], "next_action": "continue"},
+                    {"status": "complete", "summary": "done", "task_id": "002-downstream",
+                     "files_changed": ["g.py"], "verification_expected": [],
+                     "needs_resume": False, "blockers": [], "next_action": "done"},
+                ]),
+                # 001 verif fails → circuit breaker; 002 verif passes; final passes
+                verifier=StubVerifier([False, True, True]),
+            )
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.COMPLETED)
+            state = store.load()
+            self.assertEqual(state["tasks"]["001-hard"]["status"], "blocked")
+            self.assertEqual(state["tasks"]["001-hard"]["blocker_code"], "task_failure_circuit_breaker")
+            self.assertEqual(state["tasks"]["002-downstream"]["status"], "done")
+
+    def test_circuit_breaker_resets_global_verification_counter(self) -> None:
+        """Skipping a task via circuit breaker should reset global
+        consecutive_verification_failures so the next task is not tripped
+        by the previous task's accumulated failures."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-failing", "002-good"])
+
+            # Accumulate verification failures then trigger circuit breaker
+            state = store.load()
+            state["meta"]["consecutive_verification_failures"] = 99
+            state["meta"]["consecutive_runner_failures"] = 5
+            store.save(state)
+
+            store.mark_blocked(
+                "001-failing",
+                "Task failed 1 times consecutively.",
+                code="task_failure_circuit_breaker",
+            )
+
+            reloaded = store.load()
+            self.assertEqual(reloaded["meta"]["consecutive_verification_failures"], 0)
+            self.assertEqual(reloaded["meta"]["consecutive_runner_failures"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

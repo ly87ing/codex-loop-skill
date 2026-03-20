@@ -203,9 +203,13 @@ class StateStore:
             "timestamp": _now(),
         }
         # task_failure_circuit_breaker skips one task but the loop continues;
-        # do not mark the overall run as blocked.
+        # do not mark the overall run as blocked. Also reset the global
+        # verification failure counter so the next task starts with a clean slate.
         if code != "task_failure_circuit_breaker":
             state["meta"]["overall_status"] = "blocked"
+        else:
+            state["meta"]["consecutive_verification_failures"] = 0
+            state["meta"]["consecutive_runner_failures"] = 0
         state["meta"]["updated_at"] = _now()
         state["history"].append(
             {

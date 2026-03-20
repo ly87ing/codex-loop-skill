@@ -186,12 +186,15 @@ class Supervisor:
                     return LoopOutcome.BLOCKED
                 self._sleep_between_iterations()
                 continue
-            passed, verification_results = self.verifier.run(
-                self.config.verification.commands,
-                self.working_directory,
-                self.config.verification.pass_requires_all,
-                self.config.verification.timeout_seconds,
-            )
+            if not self.config.verification.commands:
+                passed, verification_results = True, []
+            else:
+                passed, verification_results = self.verifier.run(
+                    self.config.verification.commands,
+                    self.working_directory,
+                    self.config.verification.pass_requires_all,
+                    self.config.verification.timeout_seconds,
+                )
             files_changed = self._real_files_changed(
                 self.working_directory,
                 result.get("files_changed", []),
@@ -360,12 +363,17 @@ class Supervisor:
         # Pure done, or done+blocked (some tasks skipped) — both warrant a
         # final verification pass before declaring COMPLETED.
         if statuses <= {"done", "blocked"} and "done" in statuses:
-            passed, _ = self.verifier.run(
-                self.config.verification.commands,
-                self.working_directory,
-                self.config.verification.pass_requires_all,
-                self.config.verification.timeout_seconds,
-            )
+            # Skip final verification when no commands are configured — treat
+            # as passed so the loop can declare COMPLETED instead of blocking.
+            if not self.config.verification.commands:
+                passed = True
+            else:
+                passed, _ = self.verifier.run(
+                    self.config.verification.commands,
+                    self.working_directory,
+                    self.config.verification.pass_requires_all,
+                    self.config.verification.timeout_seconds,
+                )
             if passed:
                 state["meta"]["overall_status"] = "completed"
                 state["meta"]["updated_at"] = datetime.now(UTC).isoformat()
@@ -415,12 +423,22 @@ class Supervisor:
             for tid, ts in task_states.items()
             if ts.get("status") == "done"
         }
+        # Tasks skipped by the task-level circuit breaker are blocked with this
+        # specific code. Treat them as satisfied dependencies so downstream
+        # tasks are not permanently deadlocked waiting for a skipped task.
+        skipped_ids = {
+            tid
+            for tid, ts in task_states.items()
+            if ts.get("status") == "blocked"
+            and ts.get("blocker_code") == "task_failure_circuit_breaker"
+        }
+        satisfied_ids = done_ids | skipped_ids
         for task in tasks:
             status = task_states.get(task.task_id, {}).get("status")
             if status not in {"ready", "in_progress"}:
                 continue
-            # Skip tasks whose dependencies are not yet done.
-            if any(dep not in done_ids for dep in task.depends_on):
+            # Skip tasks whose dependencies are not yet done or skipped.
+            if any(dep not in satisfied_ids for dep in task.depends_on):
                 continue
             return task
         return None

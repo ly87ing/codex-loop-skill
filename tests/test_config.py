@@ -8,18 +8,19 @@ from codex_loop.config import CodexLoopConfig
 
 
 class ConfigTests(unittest.TestCase):
-    def test_rejects_empty_verification_commands(self) -> None:
+    def test_allows_empty_verification_commands(self) -> None:
+        # Empty commands list is valid — means "no verification, auto-pass".
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
-            with self.assertRaises(ValueError):
-                CodexLoopConfig.from_dict(
-                    {
-                        "project": {"name": "demo"},
-                        "goal": {"summary": "Build demo", "done_when": ["tests pass"]},
-                        "verification": {"commands": []},
-                    },
-                    root,
-                )
+            cfg = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["tests pass"]},
+                    "verification": {"commands": []},
+                },
+                root,
+            )
+            self.assertEqual(cfg.verification.commands, [])
 
     def test_rejects_non_positive_iteration_limits(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
