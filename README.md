@@ -1,5 +1,7 @@
 # codex-loop
 
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue) ![License: MIT](https://img.shields.io/badge/license-MIT-green) ![Platform: macOS and Linux](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
+
 `codex-loop` is an external supervisor for [Codex CLI](https://github.com/openai/codex) (OpenAI's terminal coding agent). You give it a goal; it scaffolds
 a local task queue, then keeps running Codex — one task at a time — until your tests
 pass or the loop hits a real blocker.
