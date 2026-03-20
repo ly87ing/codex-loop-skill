@@ -1127,6 +1127,15 @@ def main(argv: list[str] | None = None) -> int:
                 if args.retry_blocked:
                     retry_blocked_tasks_for_retry(project_dir)
                 print("Starting codex-loop run...", flush=True)
+                try:
+                    _pre_state = StateStore(project_dir / ".codex-loop" / "state.json").load()
+                    _tasks = _pre_state.get("tasks", {})
+                    _pending = sum(1 for t in _tasks.values() if t.get("status") not in {"done", "blocked"})
+                    _total = len(_tasks)
+                    if _total:
+                        print(f"  tasks: {_pending} pending / {_total} total", flush=True)
+                except Exception:  # noqa: BLE001
+                    pass
                 outcome = run_project(project_dir)
             print(outcome.value)
             try:
