@@ -79,11 +79,11 @@ Before installing `codex-loop`, make sure you have:
    ```
    To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
    **Cost:** each iteration calls Codex with a large prompt and expects a structured response. A typical small task (3–10 iterations) costs roughly $0.10–$1.00 depending on the model and codebase size. Set a spending limit on your OpenAI account before running long unattended loops.
-   **Model access:** `codex-loop` defaults to `gpt-5.4`. If your API key does not have access to that model, override it:
+   **Model access:** `codex-loop` defaults to `gpt-5.4`. If your API key does not have access to that model, pass `--model` to `init` — it is automatically written into `codex-loop.yaml`:
    ```bash
    codex-loop init --prompt "..." --model o3
    ```
-   Then set `"model": "o3"` in `codex-loop.yaml` before running. Common alternatives: `o3`, `o4-mini`.
+   Common alternatives: `o3`, `o4-mini`.
 4. **A local Git repository with at least one commit** — if starting fresh: `git init && git add -A && git commit -m 'init'`
    (After running `codex-loop init`, the `.codex-loop/` directory is automatically added to `.gitignore` — do not commit it.)
 5. **Project directory trusted by Codex** — `codex exec` refuses to run in untrusted directories.
@@ -216,7 +216,7 @@ cd /path/to/your-project
 codex-loop init --prompt "Add input validation to every form in this app"
 # If you get a model access error, add: --model o3
 #   codex-loop init --prompt "..." --model o3
-# Then also set "model": "o3" in the generated codex-loop.yaml before running.
+# (--model is automatically written into codex-loop.yaml — no manual edit needed)
 # (This calls Codex to generate your project files — usually takes 30–90 seconds.)
 # Success looks like:
 #   Initialized codex-loop files in /your/project
