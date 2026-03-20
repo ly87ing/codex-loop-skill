@@ -420,6 +420,8 @@ Common causes and fixes:
 | `verification_failure_circuit_breaker` | Tests kept failing | Look at `codex-loop events --limit 20` for the error output |
 | `task_failure_circuit_breaker` | One task failed too many times; loop continues with next task | Check `codex-loop status --summary` to see which task was skipped |
 | `max_iterations` | Hit the iteration cap | Increase `max_iterations` in `codex-loop.yaml` or break the task into smaller pieces |
+| `agent_blocked` | Codex reported it is stuck and cannot continue | Edit the relevant task file to give more context, then `codex-loop run --retry-blocked` |
+| `no_selectable_task` | All remaining tasks are waiting on dependencies that are not done | Check `codex-loop status --summary`; a dependency task may be blocked and need `--retry-blocked` |
 
 After fixing the root cause:
 
