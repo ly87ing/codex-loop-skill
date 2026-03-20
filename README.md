@@ -462,6 +462,17 @@ To fix the test command, edit `verification.commands` in `codex-loop.yaml`:
 }
 ```
 
+To run multiple commands (all must pass):
+
+```json
+"verification": {
+  "commands": [
+    "python -m pytest tests/ -q",
+    "python -m mypy src/"
+  ]
+}
+```
+
 Common examples:
 - Python pytest: `python -m pytest tests/ -q`
 - Node.js: `npm test`
