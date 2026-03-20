@@ -1241,6 +1241,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "status":
+            if not (project_dir / ".codex-loop" / "state.json").exists():
+                print(
+                    f"codex-loop error: no state found in {project_dir}\n"
+                    "Run 'codex-loop init --prompt \"your goal\"' first, then 'codex-loop run'.",
+                    file=sys.stderr,
+                )
+                return 1
             if args.summary:
                 print(format_status_summary(project_dir))
             else:
