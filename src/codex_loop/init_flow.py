@@ -174,14 +174,23 @@ def initialize_project(
 
 
 def _ensure_gitignore(project_dir: Path) -> None:
-    """Append .codex-loop/ to .gitignore if not already present."""
-    gitignore = project_dir / ".gitignore"
+    """Append .codex-loop/ to .gitignore and .git/info/exclude if not already present."""
     entry = ".codex-loop/"
+
+    gitignore = project_dir / ".gitignore"
     if gitignore.exists():
         existing = gitignore.read_text(encoding="utf-8")
-        if entry in existing.splitlines():
-            return
-        separator = "" if existing.endswith("\n") else "\n"
-        gitignore.write_text(existing + separator + entry + "\n", encoding="utf-8")
+        if entry not in existing.splitlines():
+            separator = "" if existing.endswith("\n") else "\n"
+            gitignore.write_text(existing + separator + entry + "\n", encoding="utf-8")
     else:
         gitignore.write_text(entry + "\n", encoding="utf-8")
+
+    # Also add to .git/info/exclude so .codex-loop/ is ignored even before
+    # .gitignore is committed (works for any git repo layout).
+    git_exclude = project_dir / ".git" / "info" / "exclude"
+    if git_exclude.exists():
+        existing = git_exclude.read_text(encoding="utf-8")
+        if entry not in existing.splitlines():
+            separator = "" if existing.endswith("\n") else "\n"
+            git_exclude.write_text(existing + separator + entry + "\n", encoding="utf-8")
