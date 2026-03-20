@@ -174,6 +174,10 @@ def run_project(
             state["meta"]["worktree_path"] = str(worktree.path)
             state["meta"]["worktree_branch"] = worktree.branch_name
             state_store.save(state)
+            print(
+                f"Codex working in: {working_directory}",
+                flush=True,
+            )
 
         runner = LoopTaskRunner(
             codex_runner=CodexRunner(project_dir),
