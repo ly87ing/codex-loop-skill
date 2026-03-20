@@ -1100,18 +1100,23 @@ def main(argv: list[str] | None = None) -> int:
                 print("Starting codex-loop run...", flush=True)
                 outcome = run_project(project_dir)
             print(outcome.value)
-            if outcome.value != "completed":
-                try:
-                    _state = StateStore(project_dir / ".codex-loop" / "state.json").load()
+            try:
+                _state = StateStore(project_dir / ".codex-loop" / "state.json").load()
+                if outcome.value == "completed":
+                    _branch = _state.get("meta", {}).get("worktree_branch")
+                    if _branch:
+                        print(f"Changes are on branch: {_branch}")
+                        print(f"To merge: git merge {_branch}")
+                else:
                     _blocker = _state.get("meta", {}).get("last_blocker") or {}
                     if _blocker.get("reason"):
                         print(
                             f"Blocked: [{_blocker.get('code', '?')}] {_blocker['reason']}",
                             file=sys.stderr,
                         )
-                except Exception:  # noqa: BLE001
-                    pass
-                print("Run 'codex-loop status --summary' for full details.", file=sys.stderr)
+                    print("Run 'codex-loop status --summary' for full details.", file=sys.stderr)
+            except Exception:  # noqa: BLE001
+                pass
             return 0 if outcome.value == "completed" else 2
 
         if args.command == "watchdog":

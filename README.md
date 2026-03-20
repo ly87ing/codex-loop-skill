@@ -138,6 +138,25 @@ codex-loop status --summary
 That is all you need for most tasks. The loop stops by itself when all tasks pass verification,
 or when it hits a real blocker (no progress, too many failures).
 
+### After the loop completes
+
+The loop runs Codex in an isolated Git branch (prefix: `codex-loop/`). When it finishes,
+merge that branch into your main branch to keep the changes:
+
+```bash
+# See which branch has the changes
+git branch | grep codex-loop
+
+# Merge it into your current branch
+git merge codex-loop/<branch-name>
+
+# Or inspect it first
+git diff main..codex-loop/<branch-name>
+```
+
+The worktree directory is kept at `../.codex-loop-worktrees/` by default so you can
+review the work before merging.
+
 ### If the loop blocks
 
 When the loop stops with `blocked`, the reason is printed directly in the terminal:
