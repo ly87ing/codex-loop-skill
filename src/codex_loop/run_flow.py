@@ -118,6 +118,10 @@ def run_project(
     if report.errors:
         msg = "; ".join(report.errors)
         raise RuntimeError(f"codex-loop doctor found blocking issues: {msg}")
+    for warning in report.warnings:
+        print(f"Warning: {warning}", flush=True)
+    for fixed in report.fixed:
+        print(f"Auto-fixed: {fixed}", flush=True)
     state_store = StateStore(project_dir / ".codex-loop" / "state.json")
     try:
         repo_root = resolve_repo_root(project_dir)
