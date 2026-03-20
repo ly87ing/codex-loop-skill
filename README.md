@@ -327,6 +327,29 @@ All thresholds are configurable in `codex-loop.yaml` under `execution`.
 
 ## Troubleshooting
 
+### `codex-loop: command not found`
+
+The `codex-loop` command is installed by pip into a user scripts directory that may not be on your PATH.
+
+Fix with pipx (recommended — puts it on PATH automatically):
+
+```bash
+pipx install -e ./codex-loop-skill
+```
+
+Or find where pip put it and add that directory to your PATH:
+
+```bash
+python3 -m pip show codex-loop-skill | grep Location
+# Add <Location>/../bin to your PATH in ~/.zshrc or ~/.bashrc
+```
+
+Or run it directly without installing:
+
+```bash
+python3 -m codex_loop.cli --help
+```
+
 ### "Codex could not authenticate" / API key error
 
 `codex exec` exits immediately if `OPENAI_API_KEY` is not set or is invalid.
