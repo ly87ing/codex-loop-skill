@@ -119,7 +119,13 @@ def run_project(
         msg = "; ".join(report.errors)
         raise RuntimeError(f"codex-loop doctor found blocking issues: {msg}")
     state_store = StateStore(project_dir / ".codex-loop" / "state.json")
-    repo_root = resolve_repo_root(project_dir)
+    try:
+        repo_root = resolve_repo_root(project_dir)
+    except subprocess.CalledProcessError:
+        raise RuntimeError(
+            f"{project_dir} is not inside a Git repository. "
+            "Initialize one with: git init && git add . && git commit -m 'init'"
+        )
     ensure_local_state_ignored(repo_root)
     lock = RunLock(
         project_dir / ".codex-loop" / "run.lock",
