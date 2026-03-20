@@ -201,6 +201,10 @@ class Supervisor:
                 self.working_directory,
                 result.get("files_changed", []),
             )
+            _status = str(result.get("status", "continue"))
+            _verify = "verification=pass" if passed else "verification=FAIL"
+            _files = f"files_changed={len(files_changed)}"
+            print(f"  -> status={_status} {_verify} {_files}", flush=True)
             fingerprint = self._fingerprint(task.task_id, files_changed, passed, result)
             updated = self.state_store.record_iteration(
                 task_id=task.task_id,
