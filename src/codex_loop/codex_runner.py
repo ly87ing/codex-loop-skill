@@ -69,7 +69,12 @@ def _extract_session_id(jsonl: str) -> str | None:
 
 def _read_json_file(path: Path) -> dict[str, Any]:
     if not path.exists():
-        msg = f"Expected output file was not created: {path}"
+        msg = (
+            f"Expected output file was not created: {path}\n"
+            "Codex did not write its output. This usually means the Codex CLI version does "
+            "not support --output-last-message, or Codex exited before producing output.\n"
+            "Try updating Codex CLI: npm install -g @openai/codex"
+        )
         raise FileNotFoundError(msg)
     loaded = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(loaded, dict):

@@ -79,8 +79,10 @@ Before installing `codex-loop`, make sure you have:
    To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
 4. **A local Git repository with at least one commit** — if starting fresh: `git init && git add . && git commit -m 'init'`
 5. **Project directory trusted by Codex** — without this, `codex exec` will immediately fail with
-   "Not inside a trusted directory". Trust it once by running `codex` inside the directory
-   (accept the trust prompt, then Ctrl-C to exit), or add manually to `~/.codex/config.toml`:
+   "Not inside a trusted directory". Trust it once by running `codex` interactively inside your
+   project directory, typing something like `hello`, pressing Enter, accepting the trust prompt
+   (type `y` or follow on-screen instructions), then pressing Ctrl-C to exit. You only need to
+   do this once per directory. Or add it manually to `~/.codex/config.toml`:
    ```toml
    [projects."<absolute-path-to-your-project>"]
    trust_level = "trusted"
