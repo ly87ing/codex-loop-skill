@@ -115,6 +115,13 @@ codex-loop init --prompt "Add input validation to every form in this app"
 
 # 3. Run the loop — it will keep working until done or genuinely blocked
 codex-loop run
+# You will see output like:
+#   [iteration 1] task: 001-foundation
+#     -> status=continue verification=FAIL files_changed=3
+#   [iteration 2] task: 001-foundation
+#     -> status=complete verification=pass files_changed=5
+#   All tasks done and verification passed.
+#   completed
 
 # 4. Check status at any time
 codex-loop status --summary
