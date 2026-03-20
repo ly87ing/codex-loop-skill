@@ -1042,6 +1042,19 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.command == "init":
+            try:
+                subprocess.run(
+                    ["git", "-C", str(project_dir), "rev-parse", "--git-dir"],
+                    check=True,
+                    capture_output=True,
+                )
+            except subprocess.CalledProcessError:
+                print(
+                    "Warning: this directory is not inside a Git repository.\n"
+                    "codex-loop run requires Git. Before running, initialize one:\n"
+                    "  git init && git add -A -- ':!.codex-loop' && git commit -m 'init'\n",
+                    flush=True,
+                )
             print("Generating spec, plan, and tasks from your prompt...", flush=True)
             print("(This calls Codex to produce your project files — usually takes 30–90 seconds.)", flush=True)
             runner = CodexRunner(project_dir)
