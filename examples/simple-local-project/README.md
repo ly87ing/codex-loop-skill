@@ -57,10 +57,12 @@ codex-loop run
 #     git merge codex-loop/my-todo-project-abc123
 #   After merging, clean up with: codex-loop cleanup --apply
 
-# 5. Merge the changes (run the commands printed above — use the branch name shown there)
-git checkout main
-git merge codex-loop/my-todo-project-abc123   # <-- replace with the branch name printed above
-# After merging, clean up old artifacts (does NOT delete your code or git history):
+# 5. Merge the changes
+#    Copy the exact commands from step 4's output above — do NOT use the branch name here literally.
+#    Example (replace the branch name with what was printed):
+#      git checkout main
+#      git merge codex-loop/my-todo-project-abc123
+#    Then clean up old artifacts (does NOT delete your code or git history):
 codex-loop cleanup --apply
 
 # 6. Watch progress (or inspect after a blocked run)
