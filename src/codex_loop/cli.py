@@ -1594,7 +1594,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             return 0
-    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+    except (OSError, RuntimeError, ValueError) as exc:
         print(f"codex-loop error: {exc}", file=sys.stderr)
         return 1
 

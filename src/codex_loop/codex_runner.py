@@ -289,6 +289,12 @@ class CodexRunner:
                 "Ensure `codex` is installed and on PATH."
             )
             raise RuntimeError(msg) from exc
+        except OSError as exc:
+            msg = (
+                f"OS error running codex command: {exc}\n"
+                f"Command: {' '.join(command)}"
+            )
+            raise RuntimeError(msg) from exc
         if completed.returncode != 0:
             msg = (
                 "Codex command failed.\n"
@@ -385,13 +391,16 @@ class CodexRunner:
     ) -> None:
         if not config.logging.save_prompts:
             return
-        prompts_dir = config.project_dir / ".codex-loop" / "prompts"
-        prompts_dir.mkdir(parents=True, exist_ok=True)
-        iteration = len(self._safe_history(config.project_dir)) + 1
-        (prompts_dir / f"{iteration:04d}-{task_id}.txt").write_text(
-            prompt,
-            encoding="utf-8",
-        )
+        try:
+            prompts_dir = config.project_dir / ".codex-loop" / "prompts"
+            prompts_dir.mkdir(parents=True, exist_ok=True)
+            iteration = len(self._safe_history(config.project_dir)) + 1
+            (prompts_dir / f"{iteration:04d}-{task_id}.txt").write_text(
+                prompt,
+                encoding="utf-8",
+            )
+        except OSError:
+            pass  # Prompt artifact is observability data; I/O failure must not crash the loop
 
     def _write_stdout_artifact(
         self,
@@ -401,13 +410,16 @@ class CodexRunner:
     ) -> None:
         if not config.logging.save_jsonl:
             return
-        logs_dir = config.project_dir / ".codex-loop" / "logs"
-        logs_dir.mkdir(parents=True, exist_ok=True)
-        iteration = len(self._safe_history(config.project_dir)) + 1
-        (logs_dir / f"{iteration:04d}-{task_id}.jsonl").write_text(
-            stdout,
-            encoding="utf-8",
-        )
+        try:
+            logs_dir = config.project_dir / ".codex-loop" / "logs"
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            iteration = len(self._safe_history(config.project_dir)) + 1
+            (logs_dir / f"{iteration:04d}-{task_id}.jsonl").write_text(
+                stdout,
+                encoding="utf-8",
+            )
+        except OSError:
+            pass  # Stdout artifact is observability data; I/O failure must not crash the loop
 
     @staticmethod
     def _safe_history(project_dir: Path) -> list[dict[str, Any]]:
