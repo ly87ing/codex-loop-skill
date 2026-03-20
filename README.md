@@ -581,6 +581,20 @@ codex-loop events --limit 10
 
 Run `codex-loop doctor --repair` to reconcile state before the next run.
 
+### My tests still fail even after the loop reports `completed`
+
+Codex makes changes in an isolated Git branch, not in your project directory directly.
+Your project files are unchanged until you merge. That is why running tests locally shows the old code.
+
+After the loop completes, merge the branch first:
+
+```bash
+git checkout main   # or master
+git merge codex-loop/<branch-name-printed-above>
+```
+
+Then run your tests. They should pass against the merged code.
+
 ## Known Limits
 
 - Each iteration waits up to **30 minutes** for Codex to respond (`iteration_timeout_seconds: 1800` in `codex-loop.yaml`). During this time the terminal shows no output — that is normal. Use `codex-loop logs tail` in another terminal to see what Codex is doing. If you need a shorter timeout, reduce `iteration_timeout_seconds` in `codex-loop.yaml`.
