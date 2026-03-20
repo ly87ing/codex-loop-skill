@@ -48,6 +48,12 @@ Codex handles individual prompts well, but longer tasks need:
 | `service status` | Check service health |
 | `service uninstall` | Remove the launchd service |
 
+## Example
+
+See [`examples/simple-local-project/`](examples/simple-local-project/) for a worked example
+showing what `codex-loop init` generates for a real goal (a Python todo CLI), with realistic
+spec, plan, tasks, and config files you can copy as a starting point.
+
 ## Prerequisites
 
 Before installing `codex-loop`, make sure you have:
@@ -164,11 +170,9 @@ your-project/
 12. Record progress, files changed, session metadata, and verification results
 13. Continue until all tasks are done or a blocking threshold is reached
 
-For longer unattended runs, `codex-loop run --continuous --retry-blocked` adds an outer retry loop around the normal supervisor run. When a cycle blocks, it requeues blocked tasks, sleeps, and starts the next cycle until completion or `--max-cycles` is reached.
+For longer unattended runs, add `--continuous --retry-blocked`: when a cycle blocks, it requeues blocked tasks and starts the next cycle until completion or `--max-cycles`.
 
-For a detached local worker, `codex-loop daemon start --retry-blocked --cycle-sleep-seconds 60` now launches a watchdog parent process in the background. That parent records watchdog metadata, starts the real continuous worker, and restarts it if the child exits unexpectedly or stops updating its heartbeat.
-
-For a longer-lived macOS login service, `codex-loop service install --retry-blocked --cycle-sleep-seconds 60` writes a `launchd` plist under `~/Library/LaunchAgents`, starts that same watchdog parent with `RunAtLoad` and `KeepAlive`, and records separate service metadata, heartbeat, watchdog state, and logs under `.codex-loop/`.
+For background execution, use `daemon start` (watchdog process) or `service install` (macOS launchd, survives reboots). See the Command Reference table above.
 
 ## Verification Model
 
@@ -219,12 +223,6 @@ The loop stops with `blocked` when:
 - `.codex-loop/metrics.json` includes blocker aggregates keyed by blocker code, plus watchdog restart totals, exhaustion totals, restart reasons, and the latest watchdog restart/exhausted payloads.
 - `doctor --repair` can backfill missing `operator` defaults into older projects so new CLI behavior does not depend on a manual config rewrite.
 - `doctor` also warns when `operator.cleanup` defaults are configured with `keep=0` and no age threshold, which would make `cleanup --apply` destructive by default, and suggests safer retention values to restore.
-
-## Example
-
-See [`examples/simple-local-project/`](examples/simple-local-project/) for a worked example
-showing what `codex-loop init` generates for a real goal (a Python todo CLI), with realistic
-spec, plan, tasks, and config files you can copy as a starting point.
 
 ## Known Limits
 
