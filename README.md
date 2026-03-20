@@ -146,6 +146,12 @@ codex-loop --help
 # If you get 'command not found', see Troubleshooting below.
 ```
 
+Now go to **your own project directory** (not `codex-loop-skill`) to use it:
+
+```bash
+cd /path/to/your-project   # your existing project, or create one: mkdir my-project && cd my-project
+```
+
 To upgrade later:
 
 ```bash
