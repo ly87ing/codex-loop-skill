@@ -90,9 +90,12 @@ codex-loop --help
 
 ## Quick Start
 
-The minimum path to get started (run these in order inside your Git repository):
+The minimum path to get started. Run these inside **your own project directory** (not inside the `codex-loop-skill` repo you just cloned):
 
 ```bash
+# Move into your own project first
+cd /path/to/your-project
+
 # 1. Scaffold workflow files from your goal
 codex-loop init --prompt "Add input validation to every form in this app"
 
