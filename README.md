@@ -113,13 +113,12 @@ codex-loop --help
 The minimum path to get started. Run these inside **your own project directory** (not inside the `codex-loop-skill` repo you just cloned):
 
 ```bash
-# Move into your own project first (must be a Git repo with your code in it)
+# Move into your own project first (must be a Git repo with at least one commit)
 cd /path/to/your-project
 
-# 0. Trust this directory in Codex (one-time setup)
-#    Run codex interactively, type something simple like "hello", press Enter,
-#    then accept the trust prompt it shows (type 'y' or follow the on-screen instructions),
-#    then Ctrl-C to exit. You only need to do this once per directory.
+# 0. One-time setup — if you haven't done these yet:
+#    a) Git repo with a commit:  git init && git add -A && git commit -m "init"
+#    b) Trust in Codex: run 'codex' once, type "hello", accept the prompt, then Ctrl-C
 codex
 
 # 1. Scaffold workflow files from your goal
