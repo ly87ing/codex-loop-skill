@@ -8,9 +8,12 @@ from typing import Any
 
 
 def _load_state(project_dir: Path) -> dict[str, Any]:
-    return json.loads(
-        (project_dir / ".codex-loop" / "state.json").read_text(encoding="utf-8")
-    )
+    try:
+        return json.loads(
+            (project_dir / ".codex-loop" / "state.json").read_text(encoding="utf-8")
+        )
+    except Exception:  # noqa: BLE001
+        return {"tasks": {}, "history": [], "meta": {}}
 
 
 def _current_task_id(tasks: dict[str, dict[str, Any]]) -> str:
@@ -66,7 +69,10 @@ def _task_artifacts(project_dir: Path, task_id: str) -> dict[str, str | None]:
 def _read_text_preview(path: str | None, *, lines: int, from_end: bool = False) -> str | None:
     if path is None:
         return None
-    text_lines = Path(path).read_text(encoding="utf-8").splitlines()
+    try:
+        text_lines = Path(path).read_text(encoding="utf-8").splitlines()
+    except Exception:  # noqa: BLE001
+        return None
     if not text_lines:
         return ""
     selected = text_lines[-lines:] if from_end else text_lines[:lines]
@@ -76,7 +82,10 @@ def _read_text_preview(path: str | None, *, lines: int, from_end: bool = False) 
 def _read_json_payload(path: str | None) -> Any:
     if path is None:
         return None
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _is_blocked_snapshot(snapshot: dict[str, Any]) -> bool:
