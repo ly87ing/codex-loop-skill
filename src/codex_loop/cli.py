@@ -985,6 +985,13 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional task id filter, for example 001-foundation.",
     )
+    # Remove internal-only subcommands from the help listing.
+    # argparse.SUPPRESS as subparser help shows the literal string "==SUPPRESS=="
+    # in Python 3.13+, so we remove the entry from _choices_actions instead.
+    subparsers._choices_actions = [
+        a for a in subparsers._choices_actions
+        if a.dest != "watchdog"
+    ]
     return parser
 
 
