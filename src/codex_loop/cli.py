@@ -995,6 +995,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.command == "init":
+            print("Generating spec, plan, and tasks from your prompt (this may take a minute)...", flush=True)
             runner = CodexRunner(project_dir)
             result = runner.initialize_from_prompt(prompt=args.prompt, model=args.model)
             initialize_project(
