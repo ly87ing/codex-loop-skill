@@ -33,7 +33,13 @@ git commit -m "init"
 **Step 3 — Trust the directories in Codex (REQUIRED before step 4)**
 
 `codex-loop run` runs Codex inside an isolated Git worktree next to your project.
-You must trust **two** paths in `~/.codex/config.toml` (create the file if it does not exist):
+You must trust **two** paths in `~/.codex/config.toml`.
+Open (or create) the file in any text editor and add:
+
+```bash
+mkdir -p ~/.codex   # create the directory if it doesn't exist yet
+# then open ~/.codex/config.toml in your editor and add:
+```
 
 ```toml
 [projects."/Users/alice/code/my-todo-project"]

@@ -160,8 +160,13 @@ The minimum path to get started. Run these inside **your own project directory**
    ```bash
    git init && git add -A && git commit -m "init"
    ```
-3. Trust your project directory and the worktree parent in `~/.codex/config.toml`
-   (create the file if it does not exist — replace the paths with your actual project location):
+3. Trust your project directory and the worktree parent in `~/.codex/config.toml`.
+   Open (or create) the file in any text editor and add these two entries
+   (replace the paths with your actual project location):
+   ```bash
+   mkdir -p ~/.codex   # create the directory if it doesn't exist yet
+   # then open ~/.codex/config.toml in your editor and add:
+   ```
    ```toml
    [projects."/Users/alice/code/my-app"]
    trust_level = "trusted"
