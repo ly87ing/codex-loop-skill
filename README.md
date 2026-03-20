@@ -154,7 +154,11 @@ codex-loop run
 #   All tasks done and verification passed.
 #   completed
 #   Changes are on branch: codex-loop/my-project-abc123
-#   To merge: git merge codex-loop/my-project-abc123
+#   To inspect before merging:
+#     git diff --stat main..codex-loop/my-project-abc123
+#   To merge:
+#     git checkout main
+#     git merge codex-loop/my-project-abc123
 #   After merging, clean up with: codex-loop cleanup --apply
 
 # Note: Codex makes changes in an isolated Git branch (at ../.codex-loop-worktrees/).
