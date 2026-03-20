@@ -292,12 +292,19 @@ codex-loop run
 #   All tasks done and verification passed.
 #   completed
 #   Changes are on branch: codex-loop/my-project-abc123
-#   To inspect before merging:
+#   (Your working directory is unchanged until you merge.)
+#
+#   Run these commands from your project directory:
+#
+#     # 1. Review the changes (optional)
 #     git diff --stat main..codex-loop/my-project-abc123
-#   To merge:
+#
+#     # 2. Merge into your main branch
 #     git checkout main
 #     git merge codex-loop/my-project-abc123
-#   After merging, clean up with: codex-loop cleanup --apply
+#
+#     # 3. Clean up worktree and old artifacts
+#     codex-loop cleanup --apply
 
 # Note: Codex writes all changes to an isolated Git branch, not your project directory.
 #       You won't see any changed files locally until you merge in step 5.
