@@ -14,7 +14,7 @@ description: Use when a local coding task is large enough to need a file-driven 
 - The user wants Codex to keep working without manual steering.
 - The task is bigger than a single prompt-response loop.
 - You need durable local state, resumable sessions, or a task queue.
-- You want `init --prompt` to scaffold a Ralph-style local workflow.
+- You want `init --prompt` to scaffold a local file-driven workflow.
 
 Do not use this skill for:
 
