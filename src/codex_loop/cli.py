@@ -329,11 +329,19 @@ class _CleanHelpParser(argparse.ArgumentParser):
     def format_help(self) -> str:
         import re
         text = super().format_help()
-        for name in _HIDDEN_SUBCOMMANDS:
-            # Remove from usage line: e.g. {a,watchdog,b} → {a,b}
-            text = re.sub(rf",?{re.escape(name)},?", lambda m: "," if m.group().startswith(",") and m.group().endswith(",") else "", text)
+        # Process longer names first so e.g. "snapshots-exports" is removed
+        # before "snapshots", preventing partial matches like "-exports".
+        for name in sorted(_HIDDEN_SUBCOMMANDS, key=len, reverse=True):
+            # Remove from usage line only: e.g. {a,watchdog,b} → {a,b}
+            # Only replace inside {…} to avoid clobbering help descriptions that
+            # happen to contain the same word (e.g. "snapshots directory").
+            _esc = re.escape(name)
+            def _remove_from_braces(m: re.Match, _esc: str = _esc) -> str:
+                inner = re.sub(rf",?{_esc},?", lambda mm: "," if mm.group().startswith(",") and mm.group().endswith(",") else "", m.group())
+                return inner
+            text = re.sub(r"\{[^}]+\}", _remove_from_braces, text)
             # Remove the named subcommand listing line
-            text = re.sub(rf"^\s+{re.escape(name)}.*\n", "", text, flags=re.MULTILINE)
+            text = re.sub(rf"^\s+{_esc}.*\n", "", text, flags=re.MULTILINE)
         # Remove any residual ==SUPPRESS== lines (argparse renders hidden subcommands this way)
         text = re.sub(r"^[^\S\n]*==SUPPRESS==.*\n", "", text, flags=re.MULTILINE)
         # Clean up any double commas left in usage
