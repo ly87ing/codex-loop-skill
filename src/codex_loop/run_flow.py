@@ -178,6 +178,33 @@ def run_project(
                 f"Codex working in: {working_directory}",
                 flush=True,
             )
+            # Warn if key loop files are not committed — Codex runs in an isolated
+            # worktree built from the latest commit, so uncommitted files are invisible.
+            try:
+                _untracked = subprocess.run(
+                    ["git", "-C", str(repo_root), "ls-files", "--others", "--exclude-standard",
+                     "codex-loop.yaml", "tasks/"],
+                    capture_output=True, text=True, timeout=10,
+                ).stdout.strip()
+                _modified = subprocess.run(
+                    ["git", "-C", str(repo_root), "diff", "--name-only", "HEAD", "--",
+                     "codex-loop.yaml", "tasks/"],
+                    capture_output=True, text=True, timeout=10,
+                ).stdout.strip()
+                _uncommitted = [f for f in (_untracked + "\n" + _modified).splitlines() if f]
+                if _uncommitted:
+                    print(
+                        "Warning: these files are not committed and will be invisible to Codex:",
+                        flush=True,
+                    )
+                    for _f in _uncommitted:
+                        print(f"  {_f}", flush=True)
+                    print(
+                        "  Run: git add -A && git commit -m 'add codex-loop files'",
+                        flush=True,
+                    )
+            except Exception:  # noqa: BLE001
+                pass
 
         runner = LoopTaskRunner(
             codex_runner=CodexRunner(project_dir),
