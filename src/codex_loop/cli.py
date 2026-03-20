@@ -1204,6 +1204,7 @@ def main(argv: list[str] | None = None) -> int:
                             _default_branch = "main"
                         print(f"Changes are on branch: {_branch}")
                         print(f"(Your working directory is unchanged until you merge.)")
+                        print(f"Run these commands from your project directory ({project_dir}):")
                         print(f"To inspect before merging:")
                         print(f"  git diff --stat {_default_branch}..{_branch}")
                         print(f"To merge:")
