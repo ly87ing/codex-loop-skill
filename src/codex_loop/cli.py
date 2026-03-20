@@ -1026,6 +1026,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "run":
+            if not (project_dir / "codex-loop.yaml").exists():
+                print(
+                    f"codex-loop error: no codex-loop.yaml found in {project_dir}\n"
+                    "Run 'codex-loop init --prompt \"your goal\"' first to set up the project.",
+                    file=sys.stderr,
+                )
+                return 1
             if args.max_cycles is not None and not args.continuous:
                 raise ValueError("Use --max-cycles only with --continuous.")
             if args.cycle_sleep_seconds < 0:
