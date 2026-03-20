@@ -63,6 +63,14 @@ echo "trust_level = \"trusted\""
 
 Skip either entry and `codex-loop run` will fail with "Not inside a trusted directory".
 
+Verify the file was saved correctly:
+
+```bash
+cat ~/.codex/config.toml
+```
+
+You should see both entries with `trust_level = "trusted"`.
+
 ```bash
 # Make sure OPENAI_API_KEY is set before running (both codex-loop init and run need it)
 export OPENAI_API_KEY="sk-..."   # skip if already set
