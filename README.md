@@ -73,8 +73,11 @@ python3 -m pip install -e .
 cd ..   # go back — next, cd into YOUR project directory (not this one)
 ```
 
+> **Note:** `-e` (editable install) means the `codex-loop-skill` directory must stay where it is — do not move or delete it after installing.
+
 > **Tip:** if you use virtual environments and want `codex-loop` available everywhere without activating one,
 > install with `pipx` instead: `pipx install -e ./codex-loop-skill`
+> (pipx also puts `codex-loop` on your PATH automatically, which avoids the `command not found` issue)
 
 Verify it worked:
 
