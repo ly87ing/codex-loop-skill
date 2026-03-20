@@ -158,6 +158,20 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
             return report
 
     if repair:
+        try:
+            store.load()
+        except Exception:  # noqa: BLE001
+            # state.json exists but is corrupt — recreate it before reconciling
+            try:
+                store.create_initial(
+                    project_name=config.project.name,
+                    source_prompt="",
+                    tasks=task_ids,
+                )
+                report.fixed.append(".codex-loop/state.json (recreated from task files)")
+            except OSError as exc:
+                report.errors.append(f"Could not recreate state file: {exc}")
+                return report
         store.reconcile_tasks(task_ids)
         report.fixed.append("tasks reconciled")
     else:
