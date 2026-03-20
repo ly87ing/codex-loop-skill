@@ -426,6 +426,11 @@ class Supervisor:
                 task_obj["consecutive_task_failures"] = 0
                 state["meta"]["overall_status"] = "running"
                 self.state_store.save(state)
+                print(
+                    f"  (all tasks done but final verification failed — "
+                    f"reopening {last_done_id} to fix it)",
+                    flush=True,
+                )
                 return None  # caller handles None → continue loop
             # No done task to reopen — fall through to BLOCKED
         first_incomplete = next(
