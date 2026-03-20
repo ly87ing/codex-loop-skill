@@ -125,11 +125,14 @@ def run_cleanup(
     if not remove_worktrees:
         return report
 
-    state = StateStore(project_dir / ".codex-loop" / "state.json").load()
+    try:
+        state = StateStore(project_dir / ".codex-loop" / "state.json").load()
+    except (FileNotFoundError, OSError):
+        state = {}
     active_worktree = state.get("meta", {}).get("worktree_path")
     try:
         repo_root = resolve_repo_root(project_dir)
-    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+    except (FileNotFoundError, OSError, subprocess.CalledProcessError) as exc:
         report.warnings.append(f"Skipping worktree cleanup: {exc}")
         return report
 
