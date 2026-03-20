@@ -208,6 +208,14 @@ class Supervisor:
             _verify = "verification=pass" if passed else "verification=FAIL"
             _files = f"files_changed={len(files_changed)}"
             print(f"  -> status={_status} {_verify} {_files}", flush=True)
+            if not passed and verification_results:
+                first_fail = next((r for r in verification_results if r.get("exit_code") != 0 or r.get("timed_out")), None)
+                if first_fail:
+                    _stderr = str(first_fail.get("stderr", "")).strip()
+                    _stdout = str(first_fail.get("stdout", "")).strip()
+                    _snippet = (_stderr or _stdout)[:200].strip()
+                    if _snippet:
+                        print(f"     verification error: {_snippet}", flush=True)
             fingerprint = self._fingerprint(task.task_id, files_changed, passed, result)
             updated = self.state_store.record_iteration(
                 task_id=task.task_id,
