@@ -61,6 +61,8 @@ class Supervisor:
                         "CODEX_LOOP_BLOCKER_CODE": last_blocker.get("code"),
                     }
                 self._run_terminal_hooks(outcome=outcome, task=None, extra_env=extra_env)
+                if outcome == LoopOutcome.COMPLETED:
+                    print("All tasks done and verification passed.", flush=True)
                 return outcome
             state = self.state_store.load()
             iteration_num = state["meta"].get("iteration", 0) + 1
@@ -96,6 +98,7 @@ class Supervisor:
                 )
             except (RuntimeError, FileNotFoundError, OSError, ValueError) as exc:
                 is_transient = self._is_transient_runner_error(str(exc))
+                print(f"  -> runner error ({'transient' if self._is_transient_runner_error(str(exc)) else 'hard'}): {str(exc)[:120]}", flush=True)
                 updated = self.state_store.record_runner_failure(
                     task_id=task.task_id,
                     reason=str(exc),
