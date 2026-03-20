@@ -31,7 +31,8 @@ git commit -m "init"
 
 # 3. Trust the directories in Codex — REQUIRED before step 4
 #    codex-loop run executes Codex in an isolated worktree next to your project,
-#    so you need to trust TWO paths in ~/.codex/config.toml:
+#    so you need to trust TWO paths in ~/.codex/config.toml
+#    (create the file if it does not exist):
 #
 #      [projects."/absolute/path/to/my-todo-project"]
 #      trust_level = "trusted"
@@ -39,7 +40,9 @@ git commit -m "init"
 #      [projects."/absolute/path/to/.codex-loop-worktrees"]
 #      trust_level = "trusted"
 #
-#    Replace /absolute/path/to with the parent directory of my-todo-project.
+#    Replace /absolute/path/to with the PARENT directory of my-todo-project.
+#    Example: if my-todo-project is at /Users/alice/code/my-todo-project,
+#    use /Users/alice/code as the parent → entries end in /my-todo-project and /.codex-loop-worktrees.
 #    Skip either entry and codex-loop run will fail with "Not inside a trusted directory".
 
 # 4. Run the loop
