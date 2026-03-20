@@ -108,7 +108,9 @@ cd /path/to/your-project
 codex-loop init --prompt "Add input validation to every form in this app"
 
 # 2. Review generated files and check the verification command
-#    Open codex-loop.yaml and confirm verification.commands matches how you run your tests.
+#    Open codex-loop.yaml and confirm:
+#      - verification.commands matches how you run your tests (e.g. "python -m pytest tests/ -q")
+#      - codex.model is the model you want to use (default: gpt-5.4)
 #    Also skim spec/, plan/, and tasks/ to make sure the goal was captured correctly.
 
 # 3. Run the loop — it will keep working until done or genuinely blocked
