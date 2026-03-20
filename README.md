@@ -190,11 +190,14 @@ Example output:
 project: my-project
 overall_status: running          # running | completed | blocked
 iteration: 3
+no_progress_iterations: 0        # iterations with no file changes (resets on progress)
 tasks:
   [x] 001-create-schema  (done)
   [~] 002-add-api        (in_progress)
   [ ] 003-write-tests    (ready)
 current_task: 002-add-api
+runner_failures_total: 0         # total codex exec failures so far
+verification_failures_total: 2   # total failed verification runs so far
 worktree_branch: codex-loop/my-project-abc123
 ```
 
