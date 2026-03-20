@@ -139,8 +139,9 @@ codex-loop run
 #   Changes are on branch: codex-loop/<branch-name>
 #   To merge: git merge codex-loop/<branch-name>
 
-# 4. Merge the changes into your current branch (after completed)
-git merge codex-loop/<branch-name>
+# 4. Merge the changes — copy the exact 'git merge ...' line printed by 'codex-loop run'
+#    (the branch name is printed when the run completes)
+git merge codex-loop/<branch-name-printed-above>
 
 # 5. Check status at any time
 codex-loop status --summary
@@ -152,17 +153,30 @@ or when it hits a real blocker (no progress, too many failures).
 ### After the loop completes
 
 The loop runs Codex in an isolated Git branch (prefix: `codex-loop/`). When it finishes,
-merge that branch into your main branch to keep the changes:
+`codex-loop run` prints the exact merge command to use:
+
+```
+completed
+Changes are on branch: codex-loop/my-project-abc123
+To merge: git merge codex-loop/my-project-abc123
+```
+
+Copy that `git merge` command and run it in your project directory. Or inspect first:
 
 ```bash
-# See which branch has the changes
+# Inspect the changes before merging
+git diff main..codex-loop/my-project-abc123
+
+# Then merge
+git merge codex-loop/my-project-abc123
+```
+
+If you need to find the branch name later:
+
+```bash
 git branch | grep codex-loop
-
-# Merge it into your current branch
-git merge codex-loop/<branch-name>
-
-# Or inspect it first
-git diff main..codex-loop/<branch-name>
+# or
+codex-loop status --summary   # shows worktree_branch
 ```
 
 The worktree directory is kept at `../.codex-loop-worktrees/` by default so you can
