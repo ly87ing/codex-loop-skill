@@ -123,6 +123,7 @@ cd ..   # go back — next, cd into YOUR project directory (not this one)
 > pipx ensurepath   # adds pipx bin dir to PATH; then open a new terminal
 > ```
 > (Avoids the `command not found` issue without touching your system Python.)
+> **Note:** the `-e` flag applies here too — the `codex-loop-skill` directory must stay in place after installing.
 
 Verify it worked:
 
