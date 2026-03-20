@@ -503,6 +503,22 @@ The loop skips a task until all its dependencies are `done`. `codex-loop init` g
 
 You can edit task files freely before or between runs to tighten the description, split a task, or remove tasks you don't need. After editing, run `codex-loop doctor --repair` to sync the state file.
 
+**What makes a good task description?** The content is passed verbatim to Codex, so the more specific it is, the better the result:
+
+```markdown
+# Too vague (Codex may not know where to start)
+Add validation to the app.
+
+# Good (names the files, the rules, and the test to pass)
+Add input validation to the registration form in `src/routes/auth.py`:
+- email must match RFC 5322 format
+- password must be at least 8 characters
+Raise `ValueError` with a descriptive message on invalid input.
+Tests in `tests/test_auth.py` must pass with `python -m pytest tests/test_auth.py -q`.
+```
+
+If `codex-loop init` generates tasks that are too vague, edit them before running, or re-run `init` with a more specific prompt.
+
 ## Hooks (optional)
 
 Hooks let you run shell commands at key points in the loop. Configure them in `codex-loop.yaml`:
