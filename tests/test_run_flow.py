@@ -103,5 +103,35 @@ class RunFlowTests(unittest.TestCase):
             self.assertEqual(heartbeat["error_count"], 1)
 
 
+    def test_continuous_run_retries_value_errors(self) -> None:
+        # ValueError (e.g. from corrupted YAML config) must be retried
+        # when retry_errors=True, same as RuntimeError.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+
+            calls: list[int] = []
+
+            def fake_run_once(_project_dir: Path) -> LoopOutcome:
+                calls.append(1)
+                if len(calls) == 1:
+                    raise ValueError("Invalid YAML configuration: mapping values are not allowed here")
+                return LoopOutcome.COMPLETED
+
+            outcome = run_project_continuously(
+                root,
+                retry_blocked=False,
+                retry_errors=True,
+                max_error_retries=2,
+                cycle_sleep_seconds=0.0,
+                sleep_fn=lambda _: None,
+                run_once=fake_run_once,
+            )
+
+            self.assertEqual(outcome, LoopOutcome.COMPLETED)
+            self.assertEqual(len(calls), 2)
+
+
 if __name__ == "__main__":
     unittest.main()
