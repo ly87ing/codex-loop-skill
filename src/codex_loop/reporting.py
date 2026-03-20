@@ -669,9 +669,14 @@ def format_status_summary(project_dir: Path) -> str:
             base_branch = "main"
         lines.append("")
         lines.append("Next steps (all tasks done):")
+        lines.append(f"  # 1. Review the changes (optional)")
         lines.append(f"  git diff --stat {base_branch}..{branch}")
+        lines.append(f"")
+        lines.append(f"  # 2. Merge into your main branch")
         lines.append(f"  git checkout {base_branch}")
         lines.append(f"  git merge {branch}")
+        lines.append(f"")
+        lines.append( "  # 3. Clean up worktree and old artifacts")
         lines.append( "  codex-loop cleanup --apply")
     if snapshot.get("last_summary"):
         lines.append(f"last_summary: {snapshot.get('last_summary')}")
