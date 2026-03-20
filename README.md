@@ -201,6 +201,8 @@ review the work before merging. After merging, you can clean it up with:
 
 ```bash
 codex-loop cleanup --apply
+# This removes the worktree directory and prunes old logs under .codex-loop/.
+# It does NOT touch your source code, your main branch, or the merged changes.
 ```
 
 If you inspect the changes and decide you don't want them, simply don't merge.
