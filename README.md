@@ -181,7 +181,11 @@ codex-loop status --summary   # shows worktree_branch
 ```
 
 The worktree directory is kept at `../.codex-loop-worktrees/` by default so you can
-review the work before merging.
+review the work before merging. After merging, you can clean it up with:
+
+```bash
+codex-loop cleanup --apply
+```
 
 ### If the loop blocks
 
