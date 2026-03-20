@@ -1,6 +1,6 @@
 # codex-loop
 
-`codex-loop` is an external supervisor for Codex CLI. You give it a goal; it scaffolds
+`codex-loop` is an external supervisor for [Codex CLI](https://github.com/openai/codex) (OpenAI's terminal coding agent). You give it a goal; it scaffolds
 a local task queue, then keeps running Codex — one task at a time — until your tests
 pass or the loop hits a real blocker.
 
@@ -65,7 +65,7 @@ spec, plan, tasks, and config files you can copy as a starting point.
 Before installing `codex-loop`, make sure you have:
 
 1. **Python 3.11+** — check with `python3 --version`
-2. **Codex CLI** installed and working — install via npm or Homebrew:
+2. **[Codex CLI](https://github.com/openai/codex)** installed and working — install via npm or Homebrew:
    ```bash
    npm install -g @openai/codex
    # or
@@ -131,7 +131,7 @@ codex-loop init --prompt "Add input validation to every form in this app"
 #    Note: codex-loop.yaml uses JSON syntax (not indented YAML) — that is normal.
 #    Open codex-loop.yaml and confirm:
 #      - verification.commands matches how you run your tests (e.g. "python -m pytest tests/ -q")
-#      - codex.model is the model you want to use (default: gpt-5.4)
+#      - codex.model is the OpenAI model passed to Codex (default: gpt-5.4, leave as-is unless you have a reason to change)
 #    Also skim spec/, plan/, and tasks/ to make sure the goal was captured correctly.
 
 # 3. Run the loop — it will keep working until done or genuinely blocked
