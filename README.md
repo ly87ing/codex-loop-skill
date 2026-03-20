@@ -21,6 +21,10 @@ For those, just use Codex directly.
 
 All state lives on disk in your project directory, so runs are resumable and inspectable.
 
+**Your existing code is safe:** Codex works in an isolated Git branch (`codex-loop/...`), not
+directly on your main branch. Nothing changes in your working directory until you explicitly
+run `git merge`. If you don't like the result, just don't merge — your original code is untouched.
+
 ```
 $ codex-loop run
 [iteration 1/30] task: 001-add-validation  (0/2 done, running Codex...) [10:15:02]
