@@ -46,9 +46,9 @@ class RunLock:
             if _pid_alive(pid) and not is_stale:
                 msg = (
                     f"Another codex-loop run is already active (pid={pid}).\n"
-                    "Wait for it to finish, or stop it first.\n"
-                    "If no run is actually in progress, the lock is stale — it will clear automatically "
-                    f"after {self.stale_seconds // 3600} hours."
+                    f"Wait for it to finish, or stop it: kill {pid}\n"
+                    "If the process is already gone and this error persists, delete the lock file:\n"
+                    f"  rm {self.path}"
                 )
                 raise RuntimeError(msg)
         payload = {
