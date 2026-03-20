@@ -103,7 +103,8 @@ cd /path/to/your-project
 
 # 0. One-time setup — if you haven't done these yet:
 #    a) Git repo with a commit:  git init && git add -A && git commit -m "init"
-#    b) Trust in Codex (one-time, per directory):
+#    b) Trust in Codex (one-time, per directory) — skip this and you'll get
+#       "Not inside a trusted directory" when you run step 3:
 #         Run: codex
 #         Then type "hello", press Enter, accept the trust prompt (type y), then Ctrl-C.
 

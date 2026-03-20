@@ -29,7 +29,8 @@ cd my-todo-project          # <-- must be inside the project from here on
 git add -A
 git commit -m "init"
 
-# 3. Trust the directory in Codex (one-time setup)
+# 3. Trust the directory in Codex — REQUIRED before step 4
+#    Skip this and codex-loop run will fail with "Not inside a trusted directory".
 #    Run: codex
 #    Then type "hello", press Enter, accept the trust prompt (type y), then Ctrl-C.
 
