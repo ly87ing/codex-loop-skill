@@ -600,6 +600,8 @@ If your project uses a virtual environment, use the full path to the interpreter
 
 After editing, run `codex-loop doctor --repair` then `codex-loop run --retry-blocked`.
 
+**If your project has no tests yet:** set `verification.commands` to an empty list (`[]`). The loop will run until Codex declares all tasks done, with no pass/fail gate. This is fine for getting started, but without verification the loop cannot tell if the code actually works — add real tests when you can.
+
 ### The generated spec, plan, or tasks don't look right
 
 If `codex-loop init` produced tasks that don't match your goal, re-run it with a better prompt:
