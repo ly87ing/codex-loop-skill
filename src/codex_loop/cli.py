@@ -1069,6 +1069,8 @@ def main(argv: list[str] | None = None) -> int:
                     retry_blocked_tasks_for_retry(project_dir)
                 outcome = run_project(project_dir)
             print(outcome.value)
+            if outcome.value != "completed":
+                print("Run 'codex-loop status --summary' to see why it stopped.", file=sys.stderr)
             return 0 if outcome.value == "completed" else 2
 
         if args.command == "watchdog":
