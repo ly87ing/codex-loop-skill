@@ -199,6 +199,15 @@ review the work before merging. After merging, you can clean it up with:
 codex-loop cleanup --apply
 ```
 
+If you inspect the changes and decide you don't want them, simply don't merge.
+The branch and worktree stay at `../.codex-loop-worktrees/` until you clean them up.
+To discard everything and start fresh:
+
+```bash
+codex-loop cleanup --apply   # removes worktrees and old artifacts
+codex-loop init --prompt "..." --force   # re-scaffold (WARNING: resets all state)
+```
+
 ### If the loop blocks
 
 When the loop stops with `blocked`, the reason is printed directly in the terminal:
