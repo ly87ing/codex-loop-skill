@@ -198,6 +198,12 @@ class CodexLoopConfig:
         return config
 
     def validate(self) -> None:
+        if not isinstance(self.verification.commands, list):
+            msg = (
+                "verification.commands must be a list of strings, e.g.:\n"
+                '  "verification": {"commands": ["python -m pytest tests/ -q"]}'
+            )
+            raise ValueError(msg)
         if not self.project.name.strip():
             msg = "project.name must not be empty."
             raise ValueError(msg)
