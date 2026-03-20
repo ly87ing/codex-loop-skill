@@ -1023,7 +1023,8 @@ def main(argv: list[str] | None = None) -> int:
             print("Next steps:")
             print(f"  1. Open {project_dir / 'codex-loop.yaml'} and confirm verification.commands matches your test command.")
             print(f"  2. Skim {project_dir / 'tasks'} to make sure the tasks look right.")
-            print(f"  3. Run:  codex-loop run")
+            print(f"  3. If you haven't already, trust this directory in Codex: run 'codex' once inside it and accept the prompt.")
+            print(f"  4. Run:  codex-loop run")
             return 0
 
         if args.command == "run":
