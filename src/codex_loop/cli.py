@@ -1069,6 +1069,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 if heartbeat_path is not None:
                     continuous_kwargs["heartbeat_path"] = heartbeat_path
+                print("Starting codex-loop run (continuous mode)...", flush=True)
                 outcome = run_project_continuously(
                     project_dir,
                     **continuous_kwargs,
@@ -1076,6 +1077,7 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 if args.retry_blocked:
                     retry_blocked_tasks_for_retry(project_dir)
+                print("Starting codex-loop run...", flush=True)
                 outcome = run_project(project_dir)
             print(outcome.value)
             if outcome.value != "completed":
