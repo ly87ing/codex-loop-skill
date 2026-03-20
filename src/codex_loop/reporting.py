@@ -589,11 +589,16 @@ def build_status_snapshot(project_dir: Path) -> dict[str, Any]:
             except Exception:  # noqa: BLE001
                 pass
             break
+    task_statuses = [
+        {"id": task_id, "status": task_state.get("status", "unknown")}
+        for task_id, task_state in tasks.items()
+    ]
     return {
         "project": project_name,
         "overall_status": overall_status,
         "iteration": iteration,
         "no_progress_iterations": no_progress,
+        "tasks": task_statuses,
         "current_task": current_task_id,
         "current_task_session": current_task_state.get("session_id"),
         "current_task_resume_failure_reason": current_task_state.get(
@@ -620,8 +625,13 @@ def format_status_summary(project_dir: Path) -> str:
         f"overall_status: {snapshot['overall_status']}",
         f"iteration: {snapshot['iteration']}",
         f"no_progress_iterations: {snapshot['no_progress_iterations']}",
-        f"current_task: {snapshot['current_task']}",
     ]
+    if snapshot.get("tasks"):
+        lines.append("tasks:")
+        for t in snapshot["tasks"]:
+            marker = {"done": "[x]", "blocked": "[!]", "in_progress": "[~]", "ready": "[ ]", "pending": "[ ]"}.get(t["status"], "[ ]")
+            lines.append(f"  {marker} {t['id']}  ({t['status']})")
+    lines.append(f"current_task: {snapshot['current_task']}")
     if snapshot.get("current_task_session"):
         lines.append(f"current_task_session: {snapshot.get('current_task_session')}")
     if snapshot.get("current_task_resume_failure_reason"):
