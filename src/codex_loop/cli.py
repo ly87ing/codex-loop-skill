@@ -1317,6 +1317,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.summary:
                 print(format_status_summary(project_dir))
             else:
+                print("# Tip: run 'codex-loop status --summary' for a human-readable view.", file=sys.stderr)
                 state = StateStore(project_dir / ".codex-loop" / "state.json").load()
                 print(json.dumps(state, indent=2, ensure_ascii=False))
             return 0
