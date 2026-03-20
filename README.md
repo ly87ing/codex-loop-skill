@@ -461,7 +461,7 @@ Run `codex-loop doctor --repair` to reconcile state before the next run.
 
 ## Known Limits
 
-- The generated `codex-loop.yaml` is JSON-compatible YAML. It works today without a YAML dependency, but full YAML editing is only supported when `PyYAML` is installed.
+- `codex-loop.yaml` uses JSON syntax (curly braces and quoted keys), not indented YAML. This is intentional — it avoids a PyYAML dependency. You can edit it with any text editor; just keep the JSON structure intact. Install `pip install pyyaml` if you want to use standard YAML indentation syntax instead.
 - Codex CLI approval behavior can vary by CLI version. This project asks for `approval_policy="never"`, but some Codex releases have known approval edge cases.
 - Some Codex resume failures are only detectable from CLI error text, so session fallback is heuristic rather than protocol-level.
 - Task execution is sequential in the first version. There is no parallel task scheduler yet.
