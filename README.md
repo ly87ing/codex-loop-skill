@@ -280,7 +280,23 @@ If it keeps failing, the test command itself may be wrong. Check it manually:
 python -m pytest tests/ -q
 ```
 
-Then fix either the test command in `codex-loop.yaml` or the task description.
+To fix the test command, edit `verification.commands` in `codex-loop.yaml`:
+
+```json
+"verification": {
+  "commands": [
+    "python -m pytest tests/ -q"
+  ]
+}
+```
+
+Common examples:
+- Python pytest: `python -m pytest tests/ -q`
+- Node.js: `npm test`
+- Go: `go test ./...`
+- Custom script: `bash scripts/verify.sh`
+
+After editing, run `codex-loop doctor --repair` then `codex-loop run --retry-blocked`.
 
 ### I edited task files or `codex-loop.yaml` manually
 
