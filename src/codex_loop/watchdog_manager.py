@@ -170,7 +170,10 @@ def _terminate_process(process: Any, *, timeout_seconds: float) -> None:
         process.wait(timeout=timeout_seconds)
     except subprocess.TimeoutExpired:
         process.kill()
-        process.wait(timeout=timeout_seconds)
+        try:
+            process.wait(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            pass  # Process is unkillable; abandon and continue
 
 
 def run_watchdog(
