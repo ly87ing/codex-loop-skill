@@ -35,6 +35,7 @@ Codex handles individual prompts well, but longer tasks need:
 | `run` | Run the loop until done or blocked |
 | `run --continuous --retry-blocked` | Keep retrying after blocks until `--max-cycles` |
 | `doctor --repair` | Fix state drift if you edited files manually |
+| `health` | One-command overview: status, warnings, events, daemon state |
 | `status --summary` | Show current task status and loop health |
 | `events --limit 20` | Show the recent event timeline |
 | `sessions --latest --json` | Show the last Codex session details |
