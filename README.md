@@ -130,8 +130,13 @@ codex-loop run
 #     -> status=complete verification=pass files_changed=5
 #   All tasks done and verification passed.
 #   completed
+#   Changes are on branch: codex-loop/<branch-name>
+#   To merge: git merge codex-loop/<branch-name>
 
-# 4. Check status at any time
+# 4. Merge the changes into your current branch (after completed)
+git merge codex-loop/<branch-name>
+
+# 5. Check status at any time
 codex-loop status --summary
 ```
 

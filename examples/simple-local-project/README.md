@@ -25,7 +25,7 @@ python3 -m pip install -e codex-loop-skill/
 # 2. Copy this example into a fresh Git repository
 git init my-todo-project
 cp -r codex-loop-skill/examples/simple-local-project/* my-todo-project/
-cd my-todo-project
+cd my-todo-project          # <-- must be inside the project from here on
 git add .
 git commit -m "init"
 
@@ -34,8 +34,15 @@ codex
 
 # 4. Run the loop
 codex-loop run
+# When it finishes you will see something like:
+#   completed
+#   Changes are on branch: codex-loop/<branch-name>
+#   To merge: git merge codex-loop/<branch-name>
 
-# 5. Watch progress
+# 5. Merge the changes into your current branch
+git merge codex-loop/$(git branch | grep codex-loop | tr -d ' *')
+
+# 6. Watch progress (or inspect after a blocked run)
 codex-loop status --summary
 ```
 
