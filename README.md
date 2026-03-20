@@ -64,6 +64,8 @@ Run these commands from your project directory:
 
 **Ready to start?** → [Prerequisites](#prerequisites) → [Install](#install) → [Quick Start](#quick-start).
 
+**Time to first run:** setup takes ~5 minutes; each Codex iteration takes 5–30 minutes. A small task (2–3 iterations) typically completes in under an hour.
+
 ## Prerequisites
 
 **Platform:** macOS and Linux. Windows is not supported (requires Git worktrees and Unix process management). The `service` subcommand is macOS-only (launchd); all other commands work on Linux too. Windows users can run `codex-loop` inside [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install) (Windows Subsystem for Linux).
