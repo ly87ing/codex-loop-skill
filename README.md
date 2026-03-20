@@ -33,7 +33,7 @@ Codex handles individual prompts well, but longer tasks need:
 
 | Command | What it does |
 |---|---|
-| `init --prompt "..."` | Scaffold spec, plan, tasks, and config from your goal |
+| `init --prompt "..."` | Scaffold spec, plan, tasks, and config from your goal. Add `--model <name>` to override the Codex model used for init (default: `gpt-5.4`). |
 | `run` | Run the loop until done or blocked (exits 0 on success, 2 if blocked) |
 | `run --retry-blocked` | Requeue blocked tasks then run |
 | `run --continuous --retry-blocked` | Keep retrying after blocks until `--max-cycles` |
@@ -380,7 +380,8 @@ python3 -m codex_loop.cli --help
 
 ### "Codex could not authenticate" / API key error
 
-`codex exec` exits immediately if `OPENAI_API_KEY` is not set or is invalid.
+Both `codex-loop init` and `codex-loop run` call `codex exec`, which exits immediately if
+`OPENAI_API_KEY` is not set or is invalid.
 
 ```bash
 export OPENAI_API_KEY="sk-..."
@@ -390,7 +391,8 @@ To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
 
 ### "Not inside a trusted directory"
 
-`codex exec` refuses to run in directories that Codex has not explicitly trusted.
+Both `codex-loop init` and `codex-loop run` call `codex exec`, which refuses to run in
+directories that Codex has not explicitly trusted.
 Fix it once by running `codex` interactively inside your project directory,
 or add it manually to `~/.codex/config.toml`:
 
