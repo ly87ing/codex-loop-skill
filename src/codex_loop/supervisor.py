@@ -222,7 +222,7 @@ class Supervisor:
                     if _snippet:
                         print(f"     verification error: {_snippet}", flush=True)
             fingerprint = self._fingerprint(task.task_id, files_changed, passed, result)
-            if not files_changed:
+            if not files_changed and not passed:
                 _no_prog = state["meta"].get("no_progress_iterations", 0) + 1
                 _max_no_prog = self.config.execution.max_no_progress_iterations
                 print(
