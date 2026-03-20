@@ -30,9 +30,8 @@ git add -A
 git commit -m "init"
 
 # 3. Trust the directory in Codex (one-time setup)
-#    Run codex, type something like "hello", press Enter, accept the trust prompt
-#    (type 'y' or follow on-screen instructions), then Ctrl-C to exit.
-codex
+#    Run: codex
+#    Then type "hello", press Enter, accept the trust prompt (type y), then Ctrl-C.
 
 # 4. Run the loop
 #    Each iteration waits up to 30 minutes for Codex — silence is normal.
