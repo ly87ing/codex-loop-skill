@@ -375,7 +375,7 @@ def _build_parser() -> argparse.ArgumentParser:
         default=".",
         help="Target project directory. Defaults to current directory.",
     )
-    init_parser.add_argument("--model", default="gpt-5.4", help="Codex model to use (e.g. gpt-5.4).")
+    init_parser.add_argument("--model", default="gpt-5.4", help="Codex model to use (default: gpt-5.4). If you get a model access error, try --model o3 or --model o4-mini.")
     init_parser.add_argument("--force", action="store_true", help="Overwrite existing codex-loop files. WARNING: this deletes all run history and state.")
 
     run_parser = subparsers.add_parser("run", help="Run Codex on each task until all pass verification or the loop is genuinely blocked.")
