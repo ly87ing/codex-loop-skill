@@ -83,14 +83,17 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
         operator_changed = _merge_missing_defaults(operator_data, operator_defaults)
     if operator_changed:
         if repair:
-            tmp_config = config_path.with_suffix(config_path.suffix + ".tmp")
-            tmp_config.write_text(
-                json.dumps(working_data, indent=2, ensure_ascii=False),
-                encoding="utf-8",
-            )
-            tmp_config.replace(config_path)
-            raw_data = working_data
-            report.fixed.append("codex-loop.yaml operator defaults")
+            try:
+                tmp_config = config_path.with_suffix(config_path.suffix + ".tmp")
+                tmp_config.write_text(
+                    json.dumps(working_data, indent=2, ensure_ascii=False),
+                    encoding="utf-8",
+                )
+                tmp_config.replace(config_path)
+                raw_data = working_data
+                report.fixed.append("codex-loop.yaml operator defaults")
+            except OSError as exc:
+                report.warnings.append(f"Could not update codex-loop.yaml operator defaults: {exc}")
         else:
             report.warnings.append("codex-loop.yaml is missing operator defaults")
     try:
@@ -114,11 +117,14 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
     if schema_path.exists():
         report.checked.append(str(schema_path.relative_to(project_dir)))
     elif repair:
-        schema_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp_schema = schema_path.with_suffix(schema_path.suffix + ".tmp")
-        tmp_schema.write_text(json.dumps(AGENT_RESULT_SCHEMA, indent=2), encoding="utf-8")
-        tmp_schema.replace(schema_path)
-        report.fixed.append(str(schema_path.relative_to(project_dir)))
+        try:
+            schema_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_schema = schema_path.with_suffix(schema_path.suffix + ".tmp")
+            tmp_schema.write_text(json.dumps(AGENT_RESULT_SCHEMA, indent=2), encoding="utf-8")
+            tmp_schema.replace(schema_path)
+            report.fixed.append(str(schema_path.relative_to(project_dir)))
+        except OSError as exc:
+            report.errors.append(f"Could not create schema {schema_path.relative_to(project_dir)}: {exc}")
     else:
         report.errors.append(f"Missing schema: {schema_path.relative_to(project_dir)}")
 
@@ -126,12 +132,16 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
     store = StateStore(state_path)
     if not state_path.exists():
         if repair:
-            store.create_initial(
-                project_name=config.project.name,
-                source_prompt="",
-                tasks=task_ids,
-            )
-            report.fixed.append(".codex-loop/state.json")
+            try:
+                store.create_initial(
+                    project_name=config.project.name,
+                    source_prompt="",
+                    tasks=task_ids,
+                )
+                report.fixed.append(".codex-loop/state.json")
+            except OSError as exc:
+                report.errors.append(f"Could not create state file: {exc}")
+                return report
         else:
             report.errors.append("Missing state file: .codex-loop/state.json")
             return report
