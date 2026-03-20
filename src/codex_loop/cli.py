@@ -1052,7 +1052,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(
                     "Warning: this directory is not inside a Git repository.\n"
                     "codex-loop run requires Git. Before running, initialize one:\n"
-                    "  git init && git add -A -- ':!.codex-loop' && git commit -m 'init'\n",
+                    "  git init && git add -A && git commit -m 'init'\n",
                     flush=True,
                 )
             if args.force:

@@ -137,6 +137,7 @@ codex-loop init --prompt "Add input validation to every form in this app"
 #      - verification.commands matches how you run your tests (e.g. "python -m pytest tests/ -q")
 #      - codex.model is the OpenAI model passed to Codex (default: gpt-5.4, leave as-is unless you have a reason to change)
 #    Do NOT change execution.sandbox or execution.approval — these are required for unattended runs.
+#    Everything else can be left at the generated defaults — you do not need to understand every field.
 #    Also skim spec/, plan/, and tasks/ to make sure the goal was captured correctly.
 #    If the output looks wrong, re-run with a better prompt:
 #      codex-loop init --prompt "..." --force
@@ -518,9 +519,10 @@ If you see this error, initialize the repository first:
 
 ```bash
 git init
-git add -A -- ':!.codex-loop'
+git add -A
 git commit -m "init"
 ```
+(`.codex-loop/` is automatically added to `.gitignore` by `codex-loop init`, so `git add -A` is safe.)
 
 ### The loop stops with `blocked`
 
