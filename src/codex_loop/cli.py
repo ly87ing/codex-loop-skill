@@ -1051,6 +1051,7 @@ def main(argv: list[str] | None = None) -> int:
             print( "       Node:    \"npm test\"")
             print( "       Go:      \"go test ./...\"")
             print(f"  2. Skim {project_dir / 'tasks'} to make sure the tasks look right.")
+            print( "     If the tasks don't match your goal, re-run: codex-loop init --prompt \"...\" --force")
             print(f"  3. Make sure this directory is a Git repo with at least one commit:")
             print( "       git init && git add . && git commit -m 'init'  (skip if you already have commits)")
             print(f"  4. If you haven't already, trust this directory in Codex: run 'codex' once inside it and accept the prompt.")
