@@ -802,6 +802,10 @@ def format_health_report(
         f"doctor_errors: {len(payload['doctor'].get('errors', []))}",
         f"doctor_warnings: {len(payload['doctor'].get('warnings', []))}",
     ]
+    for err in payload['doctor'].get('errors', []):
+        lines.append(f"  error: {err}")
+    for warn in payload['doctor'].get('warnings', []):
+        lines.append(f"  warning: {warn}")
     daemon = payload.get("daemon") or {}
     lines.append(
         "daemon: "
