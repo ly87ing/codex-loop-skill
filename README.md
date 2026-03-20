@@ -231,6 +231,10 @@ cat codex-loop.yaml
 git add -A && git commit -m "add codex-loop files"
 
 # 4. Run the loop — it will keep working until done or genuinely blocked
+#    Note: Codex runs in an isolated Git worktree containing only committed files.
+#    If your tests need untracked files (e.g. .env, node_modules), add a hook:
+#      "hooks": { "pre_iteration": ["cp /path/to/.env $CODEX_LOOP_WORKING_DIR/"] }
+#    See 'Known Limits' in this README for details.
 #    Each iteration calls Codex and waits up to 30 minutes for a response.
 #    A typical small task takes 3–10 iterations (15 minutes to a few hours).
 #    Each iteration shows one progress line before Codex starts, then goes quiet
