@@ -151,11 +151,16 @@ The minimum path to get started. Run these inside **your own project directory**
 
 **Step 0 — One-time setup** (skip if already done):
 
-1. Make sure your project is a Git repo with at least one commit:
+1. Set your OpenAI API key (both `init` and `run` need it):
+   ```bash
+   export OPENAI_API_KEY="sk-..."
+   ```
+   To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
+2. Make sure your project is a Git repo with at least one commit:
    ```bash
    git init && git add -A && git commit -m "init"
    ```
-2. Trust your project directory and the worktree parent in `~/.codex/config.toml`
+3. Trust your project directory and the worktree parent in `~/.codex/config.toml`
    (create the file if it does not exist — replace the paths with your actual project location):
    ```toml
    [projects."/Users/alice/code/my-app"]
