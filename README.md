@@ -262,6 +262,17 @@ or add it manually to `~/.codex/config.toml`:
 trust_level = "trusted"
 ```
 
+### "not inside a Git repository"
+
+`codex-loop run` requires a Git repository with at least one commit.
+If you see this error, initialize the repository first:
+
+```bash
+git init
+git add .
+git commit -m "init"
+```
+
 ### The loop stops with `blocked`
 
 This is not a crash — it means the loop hit a real limit it could not resolve on its own.
