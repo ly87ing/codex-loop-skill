@@ -52,12 +52,6 @@ Codex handles individual prompts well, but longer tasks need:
 | `service status` | Check service health |
 | `service uninstall` | Remove the launchd service |
 
-## Example
-
-See [`examples/simple-local-project/`](examples/simple-local-project/) for a worked example
-showing what `codex-loop init` generates for a real goal (a Python todo CLI), with realistic
-spec, plan, tasks, and config files you can copy as a starting point.
-
 ## Prerequisites
 
 **Platform:** macOS and Linux. Windows is not supported (requires Git worktrees and Unix process management). The `service` subcommand is macOS-only (launchd); all other commands work on Linux too.
@@ -161,6 +155,12 @@ codex-loop status --summary
 
 That is all you need for most tasks. The loop stops by itself when all tasks pass verification,
 or when it hits a real blocker (no progress, too many failures).
+
+### Example
+
+See [`examples/simple-local-project/`](examples/simple-local-project/) for a worked example
+showing what `codex-loop init` generates for a real goal (a Python todo CLI), with realistic
+spec, plan, tasks, and config files you can copy as a starting point.
 
 ### After the loop completes
 
