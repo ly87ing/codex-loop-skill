@@ -137,6 +137,8 @@ codex-loop init --prompt "Add input validation to every form in this app"
 #    A typical small task takes 3–10 iterations (15 minutes to a few hours).
 #    The terminal will be silent between iterations — that is normal.
 #    You can press Ctrl-C at any time to stop safely; the next run picks up where it left off.
+#    To watch what Codex is doing in real time, open a second terminal and run:
+#      codex-loop logs tail --lines 50
 codex-loop run
 # You will see output like:
 #   [iteration 1] task: 001-foundation  (0/2 done, running Codex...) [14:23:01]
