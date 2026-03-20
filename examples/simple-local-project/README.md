@@ -99,3 +99,23 @@ codex-loop run --retry-blocked
 # Or keep retrying automatically
 codex-loop run --continuous --retry-blocked --cycle-sleep-seconds 60
 ```
+
+## Use this as a template for your own project
+
+Once you've run this example, apply the same workflow to your real project:
+
+```bash
+# Go to your own project (must be a git repo with at least one commit)
+cd /path/to/your-project
+
+# Generate fresh spec, plan, and tasks for your goal
+codex-loop init --prompt "Your goal here. Name the language, framework, and test tool."
+
+# Check verification.commands in codex-loop.yaml, then run
+codex-loop run
+```
+
+Tips for a good prompt:
+- Name the language and framework: "Python/Flask", "Node/Express", "Go"
+- Name the test tool: "tests in pytest", "tests in jest", "go test"
+- Be specific: "add input validation to every form" not just "add validation"
