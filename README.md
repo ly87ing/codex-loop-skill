@@ -346,7 +346,7 @@ your-project/
     state.json            # loop state (task status, history, blockers)
     metrics.json          # counters and blocker aggregates
     agent_result.schema.json
-    logs/                 # per-iteration Codex JSONL output
+    logs/                 # per-iteration Codex output (one JSON object per line)
     runs/                 # per-task last result JSON
     artifacts/            # snapshots and exports
 
@@ -584,7 +584,7 @@ While the loop runs, Codex output is captured internally (not shown live) so the
 # Tail the most recent Codex output
 codex-loop logs tail --lines 50
 
-# Or look directly at the raw JSONL logs
+# Or look directly at the raw logs (one JSON object per line)
 ls .codex-loop/logs/
 ```
 
