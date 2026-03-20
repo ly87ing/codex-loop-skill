@@ -132,6 +132,15 @@ codex-loop run --retry-blocked
 codex-loop run --continuous --retry-blocked --cycle-sleep-seconds 60
 ```
 
+Common causes and fixes:
+
+| Blocker | What to do |
+|---|---|
+| `no_progress_limit` | The task description may be too vague. Edit the task file in `tasks/` to be more specific, then `codex-loop doctor --repair` before retrying. |
+| `runner_failure_limit` | Check your API key and network. Run `codex --version` to confirm Codex is installed. Update with `npm install -g @openai/codex`. |
+| `verification_failure_limit` | Check `verification.commands` in `codex-loop.yaml`. Run the command manually to see the real error. |
+| `max_iterations` | Increase `execution.max_iterations` in `codex-loop.yaml` (default: 20 in this example). |
+
 ## Use this as a template for your own project
 
 Once you've run this example, apply the same workflow to your real project:
