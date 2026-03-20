@@ -104,6 +104,9 @@ The minimum path to get started. Run these inside **your own project directory**
 # Move into your own project first (must be a Git repo with your code in it)
 cd /path/to/your-project
 
+# 0. Trust this directory in Codex (one-time setup — run codex, accept the prompt, then Ctrl-C)
+codex
+
 # 1. Scaffold workflow files from your goal
 codex-loop init --prompt "Add input validation to every form in this app"
 
