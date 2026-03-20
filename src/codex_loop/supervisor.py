@@ -101,7 +101,8 @@ class Supervisor:
                 )
             except (RuntimeError, FileNotFoundError, OSError, ValueError) as exc:
                 is_transient = self._is_transient_runner_error(str(exc))
-                print(f"  -> runner error ({'transient' if self._is_transient_runner_error(str(exc)) else 'hard'}): {str(exc)[:120]}", flush=True)
+                _err_kind = "retrying" if self._is_transient_runner_error(str(exc)) else "hard"
+                print(f"  -> runner error ({_err_kind}): {str(exc)[:120]}", flush=True)
                 updated = self.state_store.record_runner_failure(
                     task_id=task.task_id,
                     reason=str(exc),
