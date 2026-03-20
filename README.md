@@ -549,6 +549,10 @@ Common examples:
 - Go: `go test ./...`
 - Custom script: `bash scripts/verify.sh`
 
+If your project uses a virtual environment, use the full path to the interpreter so the command works without activating it first:
+- `".venv/bin/python -m pytest tests/ -q"` (Linux/macOS with venv in `.venv/`)
+- `"./node_modules/.bin/jest"` (Node.js with local install)
+
 After editing, run `codex-loop doctor --repair` then `codex-loop run --retry-blocked`.
 
 ### The generated spec, plan, or tasks don't look right
