@@ -14,6 +14,10 @@ authors = [
 license = { text = "MIT" }
 dependencies = []
 
+[project.urls]
+Homepage = "https://github.com/ly87ing/codex-loop-skill"
+Issues = "https://github.com/ly87ing/codex-loop-skill/issues"
+
 [project.scripts]
 codex-loop = "codex_loop.cli:main"
 
