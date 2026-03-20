@@ -106,6 +106,8 @@ Before installing `codex-loop`, make sure you have:
 
 ## Install
 
+> **Platform note:** macOS and Linux only. Windows is not supported.
+
 `codex-loop` has no third-party Python dependencies — just Python 3.11+ and the tools you already have.
 
 ```bash
