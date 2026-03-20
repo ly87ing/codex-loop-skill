@@ -173,6 +173,17 @@ class ReportingTests(unittest.TestCase):
             self.assertIn("watchdog_phase: exhausted", rendered)
             self.assertIn("watchdog_restart_count: 10", rendered)
 
+    def test_status_summary_pending_hint(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+
+            rendered = format_status_summary(root)
+
+            self.assertIn("overall_status: initialized", rendered)
+            self.assertIn("hint: run 'codex-loop run'", rendered)
+
     def test_events_timeline_includes_hook_and_blocked_events(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
