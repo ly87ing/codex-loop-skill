@@ -59,12 +59,23 @@ Everything else (`hooks`, `operator.cleanup`, `daemon`, etc.) can be ignored unt
 
 ## What a blocked run looks like
 
-If the loop stops before completing:
+If the loop stops before completing, the reason is printed directly in the terminal:
+
+```
+blocked
+Blocked: [no_progress_limit] No file changes detected for 4 consecutive iterations.
+Run 'codex-loop status --summary' for full details.
+```
+
+For more detail and to retry:
 
 ```bash
 codex-loop status --summary   # see which task is blocked and why
 codex-loop events --limit 20  # see the full event timeline
 
-# Retry with continuous mode
+# Retry blocked tasks
+codex-loop run --retry-blocked
+
+# Or keep retrying automatically
 codex-loop run --continuous --retry-blocked --cycle-sleep-seconds 60
 ```

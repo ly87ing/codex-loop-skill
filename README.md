@@ -139,12 +139,28 @@ or when it hits a real blocker (no progress, too many failures).
 
 ### If the loop blocks
 
-```bash
-# See what happened
-codex-loop status --summary
-codex-loop events --limit 20
+When the loop stops with `blocked`, the reason is printed directly in the terminal:
 
-# Retry blocked tasks and keep looping
+```
+blocked
+Blocked: [no_progress_limit] No file changes detected for 4 consecutive iterations.
+Run 'codex-loop status --summary' for full details.
+```
+
+For more detail:
+
+```bash
+codex-loop status --summary   # current task, blocker code, blocker reason
+codex-loop events --limit 20  # full event timeline with verification output
+```
+
+After fixing the root cause, retry:
+
+```bash
+# Retry once
+codex-loop run --retry-blocked
+
+# Or keep retrying automatically
 codex-loop run --continuous --retry-blocked --cycle-sleep-seconds 60
 ```
 
