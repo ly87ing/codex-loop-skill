@@ -117,6 +117,11 @@ class CodexRunner:
                 model,
             ]
         )
+        # `codex exec resume` does not support -s/--sandbox; use -c only.
+        # For fresh exec, also pass -s as the authoritative CLI flag so the
+        # sandbox policy is enforced even if the -c key name ever drifts.
+        if not session_id:
+            base.extend(["-s", sandbox])
         # `codex exec resume` does not accept --output-schema; only fresh exec does.
         if not session_id:
             base.extend(["--output-schema", str(schema_path)])
@@ -146,6 +151,8 @@ class CodexRunner:
                 'approval_policy="never"',
                 "-c",
                 'sandbox_mode="workspace-write"',
+                "-s",
+                "workspace-write",
                 "--json",
                 "--model",
                 model,
