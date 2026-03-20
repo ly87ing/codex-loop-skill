@@ -298,7 +298,10 @@ class CodexRunner:
         except FileNotFoundError as exc:
             msg = (
                 f"Codex executable not found: {command[0]}\n"
-                "Ensure `codex` is installed and on PATH."
+                "Install Codex CLI first:\n"
+                "  npm install -g @openai/codex\n"
+                "  # or: brew install --cask codex\n"
+                "Then make sure `codex` is on your PATH."
             )
             raise RuntimeError(msg) from exc
         except OSError as exc:

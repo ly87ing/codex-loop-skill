@@ -1111,6 +1111,7 @@ def main(argv: list[str] | None = None) -> int:
                     if _branch:
                         print(f"Changes are on branch: {_branch}")
                         print(f"To merge: git merge {_branch}")
+                        print("After merging, clean up with: codex-loop cleanup --apply")
                 else:
                     _blocker = _state.get("meta", {}).get("last_blocker") or {}
                     if _blocker.get("reason"):
@@ -1119,6 +1120,7 @@ def main(argv: list[str] | None = None) -> int:
                             file=sys.stderr,
                         )
                     print("Run 'codex-loop status --summary' for full details.", file=sys.stderr)
+                    print("To retry: codex-loop run --retry-blocked", file=sys.stderr)
             except Exception:  # noqa: BLE001
                 pass
             return 0 if outcome.value == "completed" else 2
