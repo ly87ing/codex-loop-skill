@@ -124,7 +124,7 @@ def run_project(
     except subprocess.CalledProcessError:
         raise RuntimeError(
             f"{project_dir} is not inside a Git repository. "
-            "Initialize one with: git init && git add . && git commit -m 'init'"
+            "Initialize one with: git init && git add -A -- ':!.codex-loop' && git commit -m 'init'"
         )
     ensure_local_state_ignored(repo_root)
     lock = RunLock(
