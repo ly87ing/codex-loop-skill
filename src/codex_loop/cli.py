@@ -71,7 +71,10 @@ def _write_output_file(path: Path, content: str) -> None:
 def _update_evidence_index(output_dir: Path, snapshot_path: Path, payload: dict[str, object] | None) -> None:
     index_path = output_dir.resolve() / "index.json"
     if index_path.exists():
-        index_data = json.loads(index_path.read_text(encoding="utf-8"))
+        try:
+            index_data = json.loads(index_path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            index_data = {"snapshots": []}
     else:
         index_data = {"snapshots": []}
     snapshots = index_data.get("snapshots")
@@ -132,7 +135,10 @@ def _update_snapshots_manifest(
 ) -> None:
     manifest_path = output_dir.resolve() / "manifest.json"
     if manifest_path.exists():
-        manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        try:
+            manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            manifest_data = {"exports": []}
     else:
         manifest_data = {"exports": []}
     exports = manifest_data.get("exports")
@@ -272,7 +278,10 @@ def _update_snapshots_exports_index(
 ) -> None:
     index_path = output_dir.resolve() / "index.json"
     if index_path.exists():
-        index_data = json.loads(index_path.read_text(encoding="utf-8"))
+        try:
+            index_data = json.loads(index_path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            index_data = {"exports": []}
     else:
         index_data = {"exports": []}
     exports = index_data.get("exports")
