@@ -75,7 +75,10 @@ def _service_environment(heartbeat_path: Path) -> dict[str, str]:
 def _read_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
 
 
 def _launchctl_missing(result: subprocess.CompletedProcess[str] | Any) -> bool:
