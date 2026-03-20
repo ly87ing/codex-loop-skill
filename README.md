@@ -34,7 +34,7 @@ Codex handles individual prompts well, but longer tasks need:
 | Command | What it does |
 |---|---|
 | `init --prompt "..."` | Scaffold spec, plan, tasks, and config from your goal |
-| `run` | Run the loop until done or blocked (exit 0=completed, 2=blocked) |
+| `run` | Run the loop until done or blocked (exits 0 on success, 2 if blocked) |
 | `run --retry-blocked` | Requeue blocked tasks then run |
 | `run --continuous --retry-blocked` | Keep retrying after blocks until `--max-cycles` |
 | `doctor --repair` | Fix state drift if you edited files manually |

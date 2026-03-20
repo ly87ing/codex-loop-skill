@@ -39,18 +39,9 @@ This generates `codex-loop.yaml`, `spec/`, `plan/`, `tasks/`, and `.codex-loop/s
 - Sanity check the generated spec and task breakdown.
 - Tighten verification commands in `codex-loop.yaml` if the defaults are weak.
 - Remove obviously unnecessary tasks before starting the loop.
+- If you edit any files manually after this point, run `codex-loop doctor --repair` before starting the loop. (`codex-loop run` includes automatic repair, but explicit repair surfaces errors earlier.)
 
-### 3. Repair local drift before the long run
-
-Run:
-
-```bash
-codex-loop doctor --repair
-```
-
-Use this when task files or local state may have changed since `init`.
-
-### 4. Start the supervisor
+### 3. Start the supervisor
 
 Run:
 
@@ -66,7 +57,7 @@ For a detached local worker, `codex-loop daemon start --retry-blocked --cycle-sl
 
 For a real macOS login service, `codex-loop service install --retry-blocked --cycle-sleep-seconds 60` installs a `launchd` agent under `~/Library/LaunchAgents`, records service metadata plus separate heartbeat and watchdog files under `.codex-loop/`, and keeps the loop alive across terminal exits and future logins.
 
-### 5. Inspect status when needed
+### 4. Inspect status when needed
 
 ```bash
 # Quick overview
