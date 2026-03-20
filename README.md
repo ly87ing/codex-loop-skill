@@ -112,7 +112,13 @@ cd /path/to/your-project
 codex
 
 # 1. Scaffold workflow files from your goal
+#    A good prompt names the language/framework, what to build, and how to test it.
+#    Examples:
+#      "Add input validation to every form in this app (Python/Flask). Tests in pytest."
+#      "Implement a REST API endpoint for user registration (Node/Express). Tests in jest."
+#      "Refactor the database layer to use SQLAlchemy. Tests in pytest."
 codex-loop init --prompt "Add input validation to every form in this app"
+# (This calls Codex to generate your project files — usually takes 30–90 seconds.)
 
 # 2. Review generated files and check the verification command
 #    Note: codex-loop.yaml uses JSON syntax (not indented YAML) — that is normal.
