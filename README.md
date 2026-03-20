@@ -231,7 +231,7 @@ git branch | grep codex-loop
 codex-loop status --summary   # shows worktree_branch
 ```
 
-The changes live in an isolated Git branch (`codex-loop/...`) in a worktree at `../.codex-loop-worktrees/` relative to your project's parent directory. Use `git diff` and `git log` (shown above) to review — you don't need to navigate there directly. After merging, clean up with:
+The changes live in an isolated Git branch (`codex-loop/...`). Use `git diff` and `git log` (shown above) to review — you don't need to navigate to any worktree directory. After merging, clean up with:
 
 ```bash
 codex-loop cleanup --apply
@@ -425,7 +425,7 @@ Hooks run in the worktree directory. If a hook exits non-zero and `hooks.failure
 
 1. Load `codex-loop.yaml` and auto-repair any state drift
 2. Pick the next pending task from `tasks/` (in filename order)
-3. Create or reuse a Git worktree at `../.codex-loop-worktrees/` so your main branch stays clean
+3. Create or reuse an isolated Git worktree so your main branch stays clean
 4. Run `codex exec` on that task
 5. Run every command in `verification.commands`
 6. If verification passes and the task is done, move to the next task
