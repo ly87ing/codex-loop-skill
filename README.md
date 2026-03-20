@@ -117,7 +117,7 @@ cd ..   # go back — next, cd into YOUR project directory (not this one)
 > ```
 
 > **Tip:** if you use virtual environments and want `codex-loop` available everywhere without activating one,
-> install with `pipx` instead:
+> install with `pipx` instead (run this from the **parent** of `codex-loop-skill`, i.e. after `cd ..`):
 > ```bash
 > pipx install -e ./codex-loop-skill
 > pipx ensurepath   # adds pipx bin dir to PATH; then open a new terminal
@@ -575,7 +575,7 @@ All thresholds are configurable in `codex-loop.yaml` under `execution`.
 
 The `codex-loop` command is installed by pip into a user scripts directory that may not be on your PATH.
 
-Fix with pipx (recommended):
+Fix with pipx (recommended — run from the **parent** directory of `codex-loop-skill`):
 
 ```bash
 pipx install -e ./codex-loop-skill
@@ -600,7 +600,7 @@ python3 -m codex_loop.cli --help
 ### "error: externally-managed-environment" during install
 
 On macOS with Homebrew Python (or some Linux distros), pip refuses to install globally.
-The recommended fix is `pipx`:
+The recommended fix is `pipx` (run from the **parent** directory of `codex-loop-skill`):
 
 ```bash
 pipx install -e ./codex-loop-skill
