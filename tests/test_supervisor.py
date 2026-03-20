@@ -624,11 +624,14 @@ class SupervisorTests(unittest.TestCase):
             )
             outcome = supervisor.run()
 
-            # Transient errors don't trip the runner failure circuit breaker;
-            # loop exhausts max_iterations instead.
+            # Transient errors don't trip the runner failure circuit breaker
+            # or the no-progress counter; loop exhausts max_iterations instead.
             state = store.load()
             self.assertEqual(
                 state["meta"]["consecutive_runner_failures"], 0
+            )
+            self.assertEqual(
+                state["meta"]["no_progress_iterations"], 0
             )
 
     def test_is_transient_runner_error_classifies_correctly(self) -> None:
