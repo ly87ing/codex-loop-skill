@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import json
 from pathlib import Path
+import subprocess
 import sys
 from typing import Any
 
@@ -659,10 +660,17 @@ def format_status_summary(project_dir: Path) -> str:
         lines.append("hint: run 'codex-loop run --retry-blocked' to retry, or 'codex-loop events --limit 20' for full details")
     if snapshot.get("overall_status") == "completed" and snapshot.get("worktree_branch"):
         branch = snapshot["worktree_branch"]
+        try:
+            base_branch = subprocess.run(
+                ["git", "-C", str(project_dir), "symbolic-ref", "--short", "HEAD"],
+                capture_output=True, text=True, timeout=5,
+            ).stdout.strip() or "main"
+        except Exception:  # noqa: BLE001
+            base_branch = "main"
         lines.append("")
         lines.append("Next steps (all tasks done):")
-        lines.append(f"  git diff --stat main..{branch}")
-        lines.append( "  git checkout main")
+        lines.append(f"  git diff --stat {base_branch}..{branch}")
+        lines.append(f"  git checkout {base_branch}")
         lines.append(f"  git merge {branch}")
         lines.append( "  codex-loop cleanup --apply")
     if snapshot.get("last_summary"):
