@@ -133,6 +133,9 @@ codex-loop init --prompt "Add input validation to every form in this app"
 #      codex-loop init --prompt "..." --force
 
 # 3. Run the loop — it will keep working until done or genuinely blocked
+#    Each iteration calls Codex and waits up to 30 minutes for a response.
+#    A typical small task takes 3–10 iterations (15 minutes to a few hours).
+#    The terminal will be silent between iterations — that is normal.
 codex-loop run
 # You will see output like:
 #   [iteration 1] task: 001-foundation  (0/2 done, running Codex...) [14:23:01]
