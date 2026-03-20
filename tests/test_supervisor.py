@@ -897,6 +897,86 @@ class SupervisorTests(unittest.TestCase):
             self.assertEqual(reloaded["meta"]["consecutive_verification_failures"], 0)
             self.assertEqual(reloaded["meta"]["consecutive_runner_failures"], 0)
 
+    def test_runner_file_not_found_error_treated_as_runner_failure(self) -> None:
+        """FileNotFoundError from runner (e.g. output file not created) is
+        caught by supervisor and recorded as a runner failure, not propagated."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-task.md").write_text("# Task\n\nDo it.\n")
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {"max_consecutive_runner_failures": 1},
+                    "verification": {"commands": []},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-task"])
+
+            class _FileNotFoundRunner:
+                def run_task(self, *, task, resume_session):
+                    raise FileNotFoundError("Expected output file was not created")
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=_FileNotFoundRunner(),
+                verifier=StubVerifier([]),
+                sleep_fn=lambda _: None,
+            )
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.BLOCKED)
+            state = store.load()
+            history = state["history"]
+            self.assertTrue(any(e.get("event_type") == "runner_failure" for e in history))
+
+    def test_runner_value_error_treated_as_runner_failure(self) -> None:
+        """ValueError from runner (e.g. malformed JSON output) is caught by
+        supervisor and recorded as a runner failure, not propagated."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-task.md").write_text("# Task\n\nDo it.\n")
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {"max_consecutive_runner_failures": 1},
+                    "verification": {"commands": []},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-task"])
+
+            class _ValueErrorRunner:
+                def run_task(self, *, task, resume_session):
+                    raise ValueError("Expected JSON object from output")
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=_ValueErrorRunner(),
+                verifier=StubVerifier([]),
+                sleep_fn=lambda _: None,
+            )
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.BLOCKED)
+            state = store.load()
+            history = state["history"]
+            self.assertTrue(any(e.get("event_type") == "runner_failure" for e in history))
+
 
 if __name__ == "__main__":
     unittest.main()

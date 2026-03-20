@@ -92,7 +92,7 @@ class Supervisor:
                     task=task,
                     resume_session=task_state.get("session_id"),
                 )
-            except RuntimeError as exc:
+            except (RuntimeError, FileNotFoundError, ValueError) as exc:
                 is_transient = self._is_transient_runner_error(str(exc))
                 updated = self.state_store.record_runner_failure(
                     task_id=task.task_id,
