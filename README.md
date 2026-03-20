@@ -547,6 +547,7 @@ Run `codex-loop doctor --repair` to reconcile state before the next run.
 
 ## Known Limits
 
+- Each iteration waits up to **30 minutes** for Codex to respond (`iteration_timeout_seconds: 1800` in `codex-loop.yaml`). During this time the terminal shows no output — that is normal. Use `codex-loop logs tail` in another terminal to see what Codex is doing. If you need a shorter timeout, reduce `iteration_timeout_seconds` in `codex-loop.yaml`.
 - `codex-loop.yaml` uses JSON syntax (curly braces and quoted keys), not indented YAML. This is intentional — it avoids a PyYAML dependency. You can edit it with any text editor; just keep the JSON structure intact. Install `pip install pyyaml` if you want to use standard YAML indentation syntax instead.
 - Codex CLI approval behavior can vary by CLI version. This project asks for `approval_policy="never"`, but some Codex releases have known approval edge cases.
 - Some Codex resume failures are only detectable from CLI error text, so session fallback is heuristic rather than protocol-level.
