@@ -205,6 +205,9 @@ See [`examples/simple-local-project/`](examples/simple-local-project/) for a wor
 showing what `codex-loop init` generates for a real goal (a Python todo CLI), with realistic
 spec, plan, tasks, and config files you can copy as a starting point.
 
+That directory includes step-by-step instructions in its README — it is the fastest way to see
+a complete end-to-end run without setting up your own project first.
+
 ### After the loop completes
 
 The loop runs Codex in an isolated Git branch (prefix: `codex-loop/`). When it finishes,
