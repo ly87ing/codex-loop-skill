@@ -359,11 +359,13 @@ class CodexRunner:
                 )
             else:
                 hint = ""
+            _stdout_snippet = completed.stdout[-2000:] if len(completed.stdout) > 2000 else completed.stdout
+            _stderr_snippet = completed.stderr[-2000:] if len(completed.stderr) > 2000 else completed.stderr
             msg = (
                 "Codex command failed.\n"
                 f"Command: {' '.join(command)}\n"
-                f"STDOUT:\n{completed.stdout}\n"
-                f"STDERR:\n{completed.stderr}{hint}"
+                f"STDOUT (last 2000 chars):\n{_stdout_snippet}\n"
+                f"STDERR (last 2000 chars):\n{_stderr_snippet}{hint}"
             )
             raise RuntimeError(msg)
         return completed.stdout
