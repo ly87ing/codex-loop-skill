@@ -148,6 +148,9 @@ codex-loop run
 #   To merge: git merge codex-loop/my-project-abc123
 #   After merging, clean up with: codex-loop cleanup --apply
 
+# Note: Codex makes changes in an isolated Git branch (at ../.codex-loop-worktrees/).
+#       You won't see the changes in your project directory until you merge in step 4.
+
 # 4. Merge the changes — copy the exact branch name printed above, then run:
 git checkout main   # or master, or whatever your default branch is
 git merge codex-loop/<branch-name-printed-above>
