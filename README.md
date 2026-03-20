@@ -748,6 +748,32 @@ codex-loop logs tail --lines 50
 
 Run `codex-loop doctor --repair` to reconcile state before the next run.
 
+### `git merge` reports conflicts
+
+If Codex edited files that you also modified since the run started, Git may report merge conflicts.
+Resolve them as you normally would:
+
+```bash
+# After git merge codex-loop/<branch> reports conflicts:
+git status                  # see which files have conflicts
+# Edit the conflicting files to resolve the <<< === >>> markers
+git add <resolved-files>
+git commit                  # complete the merge
+```
+
+Alternatively, inspect the changes first and decide what to keep:
+
+```bash
+git diff main..codex-loop/<branch>   # see exactly what Codex changed
+```
+
+If the conflicts are too complex and you want to start fresh, discard the merge and the branch:
+
+```bash
+git merge --abort            # cancel the in-progress merge
+codex-loop cleanup --apply   # remove worktrees and old artifacts
+```
+
 ### My tests still fail even after the loop reports `completed`
 
 Codex makes changes in an isolated Git branch, not in your project directory directly.
