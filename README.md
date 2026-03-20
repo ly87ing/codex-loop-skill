@@ -136,13 +136,11 @@ codex-loop run
 #     -> status=complete verification=pass files_changed=5
 #   All tasks done and verification passed.
 #   completed
-#   Changes are on branch: codex-loop/<branch-name>
-#   To merge: git merge codex-loop/<branch-name>
+#   Changes are on branch: codex-loop/my-project-abc123
+#   To merge: git merge codex-loop/my-project-abc123
 
-# 4. Merge the changes
-#    When the run completes, it prints the exact command, e.g.:
-#      To merge: git merge codex-loop/my-project-abc123
-#    Copy and run that printed command — do not use the placeholder above.
+# 4. Merge the changes — copy the printed command above and run it, e.g.:
+git merge codex-loop/my-project-abc123
 
 # 5. Check status at any time
 codex-loop status --summary
