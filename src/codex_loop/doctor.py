@@ -54,7 +54,10 @@ def _append_watchdog_warnings(report: DoctorReport, project_dir: Path) -> None:
         path = project_dir / ".codex-loop" / name
         if not path.exists():
             continue
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            continue
         if payload.get("phase") == "exhausted":
             report.warnings.append(
                 f"{path.relative_to(project_dir)} watchdog is exhausted and requires operator intervention before unattended execution can continue safely."
@@ -133,7 +136,11 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
         store.reconcile_tasks(task_ids)
         report.fixed.append("tasks reconciled")
     else:
-        state = store.load()
+        try:
+            state = store.load()
+        except Exception:  # noqa: BLE001
+            report.errors.append("Corrupt state file: .codex-loop/state.json")
+            return report
         state_task_ids = list(state.get("tasks", {}).keys())
         if state_task_ids != task_ids:
             report.warnings.append("tasks state does not match task files")
