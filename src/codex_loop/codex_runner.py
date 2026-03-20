@@ -283,6 +283,12 @@ class CodexRunner:
                 f"STDERR:\n{exc.stderr or ''}"
             )
             raise RuntimeError(msg) from exc
+        except FileNotFoundError as exc:
+            msg = (
+                f"Codex executable not found: {command[0]}\n"
+                "Ensure `codex` is installed and on PATH."
+            )
+            raise RuntimeError(msg) from exc
         if completed.returncode != 0:
             msg = (
                 "Codex command failed.\n"
