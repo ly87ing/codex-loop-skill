@@ -66,7 +66,7 @@ Run these commands from your project directory:
 
 ## Prerequisites
 
-**Platform:** macOS and Linux. Windows is not supported (requires Git worktrees and Unix process management). The `service` subcommand is macOS-only (launchd); all other commands work on Linux too.
+**Platform:** macOS and Linux. Windows is not supported (requires Git worktrees and Unix process management). The `service` subcommand is macOS-only (launchd); all other commands work on Linux too. Windows users can run `codex-loop` inside [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install) (Windows Subsystem for Linux).
 
 Before installing `codex-loop`, make sure you have:
 
