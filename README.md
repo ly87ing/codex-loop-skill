@@ -662,13 +662,16 @@ Then run your tests. They should pass against the merged code.
 
 ## Known Limits
 
-- **Untracked files are not in the worktree.** Codex runs in an isolated Git worktree that only contains committed files. If your project needs `.env`, `node_modules/`, or other untracked files to run tests, copy them into the worktree manually, or add a `pre_iteration` hook in `codex-loop.yaml` that copies them automatically before each iteration:
+- **Untracked files are not in the worktree.** Codex runs in an isolated Git worktree that only contains committed files. If your project needs untracked files to run tests, add a `pre_iteration` hook in `codex-loop.yaml` that sets them up before each iteration:
   ```json
   "hooks": {
-    "pre_iteration": ["cp /path/to/your-project/.env $CODEX_LOOP_WORKING_DIR/"]
+    "pre_iteration": [
+      "cp /path/to/your-project/.env $CODEX_LOOP_WORKING_DIR/",
+      "npm install --prefix $CODEX_LOOP_WORKING_DIR"
+    ]
   }
   ```
-  The worktree path is at `../.codex-loop-worktrees/<repo>/<branch>/` and is also available as `$CODEX_LOOP_WORKING_DIR` in hooks.
+  Common cases: `.env` files (copy them in), `node_modules/` (run `npm install` rather than copying — it's faster), Python virtualenvs (run `pip install -e .` or `pip install -r requirements.txt` in the worktree). The worktree path is also available as `$CODEX_LOOP_WORKING_DIR` in hooks.
 - Each iteration waits up to **30 minutes** for Codex to respond (`iteration_timeout_seconds: 1800` in `codex-loop.yaml`). During this time the terminal shows no output — that is normal. Run `codex-loop events --limit 10` after an iteration completes to see what happened, or reduce `iteration_timeout_seconds` in `codex-loop.yaml` if you need a shorter timeout.
 - `codex-loop.yaml` uses JSON syntax (curly braces and quoted keys), not indented YAML. This is intentional — it avoids a PyYAML dependency. You can edit it with any text editor; just keep the JSON structure intact. Install `pip install pyyaml` if you want to use standard YAML indentation syntax instead.
 - Codex CLI approval behavior can vary by CLI version. This project asks for `approval_policy="never"`, but some Codex releases have known approval edge cases.
