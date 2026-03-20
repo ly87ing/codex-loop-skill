@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json as _json
 from pathlib import Path
+import threading
 import time
 from typing import Callable
 
@@ -47,6 +49,51 @@ class LoopTaskRunner:
         )
 
 
+_HEARTBEAT_INTERVAL_SECONDS = 60
+
+
+def _run_supervisor_with_heartbeat(
+    supervisor: object,
+    heartbeat_path: Path | None,
+) -> LoopOutcome:
+    """Run supervisor.run() while a background thread keeps the heartbeat file
+    updated every 60 seconds.  This prevents the watchdog from misreading a
+    long-running codex exec call (up to 1800 s) as a dead process."""
+    if heartbeat_path is None:
+        return supervisor.run()  # type: ignore[union-attr]
+
+    stop_event = threading.Event()
+
+    def _beat() -> None:
+        while not stop_event.wait(_HEARTBEAT_INTERVAL_SECONDS):
+            try:
+                # Read the current cycle from the existing heartbeat so we
+                # don't clobber the cycle counter written by run_project_continuously.
+                existing_cycle = 0
+                if heartbeat_path.exists():
+                    try:
+                        existing_cycle = _json.loads(
+                            heartbeat_path.read_text(encoding="utf-8")
+                        ).get("cycle", 0)
+                    except Exception:  # noqa: BLE001
+                        pass
+                write_daemon_heartbeat(
+                    heartbeat_path,
+                    phase="running",
+                    cycle=existing_cycle,
+                )
+            except Exception:  # noqa: BLE001
+                pass
+
+    beat_thread = threading.Thread(target=_beat, daemon=True)
+    beat_thread.start()
+    try:
+        return supervisor.run()  # type: ignore[union-attr]
+    finally:
+        stop_event.set()
+        beat_thread.join(timeout=5)
+
+
 def retry_blocked_tasks_for_retry(project_dir: Path) -> bool:
     store = StateStore(project_dir / ".codex-loop" / "state.json")
     state = store.load()
@@ -57,7 +104,11 @@ def retry_blocked_tasks_for_retry(project_dir: Path) -> bool:
     return True
 
 
-def run_project(project_dir: Path) -> LoopOutcome:
+def run_project(
+    project_dir: Path,
+    *,
+    heartbeat_path: Path | None = None,
+) -> LoopOutcome:
     config = CodexLoopConfig.from_file(project_dir / "codex-loop.yaml")
     report = run_doctor(project_dir, repair=True)
     if report.errors:
@@ -113,7 +164,7 @@ def run_project(project_dir: Path) -> LoopOutcome:
             working_directory=working_directory,
             hook_runner=HookRunner(project_dir / ".codex-loop" / "hooks"),
         )
-        return supervisor.run()
+        return _run_supervisor_with_heartbeat(supervisor, heartbeat_path)
 
 
 def run_project_continuously(
@@ -129,9 +180,15 @@ def run_project_continuously(
     run_once: Callable[[Path], LoopOutcome] | None = None,
 ) -> LoopOutcome:
     sleep = sleep_fn or time.sleep
-    run_single = run_once or run_project
+    _run_once = run_once
     cycles = 0
     error_count = 0
+
+    def run_single(p: Path) -> LoopOutcome:
+        if _run_once is not None:
+            return _run_once(p)
+        return run_project(p, heartbeat_path=heartbeat_path)
+
     while True:
         next_cycle = cycles + 1
         if heartbeat_path is not None:

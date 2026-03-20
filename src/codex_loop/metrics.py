@@ -80,6 +80,11 @@ def build_metrics_snapshot(state: dict[str, Any]) -> dict[str, Any]:
         "latest_watchdog_restart": latest_watchdog_restart,
         "latest_watchdog_exhausted": latest_watchdog_exhausted,
         "blocked_by_code": blocked_by_code,
+        "tasks_skipped_by_circuit_breaker": sum(
+            1
+            for task in tasks.values()
+            if task.get("blocker_code") == "task_failure_circuit_breaker"
+        ),
         "consecutive_runner_failures": int(
             meta.get("consecutive_runner_failures", 0)
         ),

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 import random
+import subprocess
 import time
 
 from .config import CodexLoopConfig
@@ -45,6 +47,11 @@ class Supervisor:
             task = self._select_task()
             if task is None:
                 outcome = self._terminal_outcome_without_selectable_task()
+                if outcome is None:
+                    # Final verification failed after all tasks done; a task
+                    # was reopened — continue the loop to fix it.
+                    self._sleep_between_iterations()
+                    continue
                 state = self.state_store.load()
                 last_blocker = state.get("meta", {}).get("last_blocker") or {}
                 extra_env = None
@@ -86,6 +93,7 @@ class Supervisor:
                     resume_session=task_state.get("session_id"),
                 )
             except RuntimeError as exc:
+                is_transient = self._is_transient_runner_error(str(exc))
                 updated = self.state_store.record_runner_failure(
                     task_id=task.task_id,
                     reason=str(exc),
@@ -94,6 +102,7 @@ class Supervisor:
                         if task_state.get("session_id")
                         else None
                     ),
+                    transient=is_transient,
                 )
                 hook_failure = self._run_hooks(
                     event_name="post_iteration",
@@ -119,6 +128,11 @@ class Supervisor:
                         },
                     )
                     return LoopOutcome.BLOCKED
+                # Transient errors get a backoff-and-retry without touching
+                # the structural circuit breakers.
+                if is_transient:
+                    self._sleep_between_iterations()
+                    continue
                 if (
                     self.config.execution.max_consecutive_runner_failures > 0
                     and updated["meta"]["consecutive_runner_failures"]
@@ -138,6 +152,20 @@ class Supervisor:
                         },
                     )
                     return LoopOutcome.BLOCKED
+                # Task-level circuit breaker: skip this task instead of
+                # blocking the entire loop.
+                task_failures = updated["tasks"][task.task_id].get(
+                    "consecutive_task_failures", 0
+                )
+                max_task_failures = self.config.execution.max_consecutive_task_failures
+                if max_task_failures > 0 and task_failures >= max_task_failures:
+                    self.state_store.mark_blocked(
+                        task.task_id,
+                        f"Task failed {task_failures} times consecutively.",
+                        code="task_failure_circuit_breaker",
+                    )
+                    self._sleep_between_iterations()
+                    continue
                 if (
                     updated["meta"]["no_progress_iterations"]
                     >= self.config.execution.max_no_progress_iterations
@@ -162,12 +190,12 @@ class Supervisor:
                 self.config.verification.commands,
                 self.working_directory,
                 self.config.verification.pass_requires_all,
+                self.config.verification.timeout_seconds,
             )
-            files_changed = [
-                str(path)
-                for path in result.get("files_changed", [])
-                if isinstance(path, str)
-            ]
+            files_changed = self._real_files_changed(
+                self.working_directory,
+                result.get("files_changed", []),
+            )
             fingerprint = self._fingerprint(task.task_id, files_changed, passed, result)
             updated = self.state_store.record_iteration(
                 task_id=task.task_id,
@@ -240,13 +268,12 @@ class Supervisor:
                 )
                 return LoopOutcome.BLOCKED
             if passed:
-                updated = self.state_store.mark_task_done(task.task_id)
-                if updated["meta"]["overall_status"] == "completed":
-                    self._run_terminal_hooks(
-                        outcome=LoopOutcome.COMPLETED,
-                        task=task,
-                    )
-                    return LoopOutcome.COMPLETED
+                self.state_store.mark_task_done(task.task_id)
+                # Do NOT short-circuit to COMPLETED here — always let
+                # _terminal_outcome_without_selectable_task run the final
+                # verification pass before declaring COMPLETED. This prevents
+                # a task reporting done from bypassing the verification gate.
+                continue
             if (
                 self.config.execution.max_consecutive_verification_failures > 0
                 and updated["meta"]["consecutive_verification_failures"]
@@ -266,6 +293,20 @@ class Supervisor:
                     },
                 )
                 return LoopOutcome.BLOCKED
+            # Task-level circuit breaker after verification failure.
+            # Skip this task instead of blocking the entire loop.
+            task_failures = updated["tasks"][task.task_id].get(
+                "consecutive_task_failures", 0
+            )
+            max_task_failures = self.config.execution.max_consecutive_task_failures
+            if max_task_failures > 0 and task_failures >= max_task_failures:
+                self.state_store.mark_blocked(
+                    task.task_id,
+                    f"Task failed {task_failures} times consecutively.",
+                    code="task_failure_circuit_breaker",
+                )
+                self._sleep_between_iterations()
+                continue
             if (
                 updated["meta"]["no_progress_iterations"]
                 >= self.config.execution.max_no_progress_iterations
@@ -289,7 +330,7 @@ class Supervisor:
         remaining = [
             task_id
             for task_id, task_state in state["tasks"].items()
-            if task_state["status"] != "done"
+            if task_state["status"] not in {"done", "blocked"}
         ]
         if remaining:
             self.state_store.mark_blocked(
@@ -308,19 +349,52 @@ class Supervisor:
         )
         return LoopOutcome.BLOCKED
 
-    def _terminal_outcome_without_selectable_task(self) -> LoopOutcome:
+    def _terminal_outcome_without_selectable_task(self) -> LoopOutcome | None:
         state = self.state_store.load()
         tasks = state.get("tasks", {})
         if not tasks:
             return LoopOutcome.BLOCKED
         statuses = {task_state.get("status") for task_state in tasks.values()}
-        if statuses == {"done"}:
-            return LoopOutcome.COMPLETED
+        # Consider the loop complete when every task is either done or was
+        # intentionally skipped by the task-level circuit breaker (blocked).
+        # Pure done, or done+blocked (some tasks skipped) — both warrant a
+        # final verification pass before declaring COMPLETED.
+        if statuses <= {"done", "blocked"} and "done" in statuses:
+            passed, _ = self.verifier.run(
+                self.config.verification.commands,
+                self.working_directory,
+                self.config.verification.pass_requires_all,
+                self.config.verification.timeout_seconds,
+            )
+            if passed:
+                state["meta"]["overall_status"] = "completed"
+                state["meta"]["updated_at"] = datetime.now(UTC).isoformat()
+                self.state_store.save(state)
+                return LoopOutcome.COMPLETED
+            # Verification failed. Reopen the last done task so the loop can
+            # continue fixing it (skipped/blocked tasks stay blocked).
+            last_done_id = next(
+                (
+                    tid
+                    for tid in reversed(list(tasks))
+                    if tasks[tid].get("status") == "done"
+                ),
+                None,
+            )
+            if last_done_id is not None:
+                task_obj = state["tasks"][last_done_id]
+                task_obj["status"] = "ready"
+                task_obj["last_error"] = "Final verification failed after all tasks reported done."
+                task_obj["consecutive_task_failures"] = 0
+                state["meta"]["overall_status"] = "running"
+                self.state_store.save(state)
+                return None  # caller handles None → continue loop
+            # No done task to reopen — fall through to BLOCKED
         first_incomplete = next(
             (
                 task_id
                 for task_id, task_state in tasks.items()
-                if task_state.get("status") != "done"
+                if task_state.get("status") not in {"done", "blocked"}
             ),
             None,
         )
@@ -335,11 +409,71 @@ class Supervisor:
     def _select_task(self) -> Task | None:
         tasks = self.task_graph.discover()
         state = self.state_store.load()
+        task_states = state.get("tasks", {})
+        done_ids = {
+            tid
+            for tid, ts in task_states.items()
+            if ts.get("status") == "done"
+        }
         for task in tasks:
-            status = state["tasks"].get(task.task_id, {}).get("status")
-            if status in {"ready", "in_progress"}:
-                return task
+            status = task_states.get(task.task_id, {}).get("status")
+            if status not in {"ready", "in_progress"}:
+                continue
+            # Skip tasks whose dependencies are not yet done.
+            if any(dep not in done_ids for dep in task.depends_on):
+                continue
+            return task
         return None
+
+    @staticmethod
+    def _is_transient_runner_error(message: str) -> bool:
+        """Return True for errors that are temporary infrastructure failures.
+        Transient errors should not consume the consecutive_runner_failures counter.
+        """
+        lowered = message.lower()
+        return any(
+            token in lowered
+            for token in (
+                "timed out",
+                "timeout",
+                "connection reset",
+                "connection refused",
+                "broken pipe",
+                "network",
+                "killed",
+                "sigkill",
+                "sigterm",
+                "rate limit",
+                "429",
+                "503",
+                "502",
+            )
+        )
+
+    @staticmethod
+    def _real_files_changed(
+        working_directory: Path,
+        agent_reported: list[object],
+    ) -> list[str]:
+        """Return files actually changed according to git, falling back to
+        the agent-reported list only when git is unavailable."""
+        for git_args in (
+            ["git", "diff", "--name-only", "HEAD"],
+            ["git", "diff", "--name-only", "--cached", "HEAD"],
+        ):
+            try:
+                result = subprocess.run(
+                    git_args,
+                    cwd=working_directory,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    return result.stdout.strip().splitlines()
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+                break
+        return [str(p) for p in agent_reported if isinstance(p, str)]
 
     @staticmethod
     def _fingerprint(

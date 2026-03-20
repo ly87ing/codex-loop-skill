@@ -104,3 +104,17 @@ Those warnings now include concrete remediation guidance so operators can tighte
 Tasks are discovered from `tasks/*.md` in filename order. Status lives in `.codex-loop/state.json`, not in the task files themselves.
 
 This means task documents stay readable and stable while the local state file tracks operational progress.
+
+Task markdown files can declare dependencies:
+```
+<!-- depends_on: 001-foundation, 002-setup -->
+```
+or in YAML frontmatter:
+```yaml
+---
+depends_on: 001-foundation
+---
+```
+A task whose dependencies are not yet `done` is skipped by `_select_task` until they complete.
+
+When a single task hits `max_consecutive_task_failures` consecutive failures (runner or verification), it is marked `blocked` with code `task_failure_circuit_breaker` and the next pending task is promoted to `ready`. The loop continues rather than halting. If verification ultimately passes with some tasks skipped, the run is still declared `completed`.

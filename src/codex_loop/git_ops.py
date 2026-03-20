@@ -68,15 +68,20 @@ def create_worktree(
         path = Path(existing_path)
         if path.exists():
             return WorktreeInfo(repo_root=repo_root, branch_name=existing_branch, path=path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(
-            ["git", "worktree", "add", str(path), existing_branch],
-            cwd=repo_root,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        return WorktreeInfo(repo_root=repo_root, branch_name=existing_branch, path=path)
+        # Worktree directory removed but branch may still exist — try to
+        # re-attach. Fall through to a fresh worktree if the branch is gone.
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            subprocess.run(
+                ["git", "worktree", "add", str(path), existing_branch],
+                cwd=repo_root,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            return WorktreeInfo(repo_root=repo_root, branch_name=existing_branch, path=path)
+        except subprocess.CalledProcessError:
+            pass  # Branch deleted — fall through to create a fresh worktree
 
     timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
     branch_name = f"{branch_prefix}{task_id}-{timestamp}"

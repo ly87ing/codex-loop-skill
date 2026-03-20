@@ -21,6 +21,50 @@ class TaskGraphTests(unittest.TestCase):
             self.assertEqual(tasks[1].title, "Build Loop")
 
 
+    def test_depends_on_parsed_from_html_comment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tasks_dir = Path(tmpdir)
+            (tasks_dir / "001-foundation.md").write_text(
+                "# Foundation\n\n<!-- depends_on: 002-setup, 003-build -->\n"
+            )
+
+            tasks = TaskGraph(tasks_dir).discover()
+
+            self.assertEqual(tasks[0].depends_on, ["002-setup", "003-build"])
+
+    def test_depends_on_parsed_from_yaml_frontmatter(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tasks_dir = Path(tmpdir)
+            (tasks_dir / "001-foundation.md").write_text(
+                "---\ndepends_on: 002-setup\ntitle: Foundation\n---\n# Foundation\n"
+            )
+
+            tasks = TaskGraph(tasks_dir).discover()
+
+            self.assertEqual(tasks[0].depends_on, ["002-setup"])
+
+    def test_depends_on_comment_does_not_include_closing_marker(self) -> None:
+        """Regression: --> from comment close must not appear in parsed deps."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tasks_dir = Path(tmpdir)
+            (tasks_dir / "001-foundation.md").write_text(
+                "# Foundation\n\n<!-- depends_on: 002-setup, 003-build -->\n"
+            )
+
+            tasks = TaskGraph(tasks_dir).discover()
+
+            self.assertEqual(tasks[0].depends_on, ["002-setup", "003-build"])
+
+    def test_depends_on_empty_when_not_specified(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tasks_dir = Path(tmpdir)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+
+            tasks = TaskGraph(tasks_dir).discover()
+
+            self.assertEqual(tasks[0].depends_on, [])
+
+
 if __name__ == "__main__":
     unittest.main()
 

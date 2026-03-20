@@ -49,6 +49,7 @@ class ExecutionConfig:
     max_no_progress_iterations: int = 5
     max_consecutive_runner_failures: int = 3
     max_consecutive_verification_failures: int = 0
+    max_consecutive_task_failures: int = 5
     lock_stale_seconds: int = 21600
     iteration_timeout_seconds: int = 1800
     iteration_backoff_seconds: float = 0.0
@@ -68,6 +69,7 @@ class CodexConfig:
 class VerificationConfig:
     commands: list[str] = field(default_factory=list)
     pass_requires_all: bool = True
+    timeout_seconds: int = 300
 
 
 @dataclass(slots=True)
@@ -149,6 +151,9 @@ class CodexLoopConfig:
             max_consecutive_verification_failures=int(
                 execution_data.get("max_consecutive_verification_failures", 0)
             ),
+            max_consecutive_task_failures=int(
+                execution_data.get("max_consecutive_task_failures", 5)
+            ),
             lock_stale_seconds=int(execution_data.get("lock_stale_seconds", 21600)),
             iteration_timeout_seconds=int(
                 execution_data.get("iteration_timeout_seconds", 1800)
@@ -214,6 +219,9 @@ class CodexLoopConfig:
         if self.execution.max_consecutive_verification_failures < 0:
             msg = "execution.max_consecutive_verification_failures must not be negative."
             raise ValueError(msg)
+        if self.execution.max_consecutive_task_failures < 0:
+            msg = "execution.max_consecutive_task_failures must not be negative."
+            raise ValueError(msg)
         if self.execution.lock_stale_seconds <= 0:
             msg = "execution.lock_stale_seconds must be greater than zero."
             raise ValueError(msg)
@@ -225,6 +233,9 @@ class CodexLoopConfig:
             raise ValueError(msg)
         if self.execution.iteration_backoff_jitter_seconds < 0:
             msg = "execution.iteration_backoff_jitter_seconds must not be negative."
+            raise ValueError(msg)
+        if self.verification.timeout_seconds <= 0:
+            msg = "verification.timeout_seconds must be greater than zero."
             raise ValueError(msg)
         if self.hooks.timeout_seconds <= 0:
             msg = "hooks.timeout_seconds must be greater than zero."

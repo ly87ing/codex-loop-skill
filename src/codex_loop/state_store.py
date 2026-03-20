@@ -21,6 +21,7 @@ def _default_task_state(index: int) -> dict[str, Any]:
         "status": _default_task_status(index),
         "session_id": None,
         "iterations": 0,
+        "consecutive_task_failures": 0,
         "last_summary": "",
         "files_changed": [],
         "last_error": None,
@@ -132,6 +133,8 @@ class StateStore:
             task_state.setdefault("last_error", None)
             task_state.setdefault("blocker_code", None)
             task_state.setdefault("blocker_reason", None)
+            task_state.setdefault("consecutive_task_failures", 0)
+            task_state.setdefault("last_verification_results", [])
             rebuilt_tasks[task_id] = task_state
 
         _normalize_task_statuses(rebuilt_tasks)
@@ -182,6 +185,16 @@ class StateStore:
         state["tasks"][task_id]["blocker_reason"] = reason
         state["tasks"][task_id]["last_error"] = reason
         state["tasks"][task_id]["updated_at"] = _now()
+        # When a task is skipped by the task-level circuit breaker, promote
+        # the next pending task to ready so the loop can continue.
+        if code == "task_failure_circuit_breaker":
+            next_pending = next(
+                (key for key, task in state["tasks"].items() if task["status"] == "pending"),
+                None,
+            )
+            if next_pending is not None:
+                state["tasks"][next_pending]["status"] = "ready"
+                state["tasks"][next_pending]["updated_at"] = _now()
         state["meta"]["last_error"] = reason
         state["meta"]["last_blocker"] = {
             "task_id": task_id,
@@ -189,7 +202,10 @@ class StateStore:
             "reason": reason,
             "timestamp": _now(),
         }
-        state["meta"]["overall_status"] = "blocked"
+        # task_failure_circuit_breaker skips one task but the loop continues;
+        # do not mark the overall run as blocked.
+        if code != "task_failure_circuit_breaker":
+            state["meta"]["overall_status"] = "blocked"
         state["meta"]["updated_at"] = _now()
         state["history"].append(
             {
@@ -226,6 +242,7 @@ class StateStore:
             task_state["blocker_code"] = None
             task_state["blocker_reason"] = None
             task_state["last_error"] = None
+            task_state["consecutive_task_failures"] = 0
             task_state["updated_at"] = timestamp
             state["history"].append(
                 {
@@ -260,6 +277,7 @@ class StateStore:
         task_id: str,
         reason: str,
         session_id: str | None = None,
+        transient: bool = False,
     ) -> dict[str, Any]:
         state = self.load()
         meta = state["meta"]
@@ -267,13 +285,18 @@ class StateStore:
         meta["iteration"] += 1
         meta["updated_at"] = _now()
         meta["no_progress_iterations"] += 1
-        meta["consecutive_runner_failures"] = int(
-            meta.get("consecutive_runner_failures", 0)
-        ) + 1
+        # Transient failures (network, timeout, kill signal) do not count toward
+        # the structural runner-failure circuit breaker.
+        if not transient:
+            meta["consecutive_runner_failures"] = int(
+                meta.get("consecutive_runner_failures", 0)
+            ) + 1
         meta["consecutive_verification_failures"] = 0
         meta["last_error"] = reason
         meta["overall_status"] = "running"
         task["iterations"] += 1
+        if not transient:
+            task["consecutive_task_failures"] = int(task.get("consecutive_task_failures", 0)) + 1
         task["status"] = "in_progress"
         task["last_summary"] = reason
         task["last_error"] = reason
@@ -343,11 +366,16 @@ class StateStore:
         task["files_changed"] = files_changed
         task["session_id"] = session_id
         task["last_error"] = None if verification_passed else summary
+        task["last_verification_results"] = verification_results or []
         task["blocker_code"] = None
         task["blocker_reason"] = None
         task["resume_fallback_used"] = resume_fallback_used
         task["resume_failure_reason"] = resume_failure_reason
         task["updated_at"] = _now()
+        if verification_passed:
+            task["consecutive_task_failures"] = 0
+        else:
+            task["consecutive_task_failures"] = int(task.get("consecutive_task_failures", 0)) + 1
         if agent_status == "blocked":
             task["status"] = "blocked"
             meta["overall_status"] = "blocked"

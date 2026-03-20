@@ -330,6 +330,33 @@ class CodexRunner:
         )
         if not history_block:
             history_block = "- No prior iterations."
+
+        # Inject the last verification failure output so Codex can see exactly
+        # what broke, rather than having to guess from a text summary.
+        verification_block = ""
+        task_state = state.get("tasks", {}).get(task.task_id, {})
+        last_verification = task_state.get("last_verification_results")
+        if last_verification and isinstance(last_verification, list):
+            failed = [r for r in last_verification if r.get("exit_code") != 0 or r.get("timed_out")]
+            if failed:
+                parts = ["## Last Verification Output (FAILED — fix these before reporting complete)"]
+                for r in failed:
+                    cmd = r.get("command", "")
+                    exit_code = r.get("exit_code")
+                    timed_out = r.get("timed_out", False)
+                    stdout = str(r.get("stdout", ""))[:1500].strip()
+                    stderr = str(r.get("stderr", ""))[:1500].strip()
+                    parts.append(f"Command: {cmd}")
+                    if timed_out:
+                        parts.append("Result: TIMED OUT")
+                    else:
+                        parts.append(f"Exit code: {exit_code}")
+                    if stdout:
+                        parts.append(f"stdout:\n{stdout}")
+                    if stderr:
+                        parts.append(f"stderr:\n{stderr}")
+                verification_block = "\n".join(parts) + "\n\n"
+
         return (
             "You are executing one task in a file-driven autonomous Codex loop.\n"
             "Work only on the current task. Make concrete file changes in the repo, "
@@ -340,7 +367,8 @@ class CodexRunner:
             f"Current task title: {task.title}\n"
             f"Task document:\n{task.body}\n\n"
             f"Recent loop history:\n{history_block}\n\n"
-            "Return only the structured result matching the provided schema."
+            + verification_block
+            + "Return only the structured result matching the provided schema."
         )
 
     def _write_prompt_artifact(

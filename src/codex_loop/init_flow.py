@@ -97,6 +97,7 @@ def initialize_project(
             "max_no_progress_iterations": 5,
             "max_consecutive_runner_failures": 3,
             "max_consecutive_verification_failures": 0,
+            "max_consecutive_task_failures": 5,
             "iteration_timeout_seconds": 1800,
             "iteration_backoff_seconds": 0.0,
             "iteration_backoff_jitter_seconds": 0.0,
@@ -111,6 +112,7 @@ def initialize_project(
         "verification": {
             "commands": result.verification_commands,
             "pass_requires_all": True,
+            "timeout_seconds": 300,
         },
         "tasks": {"strategy": "sequential", "source_dir": "tasks"},
         "logging": {"save_prompts": True, "save_jsonl": True},

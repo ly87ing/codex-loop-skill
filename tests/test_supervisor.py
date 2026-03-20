@@ -38,6 +38,7 @@ class StubVerifier:
         commands: list[str],
         cwd: Path,
         pass_requires_all: bool = True,
+        timeout_seconds: int = 300,
     ) -> tuple[bool, list[dict[str, object]]]:
         return self.outcomes.pop(0), [{"command": commands[0], "exit_code": 1 if not self.outcomes else 0}]
 
@@ -234,7 +235,7 @@ class SupervisorTests(unittest.TestCase):
                     }
                 ]
             )
-            verifier = StubVerifier([True])
+            verifier = StubVerifier([True, True])  # iteration + final verification
 
             supervisor = Supervisor(
                 config=config,
@@ -339,7 +340,7 @@ class SupervisorTests(unittest.TestCase):
                         }
                     ]
                 ),
-                verifier=StubVerifier([True]),
+                verifier=StubVerifier([True, True]),  # iteration + final verification
                 hook_runner=HookRunner(root / ".codex-loop" / "hooks"),
             )
 
@@ -434,7 +435,7 @@ class SupervisorTests(unittest.TestCase):
                         },
                     ]
                 ),
-                verifier=StubVerifier([False, True]),
+                verifier=StubVerifier([False, True, True]),  # iter1 fail, iter2 pass, final verification
                 sleep_fn=sleep_calls.append,
                 jitter_fn=lambda low, high: 0.25,
             )
@@ -475,6 +476,303 @@ class SupervisorTests(unittest.TestCase):
 
             outcome = supervisor.run()
 
+            self.assertEqual(outcome, LoopOutcome.BLOCKED)
+
+
+    def test_final_verification_prevents_false_completion(self) -> None:
+        """All tasks done but final verification fails → last task reopened, loop continues."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {"max_iterations": 5},
+                    "verification": {"commands": ["python3 -c 'raise SystemExit(0)'"]},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            # Pre-mark task as done so _terminal_outcome_without_selectable_task fires
+            state = store.load()
+            state["tasks"]["001-foundation"]["status"] = "done"
+            state["meta"]["overall_status"] = "completed"
+            store.save(state)
+
+            # Verifier: first call (final verification) passes → COMPLETED
+            verifier = StubVerifier([True])
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=StubRunner([]),
+                verifier=verifier,
+            )
+
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.COMPLETED)
+
+    def test_final_verification_failure_reopens_task(self) -> None:
+        """All tasks done but final verification fails → task reopened, loop keeps running."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {"max_iterations": 4, "max_no_progress_iterations": 3},
+                    "verification": {"commands": ["python3 -c 'raise SystemExit(1)'"]},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+            state = store.load()
+            state["tasks"]["001-foundation"]["status"] = "done"
+            state["meta"]["overall_status"] = "completed"
+            store.save(state)
+
+            # Final verification fails, then subsequent iterations also fail → BLOCKED
+            verifier = StubVerifier([False, False, False, False, False])
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=StubRunner(
+                    [
+                        {"status": "continue", "summary": "s", "task_id": "001-foundation",
+                         "files_changed": [], "verification_expected": [], "needs_resume": False,
+                         "blockers": [], "next_action": "continue"},
+                        {"status": "continue", "summary": "s", "task_id": "001-foundation",
+                         "files_changed": [], "verification_expected": [], "needs_resume": False,
+                         "blockers": [], "next_action": "continue"},
+                        {"status": "continue", "summary": "s", "task_id": "001-foundation",
+                         "files_changed": [], "verification_expected": [], "needs_resume": False,
+                         "blockers": [], "next_action": "continue"},
+                    ]
+                ),
+                verifier=verifier,
+            )
+
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.BLOCKED)
+
+    def test_real_files_changed_falls_back_to_agent_report_when_no_git(self) -> None:
+        """_real_files_changed returns agent-reported list when git is unavailable."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Non-git directory → git commands fail
+            result = Supervisor._real_files_changed(
+                Path(tmpdir),
+                ["src/foo.py", "src/bar.py"],
+            )
+            self.assertEqual(result, ["src/foo.py", "src/bar.py"])
+
+    def test_real_files_changed_returns_empty_when_no_changes_and_no_git(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = Supervisor._real_files_changed(Path(tmpdir), [])
+            self.assertEqual(result, [])
+
+    def test_transient_error_does_not_consume_runner_failure_counter(self) -> None:
+        """A transient error (timeout) should not increment consecutive_runner_failures."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {
+                        "max_iterations": 4,
+                        "max_consecutive_runner_failures": 2,
+                        "max_no_progress_iterations": 10,
+                    },
+                    "verification": {"commands": ["python3 -c 'raise SystemExit(0)'"]},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation"])
+
+            # Raise a transient error message every time
+            class TransientRunner:
+                def run_task(self, *, task, resume_session):
+                    raise RuntimeError("Codex command timed out.")
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=TransientRunner(),
+                verifier=StubVerifier([False, False, False, False]),
+            )
+            outcome = supervisor.run()
+
+            # Transient errors don't trip the runner failure circuit breaker;
+            # loop exhausts max_iterations instead.
+            state = store.load()
+            self.assertEqual(
+                state["meta"]["consecutive_runner_failures"], 0
+            )
+
+    def test_is_transient_runner_error_classifies_correctly(self) -> None:
+        self.assertTrue(Supervisor._is_transient_runner_error("Codex command timed out."))
+        self.assertTrue(Supervisor._is_transient_runner_error("connection reset by peer"))
+        self.assertTrue(Supervisor._is_transient_runner_error("rate limit exceeded 429"))
+        self.assertFalse(Supervisor._is_transient_runner_error("schema validation failed"))
+        self.assertFalse(Supervisor._is_transient_runner_error("task_id mismatch"))
+
+    def test_done_and_blocked_mix_completes_when_verification_passes(self) -> None:
+        """When some tasks are done and others blocked by task circuit breaker,
+        the loop should COMPLETE if final verification passes."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+            (tasks_dir / "002-extra.md").write_text("# Extra\n\nExtra.\n")
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {"max_iterations": 5},
+                    "verification": {"commands": ["python3 -c 'raise SystemExit(0)'"]},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-extra"])
+            state = store.load()
+            state["tasks"]["001-foundation"]["status"] = "done"
+            state["tasks"]["002-extra"]["status"] = "blocked"
+            state["tasks"]["002-extra"]["blocker_code"] = "task_failure_circuit_breaker"
+            store.save(state)
+
+            # Final verification passes
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=StubRunner([]),
+                verifier=StubVerifier([True]),
+            )
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.COMPLETED)
+
+    def test_post_iteration_task_circuit_breaker_skips_task(self) -> None:
+        """After max_consecutive_task_failures verification failures, task is
+        skipped (marked blocked) and the loop continues rather than halting."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-hard.md").write_text("# Hard\n\nDo it.\n")
+            (tasks_dir / "002-easy.md").write_text("# Easy\n\nDo it.\n")
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {
+                        "max_iterations": 10,
+                        "max_no_progress_iterations": 10,
+                        "max_consecutive_task_failures": 2,
+                    },
+                    "verification": {"commands": ["python3 -c 'raise SystemExit(0)'"]},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-hard", "002-easy"])
+
+            # 001 fails verification twice consecutively → task circuit breaker skips it
+            # 002 then runs and passes verification → COMPLETED
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=StubRunner([
+                    {"status": "continue", "summary": "s", "task_id": "001-hard",
+                     "files_changed": ["f.py"], "verification_expected": [],
+                     "needs_resume": False, "blockers": [], "next_action": "continue"},
+                    {"status": "continue", "summary": "s", "task_id": "001-hard",
+                     "files_changed": ["f.py"], "verification_expected": [],
+                     "needs_resume": False, "blockers": [], "next_action": "continue"},
+                    {"status": "complete", "summary": "done", "task_id": "002-easy",
+                     "files_changed": ["g.py"], "verification_expected": [],
+                     "needs_resume": False, "blockers": [], "next_action": "done"},
+                ]),
+                # 001 fails twice (triggers circuit breaker), 002 passes, final verification passes
+                verifier=StubVerifier([False, False, True, True]),
+            )
+            outcome = supervisor.run()
+
+            self.assertEqual(outcome, LoopOutcome.COMPLETED)
+            state = store.load()
+            self.assertEqual(state["tasks"]["001-hard"]["status"], "blocked")
+            self.assertEqual(state["tasks"]["001-hard"]["blocker_code"], "task_failure_circuit_breaker")
+
+    def test_task_dependency_skips_blocked_deps(self) -> None:
+        """A task whose dependency is not done should be skipped by _select_task."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            tasks_dir = root / "tasks"
+            tasks_dir.mkdir(parents=True)
+            (tasks_dir / "001-foundation.md").write_text(
+                "# Foundation\n\nDo it.\n"
+            )
+            (tasks_dir / "002-build.md").write_text(
+                "# Build\n\n<!-- depends_on: 001-foundation -->\nBuild it.\n"
+            )
+
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {"max_iterations": 3, "max_no_progress_iterations": 3},
+                    "verification": {"commands": ["python3 -c 'raise SystemExit(0)'"]},
+                    "tasks": {"source_dir": "tasks"},
+                },
+                root,
+            )
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build demo", ["001-foundation", "002-build"])
+            # Mark 001 as blocked so it's not selectable, 002 depends on 001
+            state = store.load()
+            state["tasks"]["001-foundation"]["status"] = "blocked"
+            state["tasks"]["002-build"]["status"] = "ready"
+            store.save(state)
+
+            supervisor = Supervisor(
+                config=config,
+                state_store=store,
+                task_graph=TaskGraph(tasks_dir),
+                runner=StubRunner([]),
+                verifier=StubVerifier([]),
+            )
+            outcome = supervisor.run()
+
+            # 002 cannot run because 001 is not done; loop should block
             self.assertEqual(outcome, LoopOutcome.BLOCKED)
 
 
