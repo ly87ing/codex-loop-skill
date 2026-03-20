@@ -86,6 +86,7 @@ Before installing `codex-loop`, make sure you have:
 git clone https://github.com/ly87ing/codex-loop-skill.git
 cd codex-loop-skill
 python3 -m pip install -e .
+cd ..   # go back — codex-loop runs in your own project, not here
 ```
 
 Verify it worked:
