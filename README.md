@@ -60,7 +60,11 @@ Before installing `codex-loop`, make sure you have:
 
 1. **Python 3.11+** — check with `python3 --version`
 2. **Codex CLI** installed and working — see [github.com/openai/codex](https://github.com/openai/codex)
-3. **OpenAI API key** — set `OPENAI_API_KEY` in your shell
+3. **OpenAI API key** — set it in your shell before running any commands:
+   ```bash
+   export OPENAI_API_KEY="sk-..."
+   ```
+   To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
 4. **A local Git repository** — run `git init` first if needed
 5. **Project directory trusted by Codex** — without this, `codex exec` will immediately fail with
    "Not inside a trusted directory". Trust it once by running `codex` inside the directory
