@@ -185,5 +185,18 @@ class ConfigTests(unittest.TestCase):
                 )
 
 
+    def test_load_yaml_or_json_raises_valueerror_on_invalid_yaml(self) -> None:
+        # A YAML parse error must surface as ValueError so callers (doctor,
+        # run_project_continuously) can catch it without knowing about yaml internals.
+        try:
+            import yaml  # noqa: F401
+        except ModuleNotFoundError:
+            self.skipTest("PyYAML not installed")
+        from codex_loop.config import _load_yaml_or_json
+        invalid_yaml = "key: [unclosed"
+        with self.assertRaises(ValueError):
+            _load_yaml_or_json(invalid_yaml)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -12,7 +12,10 @@ def _load_yaml_or_json(text: str) -> dict[str, Any]:
     try:
         import yaml  # type: ignore
 
-        loaded = yaml.safe_load(text)
+        try:
+            loaded = yaml.safe_load(text)
+        except yaml.YAMLError as exc:
+            raise ValueError(f"Invalid YAML configuration: {exc}") from exc
         if isinstance(loaded, dict):
             return loaded
     except ModuleNotFoundError:
