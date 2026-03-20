@@ -1722,6 +1722,9 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             return 0
+    except KeyboardInterrupt:
+        print("\nInterrupted. Run 'codex-loop run' again to resume from where it left off.", file=sys.stderr)
+        return 130
     except (OSError, RuntimeError, ValueError, TypeError, FileExistsError, subprocess.CalledProcessError) as exc:
         msg = str(exc)
         print(f"codex-loop error: {msg}", file=sys.stderr)
