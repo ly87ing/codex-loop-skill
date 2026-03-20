@@ -20,7 +20,9 @@ For those, just use Codex directly.
    when it is genuinely stuck.
 4. `git merge codex-loop/<branch>` — merge the changes into your main branch when the loop completes.
    (Your working directory is unchanged until you do this.)
-5. `codex-loop status --summary` — shows you what happened at any time.
+5. `codex-loop cleanup --apply` — remove the worktree and old artifacts after merging.
+
+At any time: `codex-loop status --summary` shows what is happening, and `codex-loop events --limit 10` shows the iteration timeline.
 
 All state lives on disk in your project directory, so runs are resumable and inspectable.
 
