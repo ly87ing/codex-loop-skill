@@ -1094,10 +1094,11 @@ def main(argv: list[str] | None = None) -> int:
             print( "     If not, re-run: codex-loop init --prompt \"...\" --force")
             print( "  3. Run:  codex-loop run")
             print()
-            print( "Prerequisites (if you haven't done these yet):")
-            print( "  - Git repo with at least one commit: git init && git add -A && git commit -m 'init'")
-            print( "    (.codex-loop/ is automatically added to .gitignore)")
-            print( "  - Codex trust: run 'codex' once in this directory and accept the trust prompt")
+            print( "Before running step 3, make sure:")
+            print( "  - Git repo has at least one commit: git init && git add -A && git commit -m 'init'")
+            print( "    (.codex-loop/ is automatically added to .gitignore — safe to git add -A)")
+            print( "  - Codex trusts this directory: run 'codex' once here, type hello, accept the prompt")
+            print( "    (skip this and you will get 'Not inside a trusted directory' when running)")
             return 0
 
         if args.command == "run":
