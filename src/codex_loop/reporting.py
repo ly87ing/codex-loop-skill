@@ -605,6 +605,7 @@ def build_status_snapshot(project_dir: Path) -> dict[str, Any]:
         "last_blocker_code": metrics.get("last_blocker_code"),
         "last_blocker_reason": metrics.get("last_blocker_reason"),
         "last_summary": last_history.get("summary", "") if last_history else "",
+        "worktree_branch": state.get("meta", {}).get("worktree_branch"),
         "watchdog_phase": watchdog.get("phase"),
         "watchdog_restart_count": watchdog.get("restart_count"),
         "watchdog_last_restart_reason": watchdog.get("last_restart_reason"),
@@ -635,6 +636,8 @@ def format_status_summary(project_dir: Path) -> str:
             f"resume_fallbacks_total: {snapshot.get('resume_fallbacks_total', 0)}",
         ]
     )
+    if snapshot.get("worktree_branch"):
+        lines.append(f"worktree_branch: {snapshot.get('worktree_branch')}")
     if snapshot.get("last_blocker_code"):
         lines.append(f"last_blocker_code: {snapshot.get('last_blocker_code')}")
     if snapshot.get("last_blocker_reason"):
