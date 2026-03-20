@@ -390,6 +390,13 @@ codex-loop run --retry-blocked
 codex-loop run --continuous --retry-blocked --cycle-sleep-seconds 60
 ```
 
+If retrying still blocks, common fixes:
+
+- **`no_progress_limit`** (no file changes): the task description may be too vague or too large. Edit the task file in `tasks/` to be more specific or split it into smaller steps, then run `codex-loop doctor --repair` before retrying.
+- **`runner_failure_limit`** (Codex exec keeps failing): check your API key, network, and Codex version (`codex --version`). Update with `npm install -g @openai/codex`.
+- **`verification_failure_limit`** (tests always fail): the verification command may be wrong — check `verification.commands` in `codex-loop.yaml`. Run it manually to confirm it works.
+- **Increase the iteration budget**: edit `execution.max_iterations` in `codex-loop.yaml` (default: 30) for tasks that need more attempts.
+
 ### Unattended long runs (optional)
 
 Use `daemon` (or `service` on macOS) when you want the loop to run in the background and survive terminal closes. Use `run --continuous` if you want to keep the terminal attached and watch the output.
