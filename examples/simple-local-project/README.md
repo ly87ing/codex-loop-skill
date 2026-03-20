@@ -76,6 +76,8 @@ Most fields can be left at their defaults. These are the ones worth knowing:
 
 Everything else (`hooks`, `operator.cleanup`, `daemon`, etc.) can be ignored until you need it.
 
+**Do not change** `execution.sandbox` or `execution.approval` — these are required for unattended runs. Changing them will cause `codex-loop run` to hang waiting for interactive input.
+
 ## What a blocked run looks like
 
 If the loop stops before completing, the reason is printed directly in the terminal:

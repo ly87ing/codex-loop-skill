@@ -77,7 +77,8 @@ Before installing `codex-loop`, make sure you have:
    export OPENAI_API_KEY="sk-..."
    ```
    To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
-4. **A local Git repository with at least one commit** — if starting fresh: `git init && git add . && git commit -m 'init'`
+4. **A local Git repository with at least one commit** — if starting fresh: `git init && git add -A && git commit -m 'init'`
+   (After running `codex-loop init`, the `.codex-loop/` directory is automatically added to `.gitignore` — do not commit it.)
 5. **Project directory trusted by Codex** — without this, `codex exec` will immediately fail with
    "Not inside a trusted directory". Trust it once by running `codex` interactively inside your
    project directory, typing something like `hello`, pressing Enter, accepting the trust prompt
@@ -135,6 +136,7 @@ codex-loop init --prompt "Add input validation to every form in this app"
 #    Open codex-loop.yaml and confirm:
 #      - verification.commands matches how you run your tests (e.g. "python -m pytest tests/ -q")
 #      - codex.model is the OpenAI model passed to Codex (default: gpt-5.4, leave as-is unless you have a reason to change)
+#    Do NOT change execution.sandbox or execution.approval — these are required for unattended runs.
 #    Also skim spec/, plan/, and tasks/ to make sure the goal was captured correctly.
 #    If the output looks wrong, re-run with a better prompt:
 #      codex-loop init --prompt "..." --force
