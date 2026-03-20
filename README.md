@@ -193,12 +193,14 @@ The loop only stops with success when:
 
 The loop stops with `blocked` when:
 
-- Codex returns `blocked`
-- `max_consecutive_runner_failures` is reached
-- `max_consecutive_verification_failures` is reached when enabled
-- `max_iterations` is reached
-- `max_no_progress_iterations` is reached
+- Codex itself reports it is blocked
+- Too many consecutive `codex exec` failures (runner circuit breaker)
+- Too many consecutive failed verification runs, if enabled
+- Total iteration limit is reached
+- No file changes detected across too many iterations (no-progress limit)
 - `doctor` finds unrecoverable local state or task file problems
+
+All thresholds are configurable in `codex-loop.yaml` under `execution`.
 
 ## Safety Model
 
@@ -206,9 +208,8 @@ The loop stops with `blocked` when:
 - The runner requests `approval_policy="never"` through Codex config overrides
 - The supervisor keeps `.codex-loop/` local state outside normal task files
 - The supervisor can repair a missing schema and task/state drift before entering the loop
-- Hook execution is local and explicit through `codex-loop.yaml`; it is never inferred from prompts
-- `post_init`, `pre_iteration`, and `post_iteration` can be configured to block on hook failure; terminal hooks are notification-oriented and do not rewrite the final outcome
-- The default finish mode is conservative: keep the worktree and branch
+- Hook execution is local and explicit through `codex-loop.yaml`; never inferred from prompts
+- The default finish mode is conservative: keep the worktree and branch after completion
 
 ## Operator Notes
 
