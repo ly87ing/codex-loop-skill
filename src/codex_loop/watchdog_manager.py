@@ -249,7 +249,17 @@ def run_watchdog(
     previous_sigterm = signal.signal(signal.SIGTERM, request_stop)
     previous_sigint = signal.signal(signal.SIGINT, request_stop)
     try:
-        current_process = spawn_worker()
+        try:
+            current_process = spawn_worker()
+        except OSError as spawn_exc:
+            _write_watchdog_state(
+                watchdog_state_path,
+                phase="spawn_failed",
+                child_pid=None,
+                restart_count=restart_count,
+                last_restart_reason=f"spawn_failed:{spawn_exc}",
+            )
+            return 1
         child_started_at = now()
         _write_watchdog_state(
             watchdog_state_path,
