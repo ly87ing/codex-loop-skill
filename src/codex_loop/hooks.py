@@ -46,8 +46,11 @@ class HookRunner:
                 index=index,
             )
             results.append(result)
-            with log_path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(result) + "\n")
+            try:
+                with log_path.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps(result) + "\n")
+            except OSError:
+                pass
         return results
 
     @staticmethod
