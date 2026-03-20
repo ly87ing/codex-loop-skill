@@ -68,6 +68,17 @@ Run these commands from your project directory:
 
 **Platform:** macOS and Linux. Windows is not supported (requires Git worktrees and Unix process management). The `service` subcommand is macOS-only (launchd); all other commands work on Linux too. Windows users can run `codex-loop` inside [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install) (Windows Subsystem for Linux).
 
+**Quick check** — run these to confirm you're ready:
+
+```bash
+python3 --version    # need 3.11 or newer
+codex --version      # need Codex CLI installed
+echo $OPENAI_API_KEY # need a non-empty API key
+git log --oneline -1 # need at least one commit in your project
+```
+
+If any of those fail, see the details below. Otherwise skip straight to [Install](#install).
+
 Before installing `codex-loop`, make sure you have:
 
 1. **Python 3.11+** — check with `python3 --version`
