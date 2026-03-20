@@ -394,8 +394,7 @@ your-project/
     runs/                 # per-task last result JSON
     artifacts/            # snapshots and exports
 
-# Codex runs in an isolated worktree (you never need to navigate here):
-# ../.codex-loop-worktrees/<repo>/<branch>/
+# Codex runs in an isolated Git worktree — managed automatically, no need to navigate there
 ```
 
 ## Task File Format
