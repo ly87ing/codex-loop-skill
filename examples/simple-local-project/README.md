@@ -42,10 +42,13 @@ git commit -m "init"
 codex-loop run
 # During the run you will see lines like:
 #   [iteration 1/20] task: 001-foundation  (0/2 done, running Codex...) [14:23:01]
+#     (waiting for Codex — this can take up to 30 minutes; run 'codex-loop events --limit 10' in another terminal to watch)
 #     -> status=continue verification=FAIL files_changed=2
 #   [iteration 2/20] task: 001-foundation  (0/2 done, running Codex...) [14:39:45]
+#     (waiting for Codex — this can take up to 30 minutes; run 'codex-loop events --limit 10' in another terminal to watch)
 #     -> status=complete verification=pass files_changed=3
 #   [iteration 3/20] task: 002-core-commands  (1/2 done, running Codex...) [14:55:12]
+#     (waiting for Codex — this can take up to 30 minutes; run 'codex-loop events --limit 10' in another terminal to watch)
 #     -> status=complete verification=pass files_changed=5
 #   All tasks done and verification passed.
 #   completed
