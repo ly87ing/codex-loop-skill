@@ -169,3 +169,18 @@ def initialize_project(
         source_prompt=prompt,
         tasks=task_ids,
     )
+    _ensure_gitignore(project_dir)
+
+
+def _ensure_gitignore(project_dir: Path) -> None:
+    """Append .codex-loop/ to .gitignore if not already present."""
+    gitignore = project_dir / ".gitignore"
+    entry = ".codex-loop/"
+    if gitignore.exists():
+        existing = gitignore.read_text(encoding="utf-8")
+        if entry in existing.splitlines():
+            return
+        separator = "" if existing.endswith("\n") else "\n"
+        gitignore.write_text(existing + separator + entry + "\n", encoding="utf-8")
+    else:
+        gitignore.write_text(entry + "\n", encoding="utf-8")

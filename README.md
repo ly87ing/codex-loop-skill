@@ -139,9 +139,10 @@ codex-loop run
 #   Changes are on branch: codex-loop/<branch-name>
 #   To merge: git merge codex-loop/<branch-name>
 
-# 4. Merge the changes — copy the exact 'git merge ...' line printed by 'codex-loop run'
-#    (the branch name is printed when the run completes)
-git merge codex-loop/<branch-name-printed-above>
+# 4. Merge the changes
+#    When the run completes, it prints the exact command, e.g.:
+#      To merge: git merge codex-loop/my-project-abc123
+#    Copy and run that printed command — do not use the placeholder above.
 
 # 5. Check status at any time
 codex-loop status --summary
