@@ -65,7 +65,7 @@ Before installing `codex-loop`, make sure you have:
    export OPENAI_API_KEY="sk-..."
    ```
    To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
-4. **A local Git repository** — run `git init` first if needed
+4. **A local Git repository with at least one commit** — run `git init && git commit --allow-empty -m 'init'` if starting fresh
 5. **Project directory trusted by Codex** — without this, `codex exec` will immediately fail with
    "Not inside a trusted directory". Trust it once by running `codex` inside the directory
    (accept the trust prompt, then Ctrl-C to exit), or add manually to `~/.codex/config.toml`:
@@ -93,7 +93,7 @@ codex-loop --help
 The minimum path to get started. Run these inside **your own project directory** (not inside the `codex-loop-skill` repo you just cloned):
 
 ```bash
-# Move into your own project first
+# Move into your own project first (must be a Git repo with your code in it)
 cd /path/to/your-project
 
 # 1. Scaffold workflow files from your goal
