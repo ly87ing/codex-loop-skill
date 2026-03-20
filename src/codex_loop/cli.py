@@ -1028,6 +1028,17 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     project_dir = Path(getattr(args, "project_dir", ".")).resolve()
 
+    if sys.platform == "win32" and getattr(args, "command", None) in {
+        "init", "run", "daemon", "service", "watchdog",
+    }:
+        print(
+            "codex-loop error: Windows is not supported.\n"
+            "codex-loop requires Git worktrees and Unix process management.\n"
+            "Use macOS or Linux (including WSL2 on Windows).",
+            file=sys.stderr,
+        )
+        return 1
+
     try:
         if args.command == "init":
             print("Generating spec, plan, and tasks from your prompt...", flush=True)
