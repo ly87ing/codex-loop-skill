@@ -342,6 +342,11 @@ class CodexRunner:
     def _should_retry_without_resume(message: str) -> bool:
         """Return True when the error indicates the saved session is no longer valid
         and a fresh exec (without resume) is the correct recovery.
+
+        Only match tokens that specifically indicate session invalidity in the
+        STDERR/body of the error — not tokens that appear in the command line
+        (e.g. "resume" appears in "codex exec resume <id>" even for unrelated
+        failures such as process crashes or permission errors).
         """
         lowered = message.lower()
         return any(
@@ -350,8 +355,10 @@ class CodexRunner:
                 "session not found",
                 "invalid session",
                 "conversation not found",
-                "resume",
-                "expired",
+                "session expired",
+                "session has expired",
+                "unknown session",
+                "no such session",
             )
         )
 

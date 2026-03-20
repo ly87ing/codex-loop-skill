@@ -221,5 +221,71 @@ class CodexRunnerTests(unittest.TestCase):
             self.assertIn("timed out", str(ctx.exception).lower())
 
 
+    def test_generic_resume_command_failure_does_not_trigger_fallback(self) -> None:
+        """A non-transient failure that only contains 'resume' in the command line
+        (not in the session-invalidity sense) must NOT trigger resume fallback.
+        Removing 'resume' as a bare token from _should_retry_without_resume prevents
+        false fallbacks when codex crashes or returns a non-zero exit code for
+        reasons unrelated to session validity."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            runner = CodexRunner(root)
+            task = Task(
+                task_id="001-foundation",
+                path=root / "tasks" / "001-foundation.md",
+                title="Foundation",
+                body="# Foundation\n",
+            )
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {
+                        "resume_fallback_to_fresh": True,
+                        "iteration_timeout_seconds": 30,
+                    },
+                    "verification": {"commands": ["python -m unittest"]},
+                },
+                root,
+            )
+            schema_path = root / ".codex-loop" / "agent_result.schema.json"
+            schema_path.parent.mkdir(parents=True, exist_ok=True)
+            schema_path.write_text("{}", encoding="utf-8")
+
+            calls: list[list[str]] = []
+
+            def invoke_side_effect(
+                command: list[str],
+                prompt: str,
+                cwd: Path,
+                *,
+                timeout_seconds: int,
+            ) -> str:
+                del timeout_seconds, prompt, cwd
+                calls.append(command)
+                # Simulate a generic codex process crash. The error message
+                # contains "resume" only because it appears in the command line,
+                # NOT because the session is invalid.
+                raise RuntimeError(
+                    "Codex command failed.\n"
+                    "Command: codex exec resume active-session\n"
+                    "STDOUT:\n"
+                    "STDERR:\ncodex: unexpected panic at main.go:42"
+                )
+
+            with patch.object(CodexRunner, "_invoke", side_effect=invoke_side_effect):
+                with self.assertRaises(RuntimeError):
+                    runner.run_task(
+                        config=config,
+                        task=task,
+                        state={"history": []},
+                        working_directory=root,
+                        resume_session="active-session",
+                    )
+
+            # Only one call — a generic crash must NOT discard the session.
+            self.assertEqual(len(calls), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
