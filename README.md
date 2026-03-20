@@ -66,15 +66,25 @@ Before installing `codex-loop`, make sure you have:
    **Cost:** each iteration calls Codex with a large prompt and expects a structured response. A typical small task (3–10 iterations) costs roughly $0.10–$1.00 depending on the model and codebase size. Set a spending limit on your OpenAI account before running long unattended loops.
 4. **A local Git repository with at least one commit** — if starting fresh: `git init && git add -A && git commit -m 'init'`
    (After running `codex-loop init`, the `.codex-loop/` directory is automatically added to `.gitignore` — do not commit it.)
-5. **Project directory trusted by Codex** — without this, `codex exec` will immediately fail with
-   "Not inside a trusted directory". Trust it once by running `codex` interactively inside your
-   project directory, typing something like `hello`, pressing Enter, accepting the trust prompt
-   (type `y` or follow on-screen instructions), then pressing Ctrl-C to exit. You only need to
-   do this once per directory. Or add it manually to `~/.codex/config.toml`:
+5. **Project directory trusted by Codex** — `codex exec` refuses to run in untrusted directories.
+   You need to trust **two** paths:
+   - Your project directory (needed for `codex-loop init`)
+   - The worktree parent `../.codex-loop-worktrees/` (needed for `codex-loop run`, which runs Codex
+     inside an isolated Git worktree next to your project)
+
+   Easiest setup — add both to `~/.codex/config.toml`:
    ```toml
-   [projects."<absolute-path-to-your-project>"]
+   [projects."/absolute/path/to/your-project"]
+   trust_level = "trusted"
+
+   [projects."/absolute/path/to/.codex-loop-worktrees"]
    trust_level = "trusted"
    ```
+   (Replace `/absolute/path/to` with the parent directory of your project.)
+
+   Alternatively, run `codex` interactively once inside your project directory, type `hello`, accept
+   the trust prompt, then Ctrl-C. For the worktree path, use the `config.toml` approach above since
+   the worktree directory does not exist yet when you set things up.
 
 ## Install
 
@@ -110,10 +120,17 @@ cd /path/to/your-project
 
 # 0. One-time setup — if you haven't done these yet:
 #    a) Git repo with a commit:  git init && git add -A && git commit -m "init"
-#    b) Trust in Codex (one-time, per directory) — skip this and you'll get
-#       "Not inside a trusted directory" when you run step 3:
-#         Run: codex
-#         Then type "hello", press Enter, accept the trust prompt (type y), then Ctrl-C.
+#    b) Trust setup for Codex — you need to trust TWO paths in ~/.codex/config.toml:
+#         [projects."/absolute/path/to/your-project"]
+#         trust_level = "trusted"
+#
+#         [projects."/absolute/path/to/.codex-loop-worktrees"]
+#         trust_level = "trusted"
+#
+#       The second entry covers the isolated worktree that codex-loop run creates next
+#       to your project. Without it, codex-loop run will fail with
+#       "Not inside a trusted directory" even after you trust the project directory.
+#       (Replace /absolute/path/to with the parent directory of your project.)
 
 # 1. Scaffold workflow files from your goal
 #    A good prompt names the language/framework, what to build, and how to test it.

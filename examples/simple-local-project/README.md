@@ -29,10 +29,18 @@ cd my-todo-project          # <-- must be inside the project from here on
 git add -A
 git commit -m "init"
 
-# 3. Trust the directory in Codex — REQUIRED before step 4
-#    Skip this and codex-loop run will fail with "Not inside a trusted directory".
-#    Run: codex
-#    Then type "hello", press Enter, accept the trust prompt (type y), then Ctrl-C.
+# 3. Trust the directories in Codex — REQUIRED before step 4
+#    codex-loop run executes Codex in an isolated worktree next to your project,
+#    so you need to trust TWO paths in ~/.codex/config.toml:
+#
+#      [projects."/absolute/path/to/my-todo-project"]
+#      trust_level = "trusted"
+#
+#      [projects."/absolute/path/to/.codex-loop-worktrees"]
+#      trust_level = "trusted"
+#
+#    Replace /absolute/path/to with the parent directory of my-todo-project.
+#    Skip either entry and codex-loop run will fail with "Not inside a trusted directory".
 
 # 4. Run the loop
 #    Each iteration prints a progress line, then goes quiet while Codex works
