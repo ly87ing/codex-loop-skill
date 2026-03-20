@@ -212,6 +212,18 @@ codex-loop cleanup --apply   # removes worktrees and old artifacts
 codex-loop init --prompt "..." --force   # re-scaffold (WARNING: resets all state)
 ```
 
+### Running a new goal on the same project
+
+After merging and cleaning up, you can start a new loop on the same project:
+
+```bash
+codex-loop cleanup --apply   # clean up old worktrees and artifacts first
+codex-loop init --prompt "your next goal" --force   # re-scaffold with new goal
+codex-loop run
+```
+
+`--force` is required because `codex-loop.yaml` and the task files already exist. It will replace them with a fresh scaffold for the new goal.
+
 ### If the loop blocks
 
 When the loop stops with `blocked`, the reason is printed directly in the terminal:
