@@ -344,7 +344,19 @@ class _CleanHelpParser(argparse.ArgumentParser):
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = _CleanHelpParser(prog="codex-loop")
+    parser = _CleanHelpParser(
+        prog="codex-loop",
+        description="Autonomous coding loop supervisor for Codex CLI.",
+        epilog=(
+            "Quick start:\n"
+            "  codex-loop init --prompt \"your goal\"   # scaffold spec, plan, tasks\n"
+            "  codex-loop run                          # run until done or blocked\n"
+            "  codex-loop status --summary             # check what happened\n"
+            "\n"
+            "Full docs: https://github.com/ly87ing/codex-loop-skill"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     init_parser = subparsers.add_parser("init", help="Generate codex-loop files from a prompt.")
