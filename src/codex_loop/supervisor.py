@@ -225,9 +225,10 @@ class Supervisor:
                 if first_fail:
                     _stderr = str(first_fail.get("stderr", "")).strip()
                     _stdout = str(first_fail.get("stdout", "")).strip()
-                    _snippet = (_stderr or _stdout)[:200].strip()
+                    _raw = (_stderr or _stdout)
+                    _snippet = _raw[-300:].strip() if len(_raw) > 300 else _raw.strip()
                     if _snippet:
-                        print(f"     verification error: {_snippet}", flush=True)
+                        print(f"     verification error (last 300 chars):\n{_snippet}", flush=True)
             fingerprint = self._fingerprint(task.task_id, files_changed, passed, result)
             if not files_changed and not passed:
                 _no_prog = state["meta"].get("no_progress_iterations", 0) + 1
