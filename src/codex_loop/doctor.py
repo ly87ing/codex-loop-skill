@@ -83,10 +83,12 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
         operator_changed = _merge_missing_defaults(operator_data, operator_defaults)
     if operator_changed:
         if repair:
-            config_path.write_text(
+            tmp_config = config_path.with_suffix(config_path.suffix + ".tmp")
+            tmp_config.write_text(
                 json.dumps(working_data, indent=2, ensure_ascii=False),
                 encoding="utf-8",
             )
+            tmp_config.replace(config_path)
             raw_data = working_data
             report.fixed.append("codex-loop.yaml operator defaults")
         else:
