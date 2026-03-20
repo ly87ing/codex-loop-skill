@@ -40,10 +40,16 @@ git commit -m "init"
 #    A result line is printed after each iteration completes.
 #    To watch the timeline in another terminal: codex-loop events --limit 10
 codex-loop run
-# When it finishes you will see something like:
+# During the run you will see lines like:
+#   [iteration 1/20] task: 001-foundation  (0/2 done, running Codex...) [14:23:01]
+#     -> status=continue verification=FAIL files_changed=2
+#   [iteration 2/20] task: 001-foundation  (0/2 done, running Codex...) [14:39:45]
+#     -> status=complete verification=pass files_changed=3
+#   [iteration 3/20] task: 002-supervisor  (1/2 done, running Codex...) [14:55:12]
+#     -> status=complete verification=pass files_changed=5
+#   All tasks done and verification passed.
 #   completed
 #   Changes are on branch: codex-loop/my-todo-project-abc123
-#   (Your working directory is unchanged until you merge.)
 #   To inspect before merging:
 #     git diff --stat main..codex-loop/my-todo-project-abc123
 #   To merge:
@@ -51,14 +57,10 @@ codex-loop run
 #     git merge codex-loop/my-todo-project-abc123
 #   After merging, clean up with: codex-loop cleanup --apply
 
-# 5. Merge the changes
-#    Run the exact merge commands printed by codex-loop run above:
-#      git checkout main
-#      git merge codex-loop/my-todo-project-abc123   <-- use the name printed above
-#    If you need to find the branch name later:
-#      git branch | grep codex-loop
-#      codex-loop status --summary  (shows worktree_branch)
-#    After merging, clean up old log/run artifacts (does NOT delete your code or git history):
+# 5. Merge the changes (run the commands printed above — use the branch name shown there)
+git checkout main
+git merge codex-loop/my-todo-project-abc123   # <-- replace with the branch name printed above
+# After merging, clean up old artifacts (does NOT delete your code or git history):
 codex-loop cleanup --apply
 
 # 6. Watch progress (or inspect after a blocked run)
