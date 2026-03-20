@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 import json
 import os
 from pathlib import Path
+import subprocess
 import sys
 
 from .cleanup import render_cleanup_report, run_cleanup
@@ -1594,7 +1595,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             return 0
-    except (OSError, RuntimeError, ValueError) as exc:
+    except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
         print(f"codex-loop error: {exc}", file=sys.stderr)
         return 1
 
