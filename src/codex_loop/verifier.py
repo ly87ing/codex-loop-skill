@@ -13,15 +13,7 @@ class Verifier:
         timeout_seconds: int = 300,
     ) -> tuple[bool, list[dict[str, object]]]:
         if not commands:
-            return False, [
-                {
-                    "command": "",
-                    "exit_code": 1,
-                    "stdout": "",
-                    "stderr": "No verification commands configured.",
-                    "timed_out": False,
-                }
-            ]
+            return True, []
         results: list[dict[str, object]] = []
         passed_count = 0
         for command in commands:

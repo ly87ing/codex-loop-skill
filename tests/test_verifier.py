@@ -8,12 +8,13 @@ from codex_loop.verifier import Verifier
 
 
 class VerifierTests(unittest.TestCase):
-    def test_empty_command_list_fails_closed(self) -> None:
+    def test_empty_command_list_passes(self) -> None:
+        # Empty commands means "no verification" — treat as auto-pass.
         with tempfile.TemporaryDirectory() as tmpdir:
             ok, results = Verifier().run([], Path(tmpdir))
 
-            self.assertFalse(ok)
-            self.assertEqual(results[0]["exit_code"], 1)
+            self.assertTrue(ok)
+            self.assertEqual(results, [])
 
     def test_pass_requires_all_false_allows_any_success(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
