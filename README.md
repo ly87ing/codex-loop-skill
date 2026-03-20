@@ -923,6 +923,13 @@ ln -s "$(pwd)/skills/codex-loop" ~/.codex/skills/codex-loop
 
 Codex will pick it up automatically on the next run.
 
+To verify it was installed:
+
+```bash
+ls ~/.codex/skills/codex-loop
+# Should show: SKILL.md  references/
+```
+
 ## Development
 
 Run tests:
