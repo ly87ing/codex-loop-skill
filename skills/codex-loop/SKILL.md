@@ -41,7 +41,15 @@ This generates `codex-loop.yaml`, `spec/`, `plan/`, `tasks/`, and `.codex-loop/s
 - Remove obviously unnecessary tasks before starting the loop.
 - If you edit any files manually after this point, run `codex-loop doctor --repair` before starting the loop. (`codex-loop run` includes automatic repair, but explicit repair surfaces errors earlier.)
 
-### 3. Start the supervisor
+### 3. Commit the generated files
+
+`codex-loop run` creates a Git worktree from your latest commit. Files not yet committed are invisible to Codex.
+
+```bash
+git add -A && git commit -m "add codex-loop files"
+```
+
+### 4. Start the supervisor
 
 Run:
 
@@ -57,7 +65,7 @@ For a detached local worker, `codex-loop daemon start --retry-blocked --cycle-sl
 
 For a real macOS login service, `codex-loop service install --retry-blocked --cycle-sleep-seconds 60` installs a `launchd` agent under `~/Library/LaunchAgents`, records service metadata plus separate heartbeat and watchdog files under `.codex-loop/`, and keeps the loop alive across terminal exits and future logins.
 
-### 4. Inspect status when needed
+### 5. Inspect status when needed
 
 ```bash
 # Quick overview
