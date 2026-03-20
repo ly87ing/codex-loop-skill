@@ -31,14 +31,17 @@ def resolve_repo_root(project_dir: Path) -> Path:
 
 def ensure_local_state_ignored(repo_root: Path) -> None:
     exclude_file = repo_root / ".git" / "info" / "exclude"
-    exclude_file.parent.mkdir(parents=True, exist_ok=True)
-    existing = exclude_file.read_text(encoding="utf-8") if exclude_file.exists() else ""
-    marker = ".codex-loop/"
-    if marker not in existing.splitlines():
-        updated = existing + ("\n" if existing and not existing.endswith("\n") else "") + marker + "\n"
-        tmp_path = exclude_file.with_suffix(exclude_file.suffix + ".tmp")
-        tmp_path.write_text(updated, encoding="utf-8")
-        tmp_path.replace(exclude_file)
+    try:
+        exclude_file.parent.mkdir(parents=True, exist_ok=True)
+        existing = exclude_file.read_text(encoding="utf-8") if exclude_file.exists() else ""
+        marker = ".codex-loop/"
+        if marker not in existing.splitlines():
+            updated = existing + ("\n" if existing and not existing.endswith("\n") else "") + marker + "\n"
+            tmp_path = exclude_file.with_suffix(exclude_file.suffix + ".tmp")
+            tmp_path.write_text(updated, encoding="utf-8")
+            tmp_path.replace(exclude_file)
+    except OSError:
+        pass  # Non-critical: .codex-loop/ may appear in git status but the run can continue
 
 
 def sanitize_branch_name(branch_name: str) -> str:

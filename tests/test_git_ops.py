@@ -100,5 +100,19 @@ class GitOpsTests(unittest.TestCase):
             self.assertFalse(worktree_path.exists())
 
 
+    def test_ensure_local_state_ignored_survives_oserror(self) -> None:
+        # If .git/info/exclude is unwritable, ensure_local_state_ignored must
+        # not raise — the run can continue without this non-critical write.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            repo_root = root / "repo"
+            repo_root.mkdir()
+
+            from codex_loop.git_ops import ensure_local_state_ignored
+            with patch("codex_loop.git_ops.Path.write_text", side_effect=OSError("read-only")):
+                # Must not raise.
+                ensure_local_state_ignored(repo_root)
+
+
 if __name__ == "__main__":
     unittest.main()
