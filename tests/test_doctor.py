@@ -185,5 +185,39 @@ class DoctorTests(unittest.TestCase):
             )
 
 
+    def test_repair_recreates_corrupt_state_json(self) -> None:
+        # If state.json exists but is corrupt (invalid JSON), doctor --repair
+        # must recreate it from task files and reconcile, not crash.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "tasks").mkdir(parents=True)
+            (root / "tasks" / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+            (root / "codex-loop.yaml").write_text(
+                json.dumps({
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "verification": {"commands": ["python -m unittest"]},
+                }),
+                encoding="utf-8",
+            )
+            codex_loop_dir = root / ".codex-loop"
+            codex_loop_dir.mkdir(parents=True)
+            (codex_loop_dir / "state.json").write_text(
+                "{corrupt: not valid json!!!", encoding="utf-8"
+            )
+
+            report = run_doctor(root, repair=True)
+
+            self.assertFalse(report.errors, msg=f"Expected no errors, got: {report.errors}")
+            self.assertTrue(
+                any("state.json" in item for item in report.fixed),
+                msg=f"Expected state.json in fixed, got: {report.fixed}",
+            )
+            repaired_state = json.loads(
+                (codex_loop_dir / "state.json").read_text(encoding="utf-8")
+            )
+            self.assertIn("001-foundation", repaired_state["tasks"])
+
+
 if __name__ == "__main__":
     unittest.main()
