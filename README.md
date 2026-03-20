@@ -285,6 +285,8 @@ You can edit task files freely before or between runs to tighten the description
 8. Record everything to `.codex-loop/` for later inspection
 9. Repeat until all tasks are done or a blocking threshold is reached
 
+The loop is safe to interrupt with Ctrl-C at any time. State is written after each completed iteration, so a subsequent `codex-loop run` picks up where it left off.
+
 For longer unattended runs, add `--continuous --retry-blocked`: when a cycle blocks, it requeues blocked tasks and starts the next cycle until completion or `--max-cycles`.
 
 For background execution, use `daemon start` (watchdog process) or `service install` (macOS launchd, survives reboots). See the Command Reference table above.
