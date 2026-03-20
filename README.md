@@ -299,11 +299,11 @@ git commit -m "init"
 ### The loop stops with `blocked`
 
 This is not a crash — it means the loop hit a real limit it could not resolve on its own.
+The reason is printed directly in the terminal when the loop exits. For more detail:
 
 ```bash
-# See the reason
-codex-loop status --summary
-codex-loop events --limit 20
+codex-loop status --summary   # task status and blocker reason
+codex-loop events --limit 20  # full timeline with verification output
 ```
 
 Common causes and fixes:
