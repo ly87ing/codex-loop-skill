@@ -212,20 +212,23 @@ codex-loop cleanup --apply --keep 10 --older-than-days 14
 
 ```text
 your-project/
-  codex-loop.yaml
-  spec/
+  codex-loop.yaml         # commit this — it's your project config
+  spec/                   # commit these — they're your project docs
     001-project-spec.md
   plan/
     001-implementation-plan.md
   tasks/
     001-*.md
-  .codex-loop/
-    state.json          # loop state (task status, history, blockers)
-    metrics.json        # counters and blocker aggregates
+  .codex-loop/            # do NOT commit — auto-excluded from git by codex-loop
+    state.json            # loop state (task status, history, blockers)
+    metrics.json          # counters and blocker aggregates
     agent_result.schema.json
-    logs/               # per-iteration Codex JSONL output
-    runs/               # per-task last result JSON
-    artifacts/          # snapshots and exports
+    logs/                 # per-iteration Codex JSONL output
+    runs/                 # per-task last result JSON
+    artifacts/            # snapshots and exports
+
+# Codex runs in an isolated worktree outside your project:
+../.codex-loop-worktrees/<repo>/<branch>/
 ```
 
 ## Task File Format
@@ -244,7 +247,7 @@ The loop skips a task until all its dependencies are `done`. `codex-loop init` g
 
 1. Load `codex-loop.yaml` and auto-repair any state drift
 2. Pick the next pending task from `tasks/` (in filename order)
-3. Create or reuse a temporary Git worktree so your main branch stays clean
+3. Create or reuse a Git worktree at `../.codex-loop-worktrees/` so your main branch stays clean
 4. Run `codex exec` on that task
 5. Run every command in `verification.commands`
 6. If verification passes and the task is done, move to the next task
