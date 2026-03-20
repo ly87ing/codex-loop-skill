@@ -143,8 +143,10 @@ codex-loop run
 # You will see output like:
 #   [iteration 1] task: 001-foundation  (0/2 done, running Codex...) [14:23:01]
 #     -> status=continue verification=FAIL files_changed=3
+#        ("continue" = Codex is still working; "FAIL" = tests not passing yet — this is normal)
 #   [iteration 2] task: 001-foundation  (0/2 done, running Codex...) [14:31:45]
 #     -> status=complete verification=pass files_changed=5
+#        ("complete" = Codex declared the task done; "pass" = tests passed)
 #   All tasks done and verification passed.
 #   completed
 #   Changes are on branch: codex-loop/my-project-abc123
