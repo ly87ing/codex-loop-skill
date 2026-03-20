@@ -150,6 +150,8 @@ The minimum path to get started. Run these inside **your own project directory**
    [projects."/Users/alice/code/.codex-loop-worktrees"]
    trust_level = "trusted"
    ```
+   Not sure what your absolute path is? Run `pwd` inside your project directory — that's the first path.
+   The second path is always the first path's parent directory, with `/.codex-loop-worktrees` appended.
    > **Why two entries?** `codex-loop run` runs Codex inside an isolated Git worktree next to your project.
    > Without the second entry, `codex-loop run` fails with "Not inside a trusted directory".
 
