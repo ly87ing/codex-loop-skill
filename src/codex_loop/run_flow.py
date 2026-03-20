@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json as _json
 from pathlib import Path
+import subprocess
 import threading
 import time
 from typing import Callable
@@ -202,7 +203,7 @@ def run_project_continuously(
             retry_blocked_tasks_for_retry(project_dir)
         try:
             outcome = run_single(project_dir)
-        except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        except (FileNotFoundError, OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
             error_count += 1
             if heartbeat_path is not None:
                 write_daemon_heartbeat(
