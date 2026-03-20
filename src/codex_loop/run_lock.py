@@ -58,7 +58,7 @@ class RunLock:
         if self.path.exists():
             try:
                 payload = json.loads(self.path.read_text(encoding="utf-8"))
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, OSError):
                 self.path.unlink(missing_ok=True)
                 return
             if int(payload.get("pid", -1)) == os.getpid():
