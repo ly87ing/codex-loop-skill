@@ -132,6 +132,14 @@ codex-loop --help
 # If you get 'command not found', see Troubleshooting below.
 ```
 
+To upgrade later:
+
+```bash
+cd codex-loop-skill   # go into the cloned repo directory
+git pull              # fetch the latest changes
+# No reinstall needed — the -e install picks up changes automatically.
+```
+
 ## Quick Start
 
 The minimum path to get started. Run these inside **your own project directory** (not inside the `codex-loop-skill` repo you just cloned).
