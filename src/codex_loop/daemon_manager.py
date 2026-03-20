@@ -259,4 +259,7 @@ def write_daemon_heartbeat(
         payload["outcome"] = outcome
     if last_error is not None:
         payload["last_error"] = last_error
-    _write_json(path, payload)
+    try:
+        _write_json(path, payload)
+    except OSError:
+        pass  # Heartbeat is observability data; I/O failure must not crash the loop
