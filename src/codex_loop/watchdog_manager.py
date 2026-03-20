@@ -203,6 +203,15 @@ def run_watchdog(
     )
     sleep = sleep_fn or time.sleep
     now = now_fn or (lambda: datetime.now(UTC))
+
+    def _safe_record(**kwargs: Any) -> None:
+        """Record a watchdog event, ignoring I/O errors so the loop survives
+        state.json write failures (e.g. disk full)."""
+        try:
+            state_store.record_watchdog_event(**kwargs)
+        except Exception:  # noqa: BLE001
+            pass
+
     stop_requested = False
     current_process: Any | None = None
     restart_count = 0
@@ -277,7 +286,7 @@ def run_watchdog(
                         last_restart_reason=last_restart_reason,
                         child_exit_code=exit_code,
                     )
-                    state_store.record_watchdog_event(
+                    _safe_record(
                         event_type="watchdog_exhausted",
                         summary="Watchdog exhausted restart budget after worker exit.",
                         restart_reason=last_restart_reason or f"exit_code:{exit_code}",
@@ -297,7 +306,7 @@ def run_watchdog(
                     last_restart_reason=last_restart_reason,
                     child_exit_code=exit_code,
                 )
-                state_store.record_watchdog_event(
+                _safe_record(
                     event_type="watchdog_restart",
                     summary="Restarting worker after non-zero exit.",
                     restart_reason=last_restart_reason,
@@ -344,7 +353,7 @@ def run_watchdog(
                         restart_count=restart_count,
                         last_restart_reason="stale_heartbeat",
                     )
-                    state_store.record_watchdog_event(
+                    _safe_record(
                         event_type="watchdog_exhausted",
                         summary="Watchdog exhausted restart budget after stale heartbeat.",
                         restart_reason="stale_heartbeat",
@@ -362,7 +371,7 @@ def run_watchdog(
                     restart_count=restart_count,
                     last_restart_reason=last_restart_reason,
                 )
-                state_store.record_watchdog_event(
+                _safe_record(
                     event_type="watchdog_restart",
                     summary="Restarting worker after stale heartbeat.",
                     restart_reason=last_restart_reason,
