@@ -1757,6 +1757,11 @@ def main(argv: list[str] | None = None) -> int:
             print("Hint: .codex-loop/state.json appears to be corrupted. Run 'codex-loop doctor --repair' to recreate it.", file=sys.stderr)
         elif "doctor found blocking issues" in msg:
             print("Run 'codex-loop doctor --repair' to attempt automatic repair, or 'codex-loop doctor' for details.", file=sys.stderr)
+        elif "Init result missing fields" in msg or "Init result must include" in msg:
+            print("Hint: Codex returned an incomplete response during init. Re-run with a more specific prompt:", file=sys.stderr)
+            print("  codex-loop init --prompt \"<your goal — name the language, framework, and test tool>\" --force", file=sys.stderr)
+        elif "not inside a trusted" in msg.lower() or "trusted directory" in msg.lower():
+            pass  # codex_runner already prints a detailed hint for this case
         return 1
 
     parser.error(f"Unsupported command: {args.command}")
