@@ -65,7 +65,9 @@ def _collect_cleanup_overrides(args: argparse.Namespace) -> tuple[dict[str, int]
 
 def _write_output_file(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(content, encoding="utf-8")
+    tmp_path.replace(path)
 
 
 def _update_evidence_index(output_dir: Path, snapshot_path: Path, payload: dict[str, object] | None) -> None:

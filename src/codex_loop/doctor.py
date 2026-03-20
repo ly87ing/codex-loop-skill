@@ -115,7 +115,9 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
         report.checked.append(str(schema_path.relative_to(project_dir)))
     elif repair:
         schema_path.parent.mkdir(parents=True, exist_ok=True)
-        schema_path.write_text(json.dumps(AGENT_RESULT_SCHEMA, indent=2), encoding="utf-8")
+        tmp_schema = schema_path.with_suffix(schema_path.suffix + ".tmp")
+        tmp_schema.write_text(json.dumps(AGENT_RESULT_SCHEMA, indent=2), encoding="utf-8")
+        tmp_schema.replace(schema_path)
         report.fixed.append(str(schema_path.relative_to(project_dir)))
     else:
         report.errors.append(f"Missing schema: {schema_path.relative_to(project_dir)}")
