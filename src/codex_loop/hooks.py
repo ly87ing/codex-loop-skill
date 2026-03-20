@@ -108,13 +108,17 @@ class HookRunner:
                 "success": completed.returncode == 0,
             }
         except subprocess.TimeoutExpired as exc:
+            def _decode(raw: bytes | str | None) -> str:
+                if raw is None:
+                    return ""
+                return raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else raw
             return {
                 "timestamp": _now(),
                 "index": index,
                 "command": command,
                 "exit_code": None,
-                "stdout": exc.stdout or "",
-                "stderr": exc.stderr or "",
+                "stdout": _decode(exc.stdout),
+                "stderr": _decode(exc.stderr),
                 "timed_out": True,
                 "success": False,
             }

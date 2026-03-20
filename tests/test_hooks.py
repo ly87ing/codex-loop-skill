@@ -56,5 +56,22 @@ class HookRunnerTests(unittest.TestCase):
         self.assertEqual(results, [])
 
 
+    def test_timed_out_hook_stdout_is_str_not_bytes(self) -> None:
+        """TimeoutExpired.stdout is bytes even with text=True; HookRunner must decode it."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            runner = HookRunner(Path(tmpdir) / "hooks")
+            results = runner.run(
+                event_name="pre_iteration",
+                commands=["python3 -c 'import sys, time; sys.stdout.write(\"partial\"); sys.stdout.flush(); time.sleep(10)'"],
+                cwd=Path(tmpdir),
+                timeout_seconds=1,
+            )
+
+        self.assertEqual(len(results), 1)
+        self.assertTrue(results[0]["timed_out"])
+        self.assertIsInstance(results[0]["stdout"], str)
+        self.assertIsInstance(results[0]["stderr"], str)
+
+
 if __name__ == "__main__":
     unittest.main()
