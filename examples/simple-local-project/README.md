@@ -36,11 +36,16 @@ codex
 codex-loop run
 # When it finishes you will see something like:
 #   completed
-#   Changes are on branch: codex-loop/<branch-name>
-#   To merge: git merge codex-loop/<branch-name>
+#   Changes are on branch: codex-loop/my-todo-project-abc123
+#   To merge: git merge codex-loop/my-todo-project-abc123
 
-# 5. Merge the changes into your current branch
-git merge codex-loop/$(git branch | grep codex-loop | tr -d ' *')
+# 5. Merge the changes
+#    When the run completes it prints the exact command, e.g.:
+#      To merge: git merge codex-loop/my-todo-project-abc123
+#    Copy and run that printed command — do not guess the branch name.
+#    If you need to find it later:
+git branch | grep codex-loop
+#    or: codex-loop status --summary  (shows worktree_branch)
 
 # 6. Watch progress (or inspect after a blocked run)
 codex-loop status --summary
