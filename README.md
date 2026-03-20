@@ -111,6 +111,7 @@ codex
 codex-loop init --prompt "Add input validation to every form in this app"
 
 # 2. Review generated files and check the verification command
+#    Note: codex-loop.yaml uses JSON syntax (not indented YAML) — that is normal.
 #    Open codex-loop.yaml and confirm:
 #      - verification.commands matches how you run your tests (e.g. "python -m pytest tests/ -q")
 #      - codex.model is the model you want to use (default: gpt-5.4)

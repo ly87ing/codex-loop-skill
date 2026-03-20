@@ -44,6 +44,8 @@ then stop automatically when `python -m pytest tests/ -q` passes.
 
 ## Key fields in codex-loop.yaml
 
+Note: the file uses JSON syntax (curly braces, quoted keys) — that is intentional and normal.
+
 Most fields can be left at their defaults. These are the ones worth knowing:
 
 | Field | What it does | When to change it |
