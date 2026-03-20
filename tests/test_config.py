@@ -22,6 +22,22 @@ class ConfigTests(unittest.TestCase):
             )
             self.assertEqual(cfg.verification.commands, [])
 
+    def test_rejects_verification_commands_as_string(self) -> None:
+        # Users sometimes write commands as a string instead of a list.
+        # The validator should catch this with a friendly message.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            with self.assertRaises(ValueError) as ctx:
+                CodexLoopConfig.from_dict(
+                    {
+                        "project": {"name": "demo"},
+                        "goal": {"summary": "Build demo", "done_when": ["tests pass"]},
+                        "verification": {"commands": "python -m pytest tests/ -q"},
+                    },
+                    root,
+                )
+            self.assertIn("list", str(ctx.exception))
+
     def test_rejects_non_positive_iteration_limits(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

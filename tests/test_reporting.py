@@ -1255,6 +1255,33 @@ class ReportingTests(unittest.TestCase):
             finally:
                 bad.chmod(stat.S_IRUSR | stat.S_IWUSR)
 
+    def test_health_report_includes_doctor_error_and_warning_details(self) -> None:
+        """format_health_report should print doctor error/warning content inline."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            # Create minimal state so health report can load
+            StateStore(root / ".codex-loop" / "state.json").create_initial(
+                "demo", "Build demo", ["001-task"]
+            )
+            # Write a broken codex-loop.yaml so doctor produces errors
+            (root / "codex-loop.yaml").write_text(
+                json.dumps({
+                    "version": 1,
+                    "project": {"name": ""},
+                    "goal": {"summary": "Build demo", "done_when": ["tests pass"]},
+                    "verification": {"commands": ["echo ok"]},
+                    "tasks": {"source_dir": "tasks"},
+                }),
+                encoding="utf-8",
+            )
+            (root / "tasks").mkdir(exist_ok=True)
+            (root / "tasks" / "001-task.md").write_text("# Task\nDo the thing.", encoding="utf-8")
+            rendered = format_health_report(root)
+            # doctor should report empty project name error
+            self.assertIn("doctor_errors:", rendered)
+            # error detail should appear inline
+            self.assertIn("  error:", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()
