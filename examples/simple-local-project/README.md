@@ -48,6 +48,9 @@ Not sure of the path? Run `pwd` inside `my-todo-project` — that's the first pa
 Skip either entry and `codex-loop run` will fail with "Not inside a trusted directory".
 
 ```bash
+# Make sure OPENAI_API_KEY is set before running (both codex-loop init and run need it)
+export OPENAI_API_KEY="sk-..."   # skip if already set
+
 # 4. Run the loop
 #    Each iteration prints a progress line, then goes quiet while Codex works
 #    (up to 30 min per iteration) — silence during that gap is normal.
