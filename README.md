@@ -355,11 +355,12 @@ Fix with pipx (recommended — puts it on PATH automatically):
 pipx install -e ./codex-loop-skill
 ```
 
-Or find where pip put it and add that directory to your PATH:
+Or find where pip installed the script and add that to your PATH:
 
 ```bash
-python3 -m pip show codex-loop | grep Location
-# Add <Location>/../bin to your PATH in ~/.zshrc or ~/.bashrc
+python3 -c "import sysconfig; print(sysconfig.get_path('scripts'))"
+# Copy the output (e.g. /Users/you/Library/Python/3.11/bin) and add to ~/.zshrc or ~/.bashrc:
+#   export PATH="/Users/you/Library/Python/3.11/bin:$PATH"
 ```
 
 Or run it directly without installing:
