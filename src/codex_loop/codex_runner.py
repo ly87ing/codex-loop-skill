@@ -318,6 +318,13 @@ class CodexRunner:
                     "  [projects.\"/absolute/path/to/your-project\"]\n"
                     "  trust_level = \"trusted\""
                 )
+            elif "api key" in combined or "openai_api_key" in combined or "authentication" in combined or "unauthorized" in combined or "401" in combined:
+                hint = (
+                    "\nHint: Codex could not authenticate. "
+                    "Make sure OPENAI_API_KEY is set:\n"
+                    "  export OPENAI_API_KEY=\"sk-...\"\n"
+                    "To make it permanent, add that line to your ~/.zshrc or ~/.bashrc."
+                )
             else:
                 hint = ""
             msg = (

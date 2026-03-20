@@ -274,6 +274,16 @@ All thresholds are configurable in `codex-loop.yaml` under `execution`.
 
 ## Troubleshooting
 
+### "Codex could not authenticate" / API key error
+
+`codex exec` exits immediately if `OPENAI_API_KEY` is not set or is invalid.
+
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
+
 ### "Not inside a trusted directory"
 
 `codex exec` refuses to run in directories that Codex has not explicitly trusted.
