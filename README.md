@@ -170,19 +170,15 @@ your-project/
 
 ## How Run Works
 
-1. Load `codex-loop.yaml`
-2. Run a lightweight repair pass so schema/state/task drift does not wedge the loop
-3. Read `tasks/` in filename order
-4. Pick the next `ready` or `in_progress` task from `.codex-loop/state.json`
-5. Create or reuse a temporary Git worktree (an isolated working copy so your main branch stays clean)
-6. Ask Codex to work only on that task
-7. If `codex exec resume` fails because the session is stale, retry once with a fresh `codex exec`
-8. Run every command in `verification.commands`
-9. Update circuit-breaker counters and metrics
-10. Apply structured blocker codes when the loop blocks
-11. Run local iteration hooks when configured
-12. Record progress, files changed, session metadata, and verification results
-13. Continue until all tasks are done or a blocking threshold is reached
+1. Load `codex-loop.yaml` and auto-repair any state drift
+2. Pick the next pending task from `tasks/` (in filename order)
+3. Create or reuse a temporary Git worktree so your main branch stays clean
+4. Run `codex exec` on that task
+5. Run every command in `verification.commands`
+6. If verification passes and the task is done, move to the next task
+7. If something fails, update failure counters and retry or block based on thresholds
+8. Record everything to `.codex-loop/` for later inspection
+9. Repeat until all tasks are done or a blocking threshold is reached
 
 For longer unattended runs, add `--continuous --retry-blocked`: when a cycle blocks, it requeues blocked tasks and starts the next cycle until completion or `--max-cycles`.
 
