@@ -102,14 +102,15 @@ cd /path/to/your-project
 codex-loop init --prompt "Add input validation to every form in this app"
 # (This calls Codex to generate your project files — usually takes 30–90 seconds.)
 
-# 2. Review generated files and check the verification command
+# 2. Review generated files — especially the verification command
+#    Open codex-loop.yaml in your editor and confirm verification.commands matches
+#    how you actually run your tests (this is the most important field):
+cat codex-loop.yaml
+#    Example — if your project uses pytest:
+#      "verification": { "commands": ["python -m pytest tests/ -q"] }
+#    Tip: run that command manually now to confirm it works before starting the loop.
 #    Note: codex-loop.yaml uses JSON syntax (not indented YAML) — that is normal.
-#    Open codex-loop.yaml and confirm:
-#      - verification.commands matches how you run your tests (e.g. "python -m pytest tests/ -q")
-#        Tip: run that command manually in your project to confirm it works before starting the loop.
-#      - codex.model is the OpenAI model passed to Codex (default: gpt-5.4, leave as-is unless you have a reason to change)
-#    Do NOT change execution.sandbox or execution.approval — these are required for unattended runs.
-#    Everything else can be left at the generated defaults — you do not need to understand every field.
+#    Do NOT change execution.sandbox or execution.approval — required for unattended runs.
 #    Also skim spec/, plan/, and tasks/ to make sure the goal was captured correctly.
 #    If the output looks wrong, re-run with a better prompt:
 #      codex-loop init --prompt "..." --force
