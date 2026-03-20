@@ -11,7 +11,7 @@ It shows a beginner-friendly task: build a command-line todo list tool in Python
 | `spec/001-project-spec.md` | What the project does and when it is "done" |
 | `plan/001-implementation-plan.md` | Step-by-step breakdown of the work |
 | `tasks/001-foundation.md` | First task: scaffold the CLI skeleton |
-| `tasks/002-supervisor.md` | Second task: implement all commands + write tests |
+| `tasks/002-core-commands.md` | Second task: implement all commands + write tests |
 
 ## How to run this example
 
@@ -45,7 +45,7 @@ codex-loop run
 #     -> status=continue verification=FAIL files_changed=2
 #   [iteration 2/20] task: 001-foundation  (0/2 done, running Codex...) [14:39:45]
 #     -> status=complete verification=pass files_changed=3
-#   [iteration 3/20] task: 002-supervisor  (1/2 done, running Codex...) [14:55:12]
+#   [iteration 3/20] task: 002-core-commands  (1/2 done, running Codex...) [14:55:12]
 #     -> status=complete verification=pass files_changed=5
 #   All tasks done and verification passed.
 #   completed
