@@ -221,6 +221,14 @@ class Supervisor:
                     if _snippet:
                         print(f"     verification error: {_snippet}", flush=True)
             fingerprint = self._fingerprint(task.task_id, files_changed, passed, result)
+            if not files_changed:
+                _no_prog = state["meta"].get("no_progress_iterations", 0) + 1
+                _max_no_prog = self.config.execution.max_no_progress_iterations
+                print(
+                    f"     (no file changes detected; "
+                    f"{_no_prog}/{_max_no_prog} no-progress iterations)",
+                    flush=True,
+                )
             updated = self.state_store.record_iteration(
                 task_id=task.task_id,
                 summary=str(result.get("summary", "")),
