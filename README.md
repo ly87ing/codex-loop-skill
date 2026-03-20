@@ -158,6 +158,8 @@ cat codex-loop.yaml
 #    Also skim spec/, plan/, and tasks/ to make sure the goal was captured correctly.
 #    If the output looks wrong, re-run with a better prompt:
 #      codex-loop init --prompt "..." --force
+#    WARNING: --force deletes all existing state and run history. Only use it before you run
+#    'codex-loop run' for the first time, or when you intentionally want to start over.
 
 # 3. Run the loop — it will keep working until done or genuinely blocked
 #    Each iteration calls Codex and waits up to 30 minutes for a response.
