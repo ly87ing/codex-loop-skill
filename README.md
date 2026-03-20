@@ -271,6 +271,8 @@ To declare that a task depends on another:
 
 The loop skips a task until all its dependencies are `done`. `codex-loop init` generates these automatically from your prompt.
 
+You can edit task files freely before or between runs to tighten the description, split a task, or remove tasks you don't need. After editing, run `codex-loop doctor --repair` to sync the state file.
+
 ## How Run Works
 
 1. Load `codex-loop.yaml` and auto-repair any state drift
