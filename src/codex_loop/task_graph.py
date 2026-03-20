@@ -43,7 +43,10 @@ class TaskGraph:
         )
         tasks: list[Task] = []
         for path in files:
-            body = path.read_text(encoding="utf-8")
+            try:
+                body = path.read_text(encoding="utf-8")
+            except OSError:
+                continue
             title = self._extract_title(path, body)
             depends_on = self._extract_depends_on(body)
             tasks.append(

@@ -142,7 +142,11 @@ def load_snapshot_exports_manifest(
     if not manifest_path.exists():
         msg = f"No snapshot export manifest found at {manifest_path}"
         raise FileNotFoundError(msg)
-    manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    try:
+        manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        msg = f"Corrupt snapshot export manifest at {manifest_path}: {exc}"
+        raise ValueError(msg) from exc
     exports = manifest_data.get("exports", [])
     if not isinstance(exports, list):
         return []
@@ -336,7 +340,11 @@ def load_snapshots_index(
     if not index_path.exists():
         msg = f"No snapshot index found at {index_path}"
         raise FileNotFoundError(msg)
-    index_data = json.loads(index_path.read_text(encoding="utf-8"))
+    try:
+        index_data = json.loads(index_path.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        msg = f"Corrupt snapshot index at {index_path}: {exc}"
+        raise ValueError(msg) from exc
     snapshots = index_data.get("snapshots", [])
     if not isinstance(snapshots, list):
         return []
@@ -836,7 +844,11 @@ def tail_log_lines(project_dir: Path, *, lines: int, task_id: str | None = None)
     if not candidates:
         msg = f"No log files found for pattern {pattern}"
         raise FileNotFoundError(msg)
-    content = candidates[-1].read_text(encoding="utf-8").splitlines()
+    try:
+        content = candidates[-1].read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        msg = f"Failed to read log file {candidates[-1]}: {exc}"
+        raise OSError(msg) from exc
     return "\n".join(content[-lines:])
 
 
