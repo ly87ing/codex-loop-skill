@@ -548,13 +548,28 @@ To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
 
 Both `codex-loop init` and `codex-loop run` call `codex exec`, which refuses to run in
 directories that Codex has not explicitly trusted.
-Fix it once by running `codex` interactively inside your project directory,
-or add it manually to `~/.codex/config.toml`:
+
+**Important:** `codex-loop run` runs Codex inside an isolated Git worktree at a path like
+`../.codex-loop-worktrees/<project>/<branch>/` — a different directory from your project.
+Trusting only your project directory is not enough; you need to trust the worktree parent too.
+
+The error message from `codex-loop run` will print the exact path that needs to be trusted.
+The quickest fix is to add the worktree parent to `~/.codex/config.toml`:
 
 ```toml
+# Trust your project directory (needed for codex-loop init)
 [projects."/absolute/path/to/your-project"]
 trust_level = "trusted"
+
+# Trust the worktree parent directory (needed for codex-loop run)
+# Replace /absolute/path/to with the parent of your project directory
+[projects."/absolute/path/to/.codex-loop-worktrees"]
+trust_level = "trusted"
 ```
+
+Alternatively, run `codex` once interactively inside each directory to trigger the interactive
+trust prompt (but you would need to do that after the worktree is created, so the `config.toml`
+approach above is easier).
 
 ### "not inside a Git repository"
 

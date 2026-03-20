@@ -327,12 +327,14 @@ class CodexRunner:
             combined = (completed.stdout + completed.stderr).lower()
             if "not inside a trusted" in combined or "trusted directory" in combined:
                 hint = (
-                    "\nHint: this directory is not trusted by Codex. "
-                    "Run `codex` once interactively inside the project directory "
-                    "and accept the trust prompt, or add it manually to "
-                    "~/.codex/config.toml:\n"
-                    "  [projects.\"/absolute/path/to/your-project\"]\n"
-                    "  trust_level = \"trusted\""
+                    f"\nHint: Codex refused to run in: {cwd}\n"
+                    "codex-loop runs Codex inside an isolated Git worktree, not your "
+                    "original project directory — you need to trust that worktree path too.\n"
+                    "Quickest fix: add the worktree parent directory to ~/.codex/config.toml:\n"
+                    f"  [projects.\"{cwd.parent}\"]\n"
+                    "  trust_level = \"trusted\"\n"
+                    "Then re-run codex-loop run. "
+                    "(You only need to do this once — the parent covers all future worktrees.)"
                 )
             elif "api key" in combined or "openai_api_key" in combined or "authentication" in combined or "unauthorized" in combined or "401" in combined:
                 hint = (
