@@ -134,7 +134,10 @@ def _write_watchdog_state(
         payload["last_restart_reason"] = last_restart_reason
     if child_exit_code is not None:
         payload["child_exit_code"] = child_exit_code
-    _write_json(path, payload)
+    try:
+        _write_json(path, payload)
+    except OSError:
+        pass  # Watchdog state is observability data; I/O failure must not crash the loop
 
 
 def _read_heartbeat(path: Path) -> dict[str, Any]:
