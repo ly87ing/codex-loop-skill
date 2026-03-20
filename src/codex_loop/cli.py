@@ -1158,11 +1158,19 @@ def main(argv: list[str] | None = None) -> int:
                 if outcome.value == "completed":
                     _branch = _state.get("meta", {}).get("worktree_branch")
                     if _branch:
+                        try:
+                            _default_branch = subprocess.check_output(
+                                ["git", "-C", str(project_dir), "symbolic-ref", "--short", "HEAD"],
+                                stderr=subprocess.DEVNULL,
+                                text=True,
+                            ).strip() or "main"
+                        except subprocess.CalledProcessError:
+                            _default_branch = "main"
                         print(f"Changes are on branch: {_branch}")
                         print(f"To inspect before merging:")
-                        print(f"  git diff --stat main..{_branch}")
+                        print(f"  git diff --stat {_default_branch}..{_branch}")
                         print(f"To merge:")
-                        print(f"  git checkout main   # or master, or your default branch")
+                        print(f"  git checkout {_default_branch}")
                         print(f"  git merge {_branch}")
                         print("After merging, clean up with: codex-loop cleanup --apply")
                 else:
