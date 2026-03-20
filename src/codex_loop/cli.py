@@ -428,7 +428,7 @@ def _build_parser() -> argparse.ArgumentParser:
     watchdog_parser.add_argument("--terminate-timeout-seconds", type=float, default=10.0, help=argparse.SUPPRESS)
     watchdog_parser.add_argument("--max-restarts", type=int, default=None, help=argparse.SUPPRESS)
 
-    status_parser = subparsers.add_parser("status", help="Print local loop state.")
+    status_parser = subparsers.add_parser("status", help="Print loop state. Use --summary for a human-readable view (recommended).")
     status_parser.add_argument(
         "--project-dir",
         default=".",
@@ -437,7 +437,7 @@ def _build_parser() -> argparse.ArgumentParser:
     status_parser.add_argument(
         "--summary",
         action="store_true",
-        help="Print a concise human-readable summary instead of raw JSON.",
+        help="Print a concise human-readable summary (recommended). Without this flag, raw JSON is printed.",
     )
 
     health_parser = subparsers.add_parser(
