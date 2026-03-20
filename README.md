@@ -352,7 +352,7 @@ pipx install -e ./codex-loop-skill
 Or find where pip put it and add that directory to your PATH:
 
 ```bash
-python3 -m pip show codex-loop-skill | grep Location
+python3 -m pip show codex-loop | grep Location
 # Add <Location>/../bin to your PATH in ~/.zshrc or ~/.bashrc
 ```
 
