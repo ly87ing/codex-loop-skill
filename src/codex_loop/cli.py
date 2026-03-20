@@ -370,7 +370,7 @@ def _build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--model", default="gpt-5.4", help="Codex model to use (e.g. gpt-5.4).")
     init_parser.add_argument("--force", action="store_true", help="Overwrite existing codex-loop files. WARNING: this deletes all run history and state.")
 
-    run_parser = subparsers.add_parser("run", help="Execute the autonomous loop.")
+    run_parser = subparsers.add_parser("run", help="Run Codex on each task until all pass verification or the loop is genuinely blocked.")
     run_parser.add_argument(
         "--project-dir",
         default=".",
