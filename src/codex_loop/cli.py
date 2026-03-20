@@ -1684,7 +1684,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
             )
             return 0
-    except (OSError, RuntimeError, ValueError, TypeError, subprocess.CalledProcessError) as exc:
+    except (OSError, RuntimeError, ValueError, TypeError, FileExistsError, subprocess.CalledProcessError) as exc:
         msg = str(exc)
         print(f"codex-loop error: {msg}", file=sys.stderr)
         if "state.json" in msg and "No state file found" in msg:
