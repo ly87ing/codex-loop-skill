@@ -89,8 +89,9 @@ cd /path/to/your-project
 
 # 0. One-time setup — if you haven't done these yet:
 #    a) Git repo with a commit:  git init && git add -A && git commit -m "init"
-#    b) Trust in Codex: run 'codex' once, type "hello", accept the prompt, then Ctrl-C
-codex
+#    b) Trust in Codex (one-time, per directory):
+#         Run: codex
+#         Then type "hello", press Enter, accept the trust prompt (type y), then Ctrl-C.
 
 # 1. Scaffold workflow files from your goal
 #    A good prompt names the language/framework, what to build, and how to test it.
@@ -239,7 +240,7 @@ codex-loop cleanup --apply
 ```
 
 If you inspect the changes and decide you don't want them, simply don't merge.
-The branch and worktree stay at `../.codex-loop-worktrees/` until you clean them up.
+The branch and worktree stay in place until you clean them up.
 To discard everything and start fresh:
 
 ```bash
@@ -368,8 +369,8 @@ your-project/
     runs/                 # per-task last result JSON
     artifacts/            # snapshots and exports
 
-# Codex runs in an isolated worktree outside your project:
-../.codex-loop-worktrees/<repo>/<branch>/
+# Codex runs in an isolated worktree (you never need to navigate here):
+# ../.codex-loop-worktrees/<repo>/<branch>/
 ```
 
 ## Task File Format
