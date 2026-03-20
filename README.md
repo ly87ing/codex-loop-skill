@@ -32,32 +32,6 @@ Codex handles individual prompts well, but longer tasks need:
 - unattended execution (no interactive approval prompts mid-run)
 - a structured way to see what happened when something went wrong
 
-## Command Reference
-
-For most tasks, you only need three commands: `init`, `run`, and `status --summary`.
-The rest are for inspection, long-running unattended jobs, or cleanup.
-
-| Command | What it does |
-|---|---|
-| `init --prompt "..."` | Scaffold spec, plan, tasks, and config from your goal. Add `--model <name>` to override the Codex model used for init (default: `gpt-5.4`). |
-| `run` | Run the loop until done or blocked (exits 0 on success, 2 if blocked) |
-| `run --retry-blocked` | Requeue blocked tasks then run |
-| `run --continuous --retry-blocked` | Keep retrying after blocks until `--max-cycles` |
-| `doctor --repair` | Fix state drift if you edited files manually |
-| `health` | One-command overview: status, warnings, events, daemon state |
-| `status --summary` | Show current task status and loop health |
-| `events --limit 20` | Show the recent event timeline |
-| `sessions --latest --json` | Show the last Codex session details |
-| `logs tail --lines 20` | Tail the loop log |
-| `cleanup --keep 10` | Preview artifact pruning (dry-run) |
-| `cleanup --apply --keep 10` | Actually prune old artifacts |
-| `daemon start` | Run as a background watchdog process |
-| `daemon status` | Check watchdog health |
-| `daemon stop` | Stop the background watchdog |
-| `service install` | Install as a macOS launchd service (survives reboots) |
-| `service status` | Check service health |
-| `service uninstall` | Remove the launchd service |
-
 ## Prerequisites
 
 **Platform:** macOS and Linux. Windows is not supported (requires Git worktrees and Unix process management). The `service` subcommand is macOS-only (launchd); all other commands work on Linux too.
@@ -340,6 +314,32 @@ codex-loop logs tail --lines 20
 codex-loop cleanup --keep 10                          # dry-run preview
 codex-loop cleanup --apply --keep 10 --older-than-days 14
 ```
+
+## Command Reference
+
+For most tasks, you only need three commands: `init`, `run`, and `status --summary`.
+The rest are for inspection, long-running unattended jobs, or cleanup.
+
+| Command | What it does |
+|---|---|
+| `init --prompt "..."` | Scaffold spec, plan, tasks, and config from your goal. Add `--model <name>` to override the Codex model used for init (default: `gpt-5.4`). |
+| `run` | Run the loop until done or blocked (exits 0 on success, 2 if blocked) |
+| `run --retry-blocked` | Requeue blocked tasks then run |
+| `run --continuous --retry-blocked` | Keep retrying after blocks until `--max-cycles` |
+| `doctor --repair` | Fix state drift if you edited files manually |
+| `health` | One-command overview: status, warnings, events, daemon state |
+| `status --summary` | Show current task status and loop health |
+| `events --limit 20` | Show the recent event timeline |
+| `sessions --latest --json` | Show the last Codex session details |
+| `logs tail --lines 20` | Tail the loop log |
+| `cleanup --keep 10` | Preview artifact pruning (dry-run) |
+| `cleanup --apply --keep 10` | Actually prune old artifacts |
+| `daemon start` | Run as a background watchdog process |
+| `daemon status` | Check watchdog health |
+| `daemon stop` | Stop the background watchdog |
+| `service install` | Install as a macOS launchd service (survives reboots) |
+| `service status` | Check service health |
+| `service uninstall` | Remove the launchd service |
 
 ## Generated Project Layout
 
