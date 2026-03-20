@@ -231,5 +231,36 @@ class WatchdogManagerTests(unittest.TestCase):
             self.assertEqual(call_count, 3)
 
 
+    def test_run_watchdog_oserror_on_initial_spawn_writes_spawn_failed(self) -> None:
+        """If spawn_worker raises OSError on the very first call, watchdog must
+        write spawn_failed state and return non-zero rather than propagating."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            heartbeat_path = root / "heartbeat.json"
+            state_path = root / "watchdog.json"
+
+            def worker_factory(args, **kwargs):
+                raise OSError("No such file or directory")
+
+            exit_code = run_watchdog(
+                root,
+                heartbeat_path=heartbeat_path,
+                watchdog_state_path=state_path,
+                retry_blocked=False,
+                cycle_sleep_seconds=60.0,
+                max_cycles=None,
+                poll_interval_seconds=0.0,
+                restart_backoff_seconds=0.0,
+                max_restarts=5,
+                worker_factory=worker_factory,
+                sleep_fn=lambda seconds: None,
+                now_fn=lambda: datetime(2026, 3, 19, tzinfo=UTC),
+            )
+
+            self.assertNotEqual(exit_code, 0)
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertEqual(state["phase"], "spawn_failed")
+
+
 if __name__ == "__main__":
     unittest.main()
