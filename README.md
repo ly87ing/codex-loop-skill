@@ -495,6 +495,34 @@ Common examples:
 
 After editing, run `codex-loop doctor --repair` then `codex-loop run --retry-blocked`.
 
+### The generated spec, plan, or tasks don't look right
+
+If `codex-loop init` produced tasks that don't match your goal, re-run it with a better prompt:
+
+```bash
+codex-loop init --prompt "your more specific goal" --force
+```
+
+`--force` overwrites the previous generated files. Tips for a better prompt:
+- Name the language and framework explicitly (e.g. "Python/Flask", "Node/Express")
+- Name the test tool (e.g. "tests in pytest", "tests in jest")
+- Be specific about what to build (e.g. "add input validation to every form" not just "add validation")
+
+### I get a JSON parse error when editing `codex-loop.yaml`
+
+`codex-loop.yaml` uses JSON syntax (curly braces, quoted keys, commas) even though it has a `.yaml` extension. If you accidentally introduced invalid JSON:
+
+```bash
+# Check the syntax:
+python3 -c "import json; json.load(open('codex-loop.yaml'))"
+```
+
+The error message will show the line number. Common mistakes: trailing commas, missing quotes around keys, single quotes instead of double quotes. If the file is beyond repair, re-generate it with:
+
+```bash
+codex-loop init --prompt "your goal" --force
+```
+
 ### I edited task files or `codex-loop.yaml` manually
 
 Run `codex-loop doctor --repair` to reconcile state before the next run.
