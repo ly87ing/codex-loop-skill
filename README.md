@@ -32,7 +32,10 @@ $ codex-loop run
 All tasks done and verification passed.
 completed
 Changes are on branch: codex-loop/my-project-a1b2c3
-To merge:  git checkout main && git merge codex-loop/my-project-a1b2c3
+(Your working directory is unchanged until you merge.)
+To merge:
+  git checkout main
+  git merge codex-loop/my-project-a1b2c3
 ```
 
 **Ready to start?** → [Prerequisites](#prerequisites) → [Install](#install) → [Quick Start](#quick-start).
