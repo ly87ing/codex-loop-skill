@@ -36,7 +36,9 @@ def ensure_local_state_ignored(repo_root: Path) -> None:
     marker = ".codex-loop/"
     if marker not in existing.splitlines():
         updated = existing + ("\n" if existing and not existing.endswith("\n") else "") + marker + "\n"
-        exclude_file.write_text(updated, encoding="utf-8")
+        tmp_path = exclude_file.with_suffix(exclude_file.suffix + ".tmp")
+        tmp_path.write_text(updated, encoding="utf-8")
+        tmp_path.replace(exclude_file)
 
 
 def sanitize_branch_name(branch_name: str) -> str:
