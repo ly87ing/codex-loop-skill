@@ -34,11 +34,12 @@ git commit -m "init"
 
 `codex-loop run` runs Codex inside an isolated Git worktree next to your project.
 You must trust **two** paths in `~/.codex/config.toml`.
-Open (or create) the file in any text editor and add:
+Run the following to create and open it:
 
 ```bash
 mkdir -p ~/.codex   # create the directory if it doesn't exist yet
-# then open ~/.codex/config.toml in your editor and add:
+open ~/.codex/config.toml        # macOS: opens in TextEdit
+# Linux alternative: nano ~/.codex/config.toml
 ```
 
 ```toml
