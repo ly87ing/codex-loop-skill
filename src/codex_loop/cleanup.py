@@ -171,6 +171,8 @@ def render_cleanup_report(report: CleanupReport) -> str:
     if report.removed_worktrees:
         lines.append("removed_worktree_paths:")
         lines.extend(str(path) for path in report.removed_worktrees)
+        if report.dry_run:
+            lines.append("Note: make sure you have merged the branch before applying — unmerged work will be lost.")
     if report.warnings:
         lines.append("warnings:")
         lines.extend(report.warnings)
