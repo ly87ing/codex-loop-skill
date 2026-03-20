@@ -567,7 +567,13 @@ class CodexRunner:
             msg = "Init result must include at least one task."
             raise ValueError(msg)
         if not isinstance(result["verification_commands"], list) or not result["verification_commands"]:
-            msg = "Init result must include at least one verification command."
+            msg = (
+                "Codex did not generate a verification command. "
+                "Try re-running with a more specific prompt that names your test tool "
+                '(e.g. "tests in pytest", "tests in jest", "go test"). '
+                "If your project has no tests yet, run \'codex-loop init\' first, "
+                "then manually set \"verification\": {\"commands\": []} in codex-loop.yaml."
+            )
             raise ValueError(msg)
 
     @staticmethod
