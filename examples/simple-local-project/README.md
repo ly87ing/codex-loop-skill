@@ -51,7 +51,16 @@ trust_level = "trusted"
 ```
 
 Replace `/Users/alice/code` with the **parent directory** of `my-todo-project`.
-Not sure of the path? Run `pwd` inside `my-todo-project` — that's the first path. The second is its parent with `/.codex-loop-worktrees` appended.
+Not sure of the path? Run this inside `my-todo-project` to print the exact entries to paste:
+
+```bash
+echo "[projects.\"$(pwd)\"]"
+echo "trust_level = \"trusted\""
+echo
+echo "[projects.\"$(dirname $(pwd))/.codex-loop-worktrees\"]"
+echo "trust_level = \"trusted\""
+```
+
 Skip either entry and `codex-loop run` will fail with "Not inside a trusted directory".
 
 ```bash
