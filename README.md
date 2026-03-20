@@ -473,7 +473,7 @@ The loop only stops with success when:
 The loop stops with `blocked` when:
 
 - Codex itself reports it is blocked
-- Too many consecutive `codex exec` failures (runner circuit breaker)
+- Too many consecutive `codex exec` failures (configurable limit — stops the loop from spinning on a broken setup)
 - Too many consecutive failed verification runs, if enabled (`max_consecutive_verification_failures` in `codex-loop.yaml`; default `0` = disabled, loop keeps retrying)
 - Total iteration limit is reached
 - No file changes detected across too many iterations (no-progress limit)
