@@ -168,6 +168,18 @@ your-project/
     artifacts/          # snapshots and exports
 ```
 
+## Task File Format
+
+Each file in `tasks/` is a Markdown document. The filename determines execution order (`001-`, `002-`, ...). The content is passed directly to Codex as the task description.
+
+To declare that a task depends on another:
+
+```markdown
+<!-- depends_on: 001-foundation -->
+```
+
+The loop skips a task until all its dependencies are `done`. `codex-loop init` generates these automatically from your prompt.
+
 ## How Run Works
 
 1. Load `codex-loop.yaml` and auto-repair any state drift
