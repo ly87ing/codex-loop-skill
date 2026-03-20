@@ -110,7 +110,10 @@ The minimum path to get started. Run these inside **your own project directory**
 # Move into your own project first (must be a Git repo with your code in it)
 cd /path/to/your-project
 
-# 0. Trust this directory in Codex (one-time setup — run codex, accept the prompt, then Ctrl-C)
+# 0. Trust this directory in Codex (one-time setup)
+#    Run codex interactively, type something simple like "hello", press Enter,
+#    then accept the trust prompt it shows (type 'y' or follow the on-screen instructions),
+#    then Ctrl-C to exit. You only need to do this once per directory.
 codex
 
 # 1. Scaffold workflow files from your goal
@@ -140,9 +143,12 @@ codex-loop run
 #   completed
 #   Changes are on branch: codex-loop/my-project-abc123
 #   To merge: git merge codex-loop/my-project-abc123
+#   After merging, clean up with: codex-loop cleanup --apply
 
 # 4. Merge the changes — copy the printed command above and run it, e.g.:
 git merge codex-loop/my-project-abc123
+# Then clean up old artifacts:
+codex-loop cleanup --apply
 
 # 5. Check status at any time
 codex-loop status --summary

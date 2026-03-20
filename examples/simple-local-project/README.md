@@ -29,7 +29,9 @@ cd my-todo-project          # <-- must be inside the project from here on
 git add .
 git commit -m "init"
 
-# 3. Trust the directory in Codex (run once interactively, then Ctrl-C)
+# 3. Trust the directory in Codex (one-time setup)
+#    Run codex, type something like "hello", press Enter, accept the trust prompt
+#    (type 'y' or follow on-screen instructions), then Ctrl-C to exit.
 codex
 
 # 4. Run the loop
@@ -38,6 +40,7 @@ codex-loop run
 #   completed
 #   Changes are on branch: codex-loop/my-todo-project-abc123
 #   To merge: git merge codex-loop/my-todo-project-abc123
+#   After merging, clean up with: codex-loop cleanup --apply
 
 # 5. Merge the changes
 #    When the run completes it prints the exact command, e.g.:
