@@ -14,10 +14,13 @@ For those, just use Codex directly.
 
 1. `codex-loop init --prompt "..."` — turns your goal into local files: a spec, a plan,
    numbered task documents, and a config (`codex-loop.yaml`).
-2. `codex-loop run` — works through each task in order, running Codex and your
+2. Commit those files so Codex can see them: `git add -A && git commit -m "add codex-loop files"`
+3. `codex-loop run` — works through each task in order, running Codex and your
    verification commands after every iteration. Stops when everything passes, or
    when it is genuinely stuck.
-3. `codex-loop status --summary` — shows you what happened at any time.
+4. `git merge codex-loop/<branch>` — merge the changes into your main branch when the loop completes.
+   (Your working directory is unchanged until you do this.)
+5. `codex-loop status --summary` — shows you what happened at any time.
 
 All state lives on disk in your project directory, so runs are resumable and inspectable.
 
