@@ -1159,6 +1159,8 @@ def main(argv: list[str] | None = None) -> int:
                     _branch = _state.get("meta", {}).get("worktree_branch")
                     if _branch:
                         print(f"Changes are on branch: {_branch}")
+                        print(f"To inspect before merging:")
+                        print(f"  git diff --stat main..{_branch}")
                         print(f"To merge:")
                         print(f"  git checkout main   # or master, or your default branch")
                         print(f"  git merge {_branch}")
