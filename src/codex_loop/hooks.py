@@ -27,7 +27,10 @@ class HookRunner:
     ) -> list[dict[str, Any]]:
         if not commands:
             return []
-        self.log_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.log_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass
         merged_env = os.environ.copy()
         merged_env["CODEX_LOOP_EVENT"] = event_name
         for key, value in (env or {}).items():
@@ -113,5 +116,16 @@ class HookRunner:
                 "stdout": exc.stdout or "",
                 "stderr": exc.stderr or "",
                 "timed_out": True,
+                "success": False,
+            }
+        except OSError as exc:
+            return {
+                "timestamp": _now(),
+                "index": index,
+                "command": command,
+                "exit_code": None,
+                "stdout": "",
+                "stderr": str(exc),
+                "timed_out": False,
                 "success": False,
             }

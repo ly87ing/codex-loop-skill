@@ -52,5 +52,20 @@ class VerifierTests(unittest.TestCase):
             self.assertFalse(results[0]["timed_out"])
 
 
+    def test_oserror_on_bad_cwd_counts_as_failure(self) -> None:
+        # subprocess.run raises OSError when cwd does not exist; Verifier
+        # must catch it and treat it as a failed command rather than crashing.
+        ok, results = Verifier().run(
+            ["echo hi"],
+            Path("/nonexistent/path/that/does/not/exist"),
+        )
+
+        self.assertFalse(ok)
+        self.assertEqual(len(results), 1)
+        self.assertIsNone(results[0]["exit_code"])
+        self.assertFalse(results[0]["timed_out"])
+        self.assertIn("nonexistent", results[0]["stderr"].lower() + results[0]["command"].lower())
+
+
 if __name__ == "__main__":
     unittest.main()

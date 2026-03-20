@@ -47,6 +47,16 @@ class Verifier:
                         "timed_out": True,
                     }
                 )
+            except OSError as exc:
+                results.append(
+                    {
+                        "command": command,
+                        "exit_code": None,
+                        "stdout": "",
+                        "stderr": str(exc),
+                        "timed_out": False,
+                    }
+                )
         if pass_requires_all:
             return passed_count == len(commands), results
         return passed_count > 0, results
