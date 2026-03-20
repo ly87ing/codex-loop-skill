@@ -132,7 +132,15 @@ class CodexLoopConfig:
 
     @classmethod
     def from_file(cls, path: Path) -> "CodexLoopConfig":
-        data = _load_yaml_or_json(path.read_text(encoding="utf-8"))
+        try:
+            data = _load_yaml_or_json(path.read_text(encoding="utf-8"))
+        except (ValueError, json.JSONDecodeError) as exc:
+            msg = (
+                f"Failed to parse {path}: {exc}\n"
+                "codex-loop.yaml uses JSON syntax (curly braces, quoted keys).\n"
+                "Tip: validate your edits with: python3 -c \"import json; json.load(open('codex-loop.yaml'))\""
+            )
+            raise ValueError(msg) from exc
         return cls.from_dict(data, path.parent)
 
     @classmethod
