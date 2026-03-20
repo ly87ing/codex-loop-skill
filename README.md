@@ -77,6 +77,7 @@ Before installing `codex-loop`, make sure you have:
    export OPENAI_API_KEY="sk-..."
    ```
    To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
+   **Cost:** each iteration calls Codex with a large prompt and expects a structured response. A typical small task (3–10 iterations) costs roughly $0.10–$1.00 depending on the model and codebase size. Set a spending limit on your OpenAI account before running long unattended loops.
 4. **A local Git repository with at least one commit** — if starting fresh: `git init && git add -A && git commit -m 'init'`
    (After running `codex-loop init`, the `.codex-loop/` directory is automatically added to `.gitignore` — do not commit it.)
 5. **Project directory trusted by Codex** — without this, `codex exec` will immediately fail with
