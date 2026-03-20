@@ -21,6 +21,20 @@ For those, just use Codex directly.
 
 All state lives on disk in your project directory, so runs are resumable and inspectable.
 
+```
+$ codex-loop run
+[iteration 1/30] task: 001-add-validation  (0/2 done, running Codex...) [10:15:02]
+  -> status=continue verification=FAIL files_changed=3
+[iteration 2/30] task: 001-add-validation  (0/2 done, running Codex...) [10:31:18]
+  -> status=complete verification=pass files_changed=2
+[iteration 3/30] task: 002-write-tests  (1/2 done, running Codex...) [10:47:55]
+  -> status=complete verification=pass files_changed=4
+All tasks done and verification passed.
+completed
+Changes are on branch: codex-loop/my-project-a1b2c3
+To merge:  git checkout main && git merge codex-loop/my-project-a1b2c3
+```
+
 **Ready to start?** → [Prerequisites](#prerequisites) → [Install](#install) → [Quick Start](#quick-start).
 
 ## Prerequisites
