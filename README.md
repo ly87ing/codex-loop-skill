@@ -133,28 +133,29 @@ codex-loop --help
 
 ## Quick Start
 
-The minimum path to get started. Run these inside **your own project directory** (not inside the `codex-loop-skill` repo you just cloned):
+The minimum path to get started. Run these inside **your own project directory** (not inside the `codex-loop-skill` repo you just cloned).
+
+**Step 0 — One-time setup** (skip if already done):
+
+1. Make sure your project is a Git repo with at least one commit:
+   ```bash
+   git init && git add -A && git commit -m "init"
+   ```
+2. Trust your project directory and the worktree parent in `~/.codex/config.toml`
+   (create the file if it does not exist — replace the paths with your actual project location):
+   ```toml
+   [projects."/Users/alice/code/my-app"]
+   trust_level = "trusted"
+
+   [projects."/Users/alice/code/.codex-loop-worktrees"]
+   trust_level = "trusted"
+   ```
+   > **Why two entries?** `codex-loop run` runs Codex inside an isolated Git worktree next to your project.
+   > Without the second entry, `codex-loop run` fails with "Not inside a trusted directory".
 
 ```bash
-# Move into your own project first (must be a Git repo with at least one commit)
+# Move into your own project first
 cd /path/to/your-project
-
-# 0. One-time setup — if you haven't done these yet:
-#    a) Git repo with a commit:  git init && git add -A && git commit -m "init"
-#    b) Trust setup for Codex — create ~/.codex/config.toml (if it doesn't exist) and add:
-#         [projects."/absolute/path/to/your-project"]
-#         trust_level = "trusted"
-#
-#         [projects."/absolute/path/to/.codex-loop-worktrees"]
-#         trust_level = "trusted"
-#
-#       Replace /absolute/path/to with the PARENT directory of your project.
-#       Example: project at /Users/alice/code/my-app → use /Users/alice/code
-#       so the two entries are /Users/alice/code/my-app and /Users/alice/code/.codex-loop-worktrees
-#
-#       The second entry covers the isolated worktree that codex-loop run creates next
-#       to your project. Without it, codex-loop run will fail with
-#       "Not inside a trusted directory" even after you trust the project directory.
 
 # 1. Scaffold workflow files from your goal
 #    A good prompt names the language/framework, what to build, and how to test it.
