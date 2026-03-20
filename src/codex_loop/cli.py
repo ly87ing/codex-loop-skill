@@ -320,8 +320,31 @@ def _load_optional_config(project_dir: Path) -> CodexLoopConfig | None:
     return CodexLoopConfig.from_file(config_path)
 
 
+_HIDDEN_SUBCOMMANDS = frozenset({"watchdog"})
+
+
+class _CleanHelpParser(argparse.ArgumentParser):
+    """ArgumentParser that scrubs internal subcommands from help output."""
+
+    def format_help(self) -> str:
+        import re
+        text = super().format_help()
+        for name in _HIDDEN_SUBCOMMANDS:
+            # Remove from usage line: e.g. {a,watchdog,b} → {a,b}
+            text = re.sub(rf",?{re.escape(name)},?", lambda m: "," if m.group().startswith(",") and m.group().endswith(",") else "", text)
+            # Remove the named subcommand listing line
+            text = re.sub(rf"^\s+{re.escape(name)}.*\n", "", text, flags=re.MULTILINE)
+        # Remove any residual ==SUPPRESS== lines (argparse renders hidden subcommands this way)
+        text = re.sub(r"^[^\S\n]*==SUPPRESS==.*\n", "", text, flags=re.MULTILINE)
+        # Clean up any double commas left in usage
+        text = re.sub(r"\{,", "{", text)
+        text = re.sub(r",\}", "}", text)
+        text = re.sub(r",,+", ",", text)
+        return text
+
+
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="codex-loop")
+    parser = _CleanHelpParser(prog="codex-loop")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     init_parser = subparsers.add_parser("init", help="Generate codex-loop files from a prompt.")
@@ -985,13 +1008,6 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional task id filter, for example 001-foundation.",
     )
-    # Remove internal-only subcommands from the help listing.
-    # argparse.SUPPRESS as subparser help shows the literal string "==SUPPRESS=="
-    # in Python 3.13+, so we remove the entry from _choices_actions instead.
-    subparsers._choices_actions = [
-        a for a in subparsers._choices_actions
-        if a.dest != "watchdog"
-    ]
     return parser
 
 
