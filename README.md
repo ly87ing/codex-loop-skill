@@ -160,13 +160,12 @@ your-project/
   tasks/
     001-*.md
   .codex-loop/
-    state.json
-    metrics.json
+    state.json          # loop state (task status, history, blockers)
+    metrics.json        # counters and blocker aggregates
     agent_result.schema.json
-    logs/
-    runs/
-    artifacts/
-    hooks/
+    logs/               # per-iteration Codex JSONL output
+    runs/               # per-task last result JSON
+    artifacts/          # snapshots and exports
 ```
 
 ## How Run Works
@@ -175,7 +174,7 @@ your-project/
 2. Run a lightweight repair pass so schema/state/task drift does not wedge the loop
 3. Read `tasks/` in filename order
 4. Pick the next `ready` or `in_progress` task from `.codex-loop/state.json`
-5. Create or reuse a temporary worktree
+5. Create or reuse a temporary Git worktree (an isolated working copy so your main branch stays clean)
 6. Ask Codex to work only on that task
 7. If `codex exec resume` fails because the session is stale, retry once with a fresh `codex exec`
 8. Run every command in `verification.commands`
