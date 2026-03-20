@@ -311,7 +311,9 @@ Run `codex-loop doctor --repair` to reconcile state before the next run.
 
 ## Skill
 
-This repository also ships a Codex skill at `skills/codex-loop/SKILL.md`. The skill tells Codex when to use `codex-loop` and how to move between `init`, review, and `run`.
+This repository also ships a Codex skill at `skills/codex-loop/SKILL.md`. The skill teaches Codex when and how to use `codex-loop` — so instead of running CLI commands yourself, you can just describe your goal to Codex and it will call `codex-loop init`, review the output, and start the loop for you.
+
+To use it, copy or symlink `skills/codex-loop/` into your Codex skills directory (usually `~/.codex/skills/`). Codex will pick it up automatically on the next run.
 
 ## Development
 
