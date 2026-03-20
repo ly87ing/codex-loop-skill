@@ -194,6 +194,15 @@ cd /path/to/your-project
 #      "Refactor the database layer to use SQLAlchemy. Tests in pytest."
 codex-loop init --prompt "Add input validation to every form in this app"
 # (This calls Codex to generate your project files — usually takes 30–90 seconds.)
+# Success looks like:
+#   Initialized codex-loop files in /your/project
+#
+#   Next steps:
+#     1. Skim the generated files ...
+#     2. Confirm verification.commands in codex-loop.yaml ...
+#     3. Commit the generated files: git add -A && git commit -m 'add codex-loop files'
+#     4. Run: codex-loop run
+#   (plus trust config reminders for ~/.codex/config.toml)
 
 # 2. Review generated files — especially the verification command
 #    Open codex-loop.yaml in your editor and confirm verification.commands matches
