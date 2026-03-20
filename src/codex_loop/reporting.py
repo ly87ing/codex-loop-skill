@@ -631,14 +631,15 @@ def format_status_summary(project_dir: Path) -> str:
         for t in snapshot["tasks"]:
             marker = {"done": "[x]", "blocked": "[!]", "in_progress": "[~]", "ready": "[ ]", "pending": "[ ]"}.get(t["status"], "[ ]")
             lines.append(f"  {marker} {t['id']}  ({t['status']})")
-    lines.append(f"current_task: {snapshot['current_task']}")
-    if snapshot.get("current_task_session"):
-        lines.append(f"current_task_session: {snapshot.get('current_task_session')}")
-    if snapshot.get("current_task_resume_failure_reason"):
-        lines.append(
-            "current_task_resume_failure_reason: "
-            f"{snapshot.get('current_task_resume_failure_reason')}"
-        )
+    if snapshot.get("overall_status") != "completed":
+        lines.append(f"current_task: {snapshot['current_task']}")
+        if snapshot.get("current_task_session"):
+            lines.append(f"current_task_session: {snapshot.get('current_task_session')}")
+        if snapshot.get("current_task_resume_failure_reason"):
+            lines.append(
+                "current_task_resume_failure_reason: "
+                f"{snapshot.get('current_task_resume_failure_reason')}"
+            )
     lines.extend(
         [
             f"runner_failures_total: {snapshot.get('runner_failures_total', 0)}",
