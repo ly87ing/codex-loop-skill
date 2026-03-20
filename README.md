@@ -1,59 +1,52 @@
-# codex-loop-skill
+# codex-loop
 
-`codex-loop` is a local, file-driven autonomous loop for Codex CLI. It turns a prompt into durable project documents, then keeps running Codex against one task at a time until verification passes or the loop blocks on a real limit.
+`codex-loop` is an external supervisor for Codex CLI. You give it a goal; it scaffolds
+a local task queue, then keeps running Codex — one task at a time — until your tests
+pass or the loop hits a real blocker.
 
-## What It Builds
+**Typical use:** you have a coding task too big for a single prompt. You want Codex
+to keep working on it while you do something else, and stop only when it is actually done.
 
-- `codex-loop init --prompt "..."` generates:
-  - `codex-loop.yaml`
-  - `spec/`
-  - `plan/`
-  - `tasks/`
-  - `.codex-loop/state.json`
-- `codex-loop run`:
-  - runs `doctor --repair` before the supervisor starts
-  - creates a temporary worktree by default
-  - calls `codex exec` / `codex exec resume`
-  - falls back to a fresh `codex exec` if a saved resume session is no longer valid
-  - blocks on configurable runner-failure or verification-failure circuit breakers
-  - can run local `pre_iteration`, `post_iteration`, `on_completed`, and `on_blocked` hooks
-  - runs local verification commands after each iteration
-  - stops only on `completed` or `blocked`
-- `codex-loop daemon start|status|stop`:
-  - starts a detached local watchdog around `run --continuous`
-  - writes `.codex-loop/daemon.json`, `.codex-loop/daemon-heartbeat.json`, and `.codex-loop/daemon-watchdog.json`
-  - restarts the worker when the child exits unexpectedly or the heartbeat goes stale
-  - applies a bounded restart policy with backoff so crash loops do not respawn forever without visibility
-  - reports pid, phase, cycle, restart policy, restart count, heartbeat staleness, and log path for operator inspection
-- `codex-loop service install|status|uninstall`:
-  - installs a per-project macOS `launchd` agent under `~/Library/LaunchAgents`
-  - keeps the loop alive across shell exits and future logins with `RunAtLoad` and `KeepAlive`
-  - writes `.codex-loop/service.json`, `.codex-loop/service-heartbeat.json`, `.codex-loop/service-watchdog.json`, and `.codex-loop/service.log`
-  - preserves `PATH`, `HOME`, `SHELL`, and `CODEX_HOME` for the long-running service process
-  - refuses to install while a local `daemon` worker is already running, to avoid dual writers against the same loop state
-  - confirms the job is actually unloaded before cleaning local metadata on uninstall
-- `.codex-loop/metrics.json`:
-  - persists aggregate counters such as iterations, runner failures, verification failures, resume fallbacks, and blocker summaries
-- `codex-loop doctor --repair`:
-  - recreates a missing agent result schema
-  - reconciles task files with `.codex-loop/state.json`
-  - restores missing `operator.events` and `operator.cleanup` defaults in `codex-loop.yaml`
-  - warns when cleanup defaults are aggressive enough to delete all retained artifacts on apply, with concrete remediation guidance
-- `codex-loop status --summary`, `codex-loop sessions`, `codex-loop events`, and `codex-loop logs tail`:
-  - provide concise operator-facing visibility during unattended runs
-- `codex-loop cleanup`:
-  - prunes old local logs, prompts, runs, and stale non-active worktrees
+## How It Works (in brief)
+
+1. `codex-loop init --prompt "..."` — turns your goal into local files: a spec, a plan,
+   numbered task documents, and a config (`codex-loop.yaml`).
+2. `codex-loop run` — works through each task in order, running Codex and your
+   verification commands after every iteration. Stops when everything passes, or
+   when it is genuinely stuck.
+3. `codex-loop status --summary` — shows you what happened at any time.
+
+All state lives on disk in your project directory, so runs are resumable and inspectable.
 
 ## Why This Exists
 
-Codex can plan and act, but long-running work needs an external supervisor:
+Codex handles individual prompts well, but longer tasks need:
 
-- prompts alone drift across iterations
-- interactive approvals break unattended runs
-- progress needs durable local state
-- completion claims need verification gates
+- durable state across iterations (a single prompt drifts and forgets)
+- verification gates (the loop only calls something done when tests actually pass)
+- unattended execution (no interactive approval prompts mid-run)
+- a structured way to see what happened when something went wrong
 
-This project keeps the source of truth on disk and treats Codex as a resumable worker.
+## Command Reference
+
+| Command | What it does |
+|---|---|
+| `init --prompt "..."` | Scaffold spec, plan, tasks, and config from your goal |
+| `run` | Run the loop until done or blocked |
+| `run --continuous --retry-blocked` | Keep retrying after blocks until `--max-cycles` |
+| `doctor --repair` | Fix state drift if you edited files manually |
+| `status --summary` | Show current task status and loop health |
+| `events --limit 20` | Show the recent event timeline |
+| `sessions --latest --json` | Show the last Codex session details |
+| `logs tail --lines 20` | Tail the loop log |
+| `cleanup --keep 10` | Preview artifact pruning (dry-run) |
+| `cleanup --apply --keep 10` | Actually prune old artifacts |
+| `daemon start` | Run as a background watchdog process |
+| `daemon status` | Check watchdog health |
+| `daemon stop` | Stop the background watchdog |
+| `service install` | Install as a macOS launchd service (survives reboots) |
+| `service status` | Check service health |
+| `service uninstall` | Remove the launchd service |
 
 ## Prerequisites
 
