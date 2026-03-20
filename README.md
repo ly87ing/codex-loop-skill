@@ -311,6 +311,8 @@ codex-loop run --continuous --retry-blocked --cycle-sleep-seconds 60
 
 ### Unattended long runs (optional)
 
+Use `daemon` (or `service` on macOS) when you want the loop to run in the background and survive terminal closes. Use `run --continuous` if you want to keep the terminal attached and watch the output.
+
 ```bash
 # Run as a background daemon with auto-restart
 codex-loop daemon start --retry-blocked --cycle-sleep-seconds 60
