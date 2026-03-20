@@ -36,7 +36,10 @@ class RunLock:
     def acquire(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         if self.path.exists():
-            existing = json.loads(self.path.read_text(encoding="utf-8"))
+            try:
+                existing = json.loads(self.path.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001
+                existing = {}
             pid = int(existing.get("pid", -1))
             started_at_raw = str(existing.get("started_at", ""))
             is_stale = self._is_stale(started_at_raw)
