@@ -96,12 +96,19 @@ codex-loop run
 #   All tasks done and verification passed.
 #   completed
 #   Changes are on branch: codex-loop/my-todo-project-abc123
-#   To inspect before merging:
+#   (Your working directory is unchanged until you merge.)
+#
+#   Run these commands from your project directory:
+#
+#     # 1. Review the changes (optional)
 #     git diff --stat main..codex-loop/my-todo-project-abc123
-#   To merge:
+#
+#     # 2. Merge into your main branch
 #     git checkout main
 #     git merge codex-loop/my-todo-project-abc123
-#   After merging, clean up with: codex-loop cleanup --apply
+#
+#     # 3. Clean up worktree and old artifacts
+#     codex-loop cleanup --apply
 
 # 5. Merge the changes
 #    Copy the exact commands from step 4's output above — do NOT use the branch name here literally.
