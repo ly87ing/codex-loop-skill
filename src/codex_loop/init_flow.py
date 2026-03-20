@@ -79,7 +79,8 @@ def initialize_project(
             names = [str(p.relative_to(project_dir)) if p.is_relative_to(project_dir) else str(p) for p in existing]
             msg = (
                 f"Refusing to overwrite existing codex-loop files: {names}\n"
-                "Use --force to overwrite, or remove these files manually first."
+                "Use --force to overwrite (WARNING: deletes all run history and state),\n"
+                "or remove these files manually first."
             )
             raise FileExistsError(msg)
 
