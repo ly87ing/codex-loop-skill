@@ -313,8 +313,8 @@ All thresholds are configurable in `codex-loop.yaml` under `execution`.
 
 ## Safety Model
 
-- The generated config targets `sandbox_mode="workspace-write"`
-- The runner requests `approval_policy="never"` through Codex config overrides
+- `sandbox_mode="workspace-write"` — Codex can read and write files in your project, but cannot access the network or run arbitrary system commands outside the workspace
+- `approval_policy="never"` — Codex does not pause for interactive approval, which is required for unattended runs; changes go to an isolated Git branch so you can review before merging
 - The supervisor keeps `.codex-loop/` local state outside normal task files
 - The supervisor can repair a missing schema and task/state drift before entering the loop
 - Hook execution is local and explicit through `codex-loop.yaml`; never inferred from prompts
