@@ -110,7 +110,7 @@ Most fields can be left at their defaults. These are the ones worth knowing:
 | Field | What it does | When to change it |
 |---|---|---|
 | `verification.commands` | Commands that must pass for the loop to declare success | **Always check this first** — make sure it matches how you run your tests |
-| `codex.model` | The Codex model to use | Change if you want to use a different model |
+| `codex.model` | The Codex model to use | Default is `gpt-5.4` (requires access). If you get a model error, change to `o3` or `o4-mini` |
 | `execution.max_iterations` | Total iteration cap across all tasks | Increase for large tasks that need more attempts |
 | `goal.done_when` | Human-readable completion criteria | Edit if the generated criteria don't match your real goal |
 
