@@ -185,7 +185,12 @@ cat codex-loop.yaml
 #    WARNING: --force deletes all existing state and run history. Only use it before you run
 #    'codex-loop run' for the first time, or when you intentionally want to start over.
 
-# 3. Run the loop — it will keep working until done or genuinely blocked
+# 3. Commit the generated files so Codex can see them in its isolated worktree
+#    (codex-loop run creates a Git worktree from your latest commit — files not
+#    committed yet are invisible to Codex)
+git add -A && git commit -m "add codex-loop files"
+
+# 4. Run the loop — it will keep working until done or genuinely blocked
 #    Each iteration calls Codex and waits up to 30 minutes for a response.
 #    A typical small task takes 3–10 iterations (15 minutes to a few hours).
 #    Each iteration shows one progress line before Codex starts, then goes quiet
@@ -223,9 +228,9 @@ codex-loop run
 #   After merging, clean up with: codex-loop cleanup --apply
 
 # Note: Codex writes all changes to an isolated Git branch, not your project directory.
-#       You won't see any changed files locally until you merge in step 4.
+#       You won't see any changed files locally until you merge in step 5.
 
-# 4. Merge the changes
+# 5. Merge the changes
 #    When the loop completes, it prints the exact commands to run. Copy and run them:
 #      git checkout main   # or master, or your default branch
 #      git merge codex-loop/<branch>   # use the branch name printed above
@@ -234,7 +239,7 @@ codex-loop run
 #    After merging, clean up old log/run artifacts (does NOT delete your code or git history):
 codex-loop cleanup --apply
 
-# 5. Check status at any time
+# 6. Check status at any time
 codex-loop status --summary
 ```
 
