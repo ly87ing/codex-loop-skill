@@ -72,10 +72,16 @@ Before installing `codex-loop`, make sure you have:
 
 ## Install
 
-From the repository root:
+```bash
+git clone https://github.com/ly87ing/codex-loop-skill.git
+cd codex-loop-skill
+python3 -m pip install -e .
+```
+
+Verify it worked:
 
 ```bash
-python3 -m pip install -e .
+codex-loop --help
 ```
 
 ## Quick Start
