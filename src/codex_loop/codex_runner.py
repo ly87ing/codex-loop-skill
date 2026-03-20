@@ -405,6 +405,14 @@ class CodexRunner:
             "Turn the user's request into a concise spec, a concrete implementation plan, "
             "a sequential task list, and verification commands.\n"
             "Keep the scope realistic for a first working iteration.\n\n"
+            "Guidelines:\n"
+            "- verification_commands: shell commands that can be run from the project root "
+            "to confirm the implementation is correct (e.g. 'python -m pytest tests/ -q', "
+            "'npm test', 'go test ./...'). Must be runnable as-is with no placeholders.\n"
+            "- tasks: break the work into 2–6 sequential subtasks, each small enough to "
+            "complete in a single focused Codex session (one clear responsibility per task).\n"
+            "- task markdown: each task's markdown field should contain a clear description "
+            "of what to implement, acceptance criteria, and any constraints.\n\n"
             f"User request:\n{user_prompt}\n"
         )
 
