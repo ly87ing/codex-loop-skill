@@ -72,8 +72,7 @@ class Supervisor:
             _ts = datetime.now().strftime("%H:%M:%S")
             _max_iter = self.config.execution.max_iterations
             print(f"[iteration {iteration_num}/{_max_iter}] task: {task.task_id}  ({_done_count}/{_total_count} done, running Codex...) [{_ts}]", flush=True)
-            if iteration_num == 1:
-                print("  (waiting for Codex — this can take up to 30 minutes per iteration; run 'codex-loop events --limit 10' in another terminal to watch)", flush=True)
+            print("  (waiting for Codex — this can take up to 30 minutes per iteration; run 'codex-loop events --limit 10' in another terminal to watch)", flush=True)
             task_state = state["tasks"][task.task_id]
             hook_failure = self._run_hooks(
                 event_name="pre_iteration",
