@@ -137,13 +137,25 @@ def run_project(
                 ),
                 next(iter(state["tasks"]), "project"),
             )
-            worktree = create_worktree(
-                repo_root=repo_root,
-                branch_prefix=config.execution.worktree.branch_prefix,
-                task_id=active_task_id,
-                existing_path=state["meta"].get("worktree_path"),
-                existing_branch=state["meta"].get("worktree_branch"),
-            )
+            try:
+                worktree = create_worktree(
+                    repo_root=repo_root,
+                    branch_prefix=config.execution.worktree.branch_prefix,
+                    task_id=active_task_id,
+                    existing_path=state["meta"].get("worktree_path"),
+                    existing_branch=state["meta"].get("worktree_branch"),
+                )
+            except subprocess.CalledProcessError as exc:
+                stderr = (exc.stderr or "").strip()
+                hint = ""
+                if "no commits" in stderr or "does not have any commits" in stderr:
+                    hint = (
+                        "\nHint: your repository has no commits yet. "
+                        "Run: git add . && git commit -m 'init'"
+                    )
+                raise RuntimeError(
+                    f"Failed to create git worktree: {stderr}{hint}"
+                ) from exc
             working_directory = resolve_project_working_directory(
                 project_dir=project_dir,
                 repo_root=repo_root,
