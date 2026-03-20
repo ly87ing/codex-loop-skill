@@ -162,6 +162,23 @@ codex-loop cleanup --apply
 codex-loop status --summary
 ```
 
+Example output:
+
+```
+project: my-project
+overall_status: running          # running | completed | blocked
+iteration: 3
+tasks:
+  [x] 001-create-schema  (done)
+  [~] 002-add-api        (in_progress)
+  [ ] 003-write-tests    (ready)
+current_task: 002-add-api
+worktree_branch: codex-loop/my-project-abc123
+```
+
+Task markers: `[x]` done, `[~]` in progress, `[!]` blocked, `[ ]` pending.
+If `overall_status` is `blocked`, the loop stopped — run `codex-loop run --retry-blocked` to retry.
+
 That is all you need for most tasks. The loop stops by itself when all tasks pass verification,
 or when it hits a real blocker (no progress, too many failures).
 
