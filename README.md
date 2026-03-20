@@ -524,4 +524,4 @@ python3 -m compileall src
 If something is not working, open an issue at https://github.com/ly87ing/codex-loop-skill/issues with:
 - the command you ran
 - the error message or unexpected output
-- your OS and `codex --version`
+- your OS, `codex --version`, and `codex-loop --version`
