@@ -7,6 +7,9 @@ pass or the loop hits a real blocker.
 **Typical use:** you have a coding task too big for a single prompt. You want Codex
 to keep working on it while you do something else, and stop only when it is actually done.
 
+**Not a good fit for:** quick one-off edits, questions, or tasks with no clear pass/fail test.
+For those, just use Codex directly.
+
 ## How It Works (in brief)
 
 1. `codex-loop init --prompt "..."` — turns your goal into local files: a spec, a plan,
