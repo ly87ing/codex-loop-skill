@@ -1125,7 +1125,9 @@ def main(argv: list[str] | None = None) -> int:
                 )
             else:
                 if args.retry_blocked:
-                    retry_blocked_tasks_for_retry(project_dir)
+                    _requeued = retry_blocked_tasks_for_retry(project_dir)
+                    if _requeued:
+                        print("Requeued blocked tasks for retry.", flush=True)
                 print("Starting codex-loop run...", flush=True)
                 try:
                     _pre_state = StateStore(project_dir / ".codex-loop" / "state.json").load()
