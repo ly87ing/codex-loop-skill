@@ -1098,8 +1098,12 @@ def main(argv: list[str] | None = None) -> int:
             print( "Before running step 3, make sure:")
             print( "  - Git repo has at least one commit: git init && git add -A && git commit -m 'init'")
             print( "    (.codex-loop/ is automatically added to .gitignore — safe to git add -A)")
-            print( "  - Codex trusts this directory: run 'codex' once here, type hello, accept the prompt")
-            print( "    (skip this and you will get 'Not inside a trusted directory' when running)")
+            print( "  - Codex trusts this directory AND the worktree parent:")
+            print( "    a) Run 'codex' once here, type hello, accept the prompt (trusts this project dir)")
+            print(f"    b) Add {project_dir.parent / '.codex-loop-worktrees'} to ~/.codex/config.toml:")
+            print( "         [projects.\"<that-path>\"]")
+            print( "         trust_level = \"trusted\"")
+            print( "    (codex-loop run executes Codex in an isolated worktree, not this directory)")
             return 0
 
         if args.command == "run":
