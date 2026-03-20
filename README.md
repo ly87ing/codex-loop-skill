@@ -350,6 +350,8 @@ The changes live in an isolated Git branch (`codex-loop/...`). Use `git diff` an
 codex-loop cleanup --apply
 # This removes the worktree directory and prunes old logs under .codex-loop/.
 # It does NOT touch your source code, your main branch, or the merged changes.
+# The codex-loop/... Git branch is NOT deleted — to remove it too:
+#   git branch -d codex-loop/<branch-name>
 ```
 
 If you inspect the changes and decide you don't want them, simply don't merge.
