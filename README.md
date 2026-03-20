@@ -101,6 +101,7 @@ Verify it worked:
 
 ```bash
 codex-loop --help
+# If you get 'command not found', see Troubleshooting below.
 ```
 
 ## Quick Start
