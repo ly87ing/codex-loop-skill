@@ -347,6 +347,14 @@ class CodexRunner:
                     "  export OPENAI_API_KEY=\"sk-...\"\n"
                     "To make it permanent, add that line to your ~/.zshrc or ~/.bashrc."
                 )
+            elif "model_not_found" in combined or "does not exist" in combined or "no such model" in combined or ("model" in combined and ("not found" in combined or "not supported" in combined or "access" in combined)):
+                hint = (
+                    "\nHint: the configured Codex model is not available with your API key.\n"
+                    "Edit codex-loop.yaml and change the model field to one you have access to:\n"
+                    '  "codex": { "model": "o3" }\n'
+                    "Then re-run. Common alternatives: o3, o4-mini.\n"
+                    "You can also override it at init time: codex-loop init --prompt \"...\" --model o3"
+                )
             elif "output-schema" in combined or ("unknown option" in combined and "exec" not in combined) or ("unrecognized" in combined and "exec" not in combined):
                 hint = (
                     "\nHint: your Codex CLI version may not support --output-schema. "
