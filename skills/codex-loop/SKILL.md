@@ -68,40 +68,21 @@ For a real macOS login service, `codex-loop service install --retry-blocked --cy
 
 ### 5. Inspect status when needed
 
-Run:
-
 ```bash
+# Quick overview
 codex-loop status --summary
-codex-loop service status --json
-codex-loop sessions
-codex-loop sessions --latest --json
-codex-loop sessions --task-id 001-foundation --json
-codex-loop evidence --task-id 001-foundation --json
-codex-loop evidence --latest --json --output ./evidence.json
-codex-loop evidence --task-id 001-foundation --event-limit 5 --json
-codex-loop evidence --task-id 001-foundation --json --output-dir ./snapshots
-codex-loop snapshots --snapshot-dir ./snapshots
-codex-loop snapshots --snapshot-dir ./snapshots --summary
-codex-loop snapshots --snapshot-dir ./snapshots --latest --json
-codex-loop snapshots --snapshot-dir ./snapshots --status blocked --since 2026-03-20T00:00:00+00:00 --until 2026-03-21T00:00:00+00:00 --json
-codex-loop snapshots --snapshot-dir ./snapshots --blocker-code no_progress_limit --json
-codex-loop snapshots --snapshot-dir ./snapshots --sort newest --json
-codex-loop snapshots --snapshot-dir ./snapshots --latest-blocked --json
-codex-loop snapshots --snapshot-dir ./snapshots --summary --group-by blocker --json
-codex-loop snapshots --snapshot-dir ./snapshots --summary --output ./snapshots-summary.txt
-codex-loop snapshots --snapshot-dir ./snapshots --latest-blocked --json --output-dir ./snapshot-reports
-codex-loop snapshots-exports --exports-dir ./snapshot-reports --latest --json
-codex-loop snapshots-exports --exports-dir ./snapshot-reports --status blocked --summary --group-by render --json
-codex-loop snapshots-exports --exports-dir ./snapshot-reports --summary --group-by render --output-dir ./snapshot-export-reports
 codex-loop events --limit 20
-codex-loop events --summary --json
-codex-loop events --task-id 001-foundation --event-type iteration:continue --json
-codex-loop events --since 2026-03-19T00:00:00+00:00 --until 2026-03-20T00:00:00+00:00 --output ./events.json
 codex-loop logs tail --lines 20
+
+# Session details
+codex-loop sessions --latest --json
+
+# Artifact cleanup (dry-run by default)
 codex-loop cleanup --keep 10
 codex-loop cleanup --apply --keep 10 --older-than-days 14
-codex-loop cleanup --logs-keep 20 --prompts-older-than-days 30
 ```
+
+For deeper inspection (evidence, snapshots, exports), see `references/workflow.md`.
 
 `status --summary` now includes key runtime counters from `.codex-loop/metrics.json`.
 `health` is the one-command operator overview: it combines current status, doctor warnings/errors, event health signals, daemon/service runtime state, and any available snapshot/export summaries.

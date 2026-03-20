@@ -224,6 +224,60 @@ The loop stops with `blocked` when:
 - `doctor --repair` can backfill missing `operator` defaults into older projects so new CLI behavior does not depend on a manual config rewrite.
 - `doctor` also warns when `operator.cleanup` defaults are configured with `keep=0` and no age threshold, which would make `cleanup --apply` destructive by default, and suggests safer retention values to restore.
 
+## Troubleshooting
+
+### "Not inside a trusted directory"
+
+`codex exec` refuses to run in directories that Codex has not explicitly trusted.
+Fix it once by running `codex` interactively inside your project directory,
+or add it manually to `~/.codex/config.toml`:
+
+```toml
+[projects."/absolute/path/to/your-project"]
+trust_level = "trusted"
+```
+
+### The loop stops with `blocked`
+
+This is not a crash — it means the loop hit a real limit it could not resolve on its own.
+
+```bash
+# See the reason
+codex-loop status --summary
+codex-loop events --limit 20
+```
+
+Common causes and fixes:
+
+| Blocker | What happened | What to do |
+|---|---|---|
+| `no_progress_limit` | Codex made no file changes for N iterations | Review the task description; make it more specific |
+| `runner_failure_circuit_breaker` | `codex exec` failed repeatedly | Check your API key and network; run `codex` manually to verify |
+| `verification_failure_circuit_breaker` | Tests kept failing | Look at `codex-loop events --limit 20` for the error output |
+| `max_iterations` | Hit the iteration cap | Increase `max_iterations` in `codex-loop.yaml` or break the task into smaller pieces |
+
+After fixing the root cause:
+
+```bash
+codex-loop run --retry-blocked
+```
+
+### Verification keeps failing
+
+The loop injects the last failed verification output into the next prompt automatically.
+If it keeps failing, the test command itself may be wrong. Check it manually:
+
+```bash
+# Run your verification command directly to see the real error
+python -m pytest tests/ -q
+```
+
+Then fix either the test command in `codex-loop.yaml` or the task description.
+
+### I edited task files or `codex-loop.yaml` manually
+
+Run `codex-loop doctor --repair` to reconcile state before the next run.
+
 ## Known Limits
 
 - The generated `codex-loop.yaml` is JSON-compatible YAML. It works today without a YAML dependency, but full YAML editing is only supported when `PyYAML` is installed.
