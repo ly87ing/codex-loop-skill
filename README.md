@@ -523,6 +523,24 @@ The error message will show the line number. Common mistakes: trailing commas, m
 codex-loop init --prompt "your goal" --force
 ```
 
+### How do I see what Codex is actually doing?
+
+While the loop runs, Codex output is captured internally (not shown live) so the supervisor can parse the JSON result. To inspect what happened after an iteration:
+
+```bash
+# Tail the most recent Codex output
+codex-loop logs tail --lines 50
+
+# Or look directly at the raw JSONL logs
+ls .codex-loop/logs/
+```
+
+For a structured summary of recent iterations:
+
+```bash
+codex-loop events --limit 10
+```
+
 ### I edited task files or `codex-loop.yaml` manually
 
 Run `codex-loop doctor --repair` to reconcile state before the next run.
