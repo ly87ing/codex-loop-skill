@@ -300,12 +300,16 @@ class CodexRunner:
                 if raw is None:
                     return ""
                 return raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else raw
+            _out = _decode(exc.stdout)
+            _err = _decode(exc.stderr)
+            _out_snippet = _out[-1000:] if len(_out) > 1000 else _out
+            _err_snippet = _err[-1000:] if len(_err) > 1000 else _err
             msg = (
                 "Codex command timed out.\n"
                 f"Command: {' '.join(command)}\n"
                 f"Timeout: {timeout_seconds}s\n"
-                f"STDOUT:\n{_decode(exc.stdout)}\n"
-                f"STDERR:\n{_decode(exc.stderr)}"
+                f"STDOUT (last 1000 chars):\n{_out_snippet}\n"
+                f"STDERR (last 1000 chars):\n{_err_snippet}"
             )
             raise RuntimeError(msg) from exc
         except FileNotFoundError as exc:
