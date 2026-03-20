@@ -164,5 +164,43 @@ class CleanupTests(unittest.TestCase):
             )
 
 
+    def test_cleanup_worktrees_survives_missing_state_json(self) -> None:
+        """run_cleanup must not raise when state.json is absent during worktree cleanup."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            # Intentionally do NOT create state.json
+            report = run_cleanup(
+                root,
+                apply=False,
+                keep=1,
+                remove_worktrees=True,
+            )
+            # No exception raised; no worktrees to prune anyway
+            self.assertIsInstance(report.warnings, list)
+
+    def test_cleanup_worktrees_survives_git_oserror(self) -> None:
+        """run_cleanup must record a warning (not raise) when git is unavailable."""
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            StateStore(root / ".codex-loop" / "state.json").create_initial(
+                "demo", "Build demo", ["001-foundation"]
+            )
+            with patch(
+                "codex_loop.cleanup.resolve_repo_root",
+                side_effect=OSError("git not found"),
+            ):
+                report = run_cleanup(
+                    root,
+                    apply=False,
+                    keep=1,
+                    remove_worktrees=True,
+                )
+            self.assertTrue(
+                any("Skipping worktree cleanup" in w for w in report.warnings),
+                f"Expected warning not found: {report.warnings}",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
