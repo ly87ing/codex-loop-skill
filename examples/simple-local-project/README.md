@@ -26,7 +26,7 @@ python3 -m pip install -e codex-loop-skill/
 git init my-todo-project
 cp -r codex-loop-skill/examples/simple-local-project/* my-todo-project/
 cd my-todo-project          # <-- must be inside the project from here on
-git add .
+git add -A
 git commit -m "init"
 
 # 3. Trust the directory in Codex (one-time setup)
