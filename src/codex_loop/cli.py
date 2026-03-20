@@ -369,7 +369,7 @@ def _build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=False)
 
     init_parser = subparsers.add_parser("init", help="Generate codex-loop files from a prompt.")
-    init_parser.add_argument("--prompt", required=True, help="Describe what you want to build. codex-loop will generate spec, plan, and task files from this description.")
+    init_parser.add_argument("--prompt", required=True, help="Describe what you want to build. Name the language, framework, and test tool. Example: 'Add input validation to every form (Python/Flask). Tests in pytest.' codex-loop will generate spec, plan, and task files from this description.")
     init_parser.add_argument(
         "--project-dir",
         default=".",
