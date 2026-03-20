@@ -48,7 +48,7 @@ class RunLock:
                     f"Another codex-loop run is already active (pid={pid}).\n"
                     "Wait for it to finish, or stop it first.\n"
                     "If no run is actually in progress, the lock is stale — it will clear automatically "
-                    f"after {self.stale_seconds // 3600} hour(s)."
+                    f"after {self.stale_seconds // 3600} hours."
                 )
                 raise RuntimeError(msg)
         payload = {
