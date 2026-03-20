@@ -1119,13 +1119,15 @@ def main(argv: list[str] | None = None) -> int:
             print()
             print( "Before running step 4, also make sure:")
             print( "  - Codex trusts this directory AND the worktree parent.")
-            print( "    Add BOTH paths to ~/.codex/config.toml (create the file if it does not exist):")
+            print( "    Add BOTH paths to ~/.codex/config.toml (open/create it in any text editor):")
+            _wt_parent = project_dir.parent / '.codex-loop-worktrees'
             print(f"         [projects.\"{project_dir}\"]")
             print( "         trust_level = \"trusted\"")
             print()
-            _wt_parent = project_dir.parent / '.codex-loop-worktrees'
             print(f"         [projects.\"{_wt_parent}\"]")
             print( "         trust_level = \"trusted\"")
+            print( "    Not sure how to edit it? Run: open ~/.codex/config.toml  (macOS) or use any text editor.")
+            print( "    File doesn't exist yet? Create it first: mkdir -p ~/.codex && touch ~/.codex/config.toml")
             print( "    (The second entry covers the isolated worktree codex-loop run creates — without it")
             print( "     codex-loop run will fail with 'Not inside a trusted directory'.)")
             return 0
