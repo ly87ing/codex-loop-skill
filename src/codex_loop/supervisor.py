@@ -493,7 +493,7 @@ class Supervisor:
                 if result.returncode == 0 and result.stdout.strip():
                     return result.stdout.strip().splitlines()
             except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-                break
+                continue
         return [str(p) for p in agent_reported if isinstance(p, str)]
 
     @staticmethod

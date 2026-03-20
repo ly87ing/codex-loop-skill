@@ -978,5 +978,31 @@ class SupervisorTests(unittest.TestCase):
             self.assertTrue(any(e.get("event_type") == "runner_failure" for e in history))
 
 
+    def test_real_files_changed_tries_cached_when_head_diff_fails(self) -> None:
+        """When git diff HEAD raises OSError, _real_files_changed should still
+        attempt git diff --cached HEAD before falling back to agent-reported list."""
+        from unittest.mock import patch, MagicMock
+
+        call_args: list[list[str]] = []
+
+        def fake_run(args, **kwargs):
+            call_args.append(args)
+            if "--cached" not in args:
+                raise OSError("git HEAD not found")
+            completed = MagicMock()
+            completed.returncode = 0
+            completed.stdout = "src/changed.py\n"
+            return completed
+
+        with patch("codex_loop.supervisor.subprocess.run", side_effect=fake_run):
+            result = Supervisor._real_files_changed(
+                Path("/fake/dir"),
+                ["fallback.py"],
+            )
+
+        self.assertEqual(len(call_args), 2)
+        self.assertEqual(result, ["src/changed.py"])
+
+
 if __name__ == "__main__":
     unittest.main()
