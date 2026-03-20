@@ -132,5 +132,37 @@ class CleanupTests(unittest.TestCase):
             self.assertTrue(prompt_new.exists())
 
 
+    def test_cleanup_skips_files_deleted_between_iterdir_and_stat(self) -> None:
+        """Cleanup must not raise FileNotFoundError if a file disappears mid-scan."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            StateStore(root / ".codex-loop" / "state.json").create_initial(
+                "demo", "Build demo", ["001-foundation"]
+            )
+            logs_dir = root / ".codex-loop" / "logs"
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            survivor = logs_dir / "0002-survivor.txt"
+            survivor.write_text("ok", encoding="utf-8")
+            ghost = logs_dir / "0001-ghost.txt"
+            ghost.write_text("gone", encoding="utf-8")
+
+            original_stat = Path.stat
+
+            def _stat_that_raises_for_ghost(self_path, *args, **kwargs):
+                if self_path == ghost:
+                    raise FileNotFoundError("simulated concurrent delete")
+                return original_stat(self_path, *args, **kwargs)
+
+            with patch("pathlib.Path.stat", _stat_that_raises_for_ghost):
+                report = run_cleanup(root, apply=False, keep=1, remove_worktrees=False)
+
+            # Should not raise and should process the survivor
+            all_entries = report.removed + report.kept
+            self.assertTrue(
+                any("survivor" in e for e in all_entries),
+                f"Survivor not in report: {all_entries}",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
