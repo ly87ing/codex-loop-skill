@@ -1107,6 +1107,7 @@ def main(argv: list[str] | None = None) -> int:
             print( "       \"verification\": { \"commands\": [\"python -m pytest tests/ -q\"] }")
             print( "     Common examples: \"python -m pytest tests/ -q\", \"npm test\", \"go test ./...\"")
             print( "     To fix it, edit codex-loop.yaml in any text editor (it uses JSON syntax, not YAML).")
+            print( "     Do NOT change execution.sandbox or execution.approval — they are required for unattended runs.")
             print( "     Tip: run the verification command manually now (from this directory) to confirm it works:")
             print( "       python -m pytest tests/ -q   # (or whatever your test command is)")
             print( "     It's OK if tests fail now — codex-loop run will fix them. Just confirm the command runs.")
