@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 import json
 from pathlib import Path
+import shutil
 from typing import Any
 
 from .config import CodexLoopConfig, OperatorConfig, _load_yaml_or_json
@@ -66,6 +67,11 @@ def _append_watchdog_warnings(report: DoctorReport, project_dir: Path) -> None:
 
 def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
     report = DoctorReport()
+    if shutil.which("codex") is None:
+        report.warnings.append(
+            "'codex' command not found on PATH. "
+            "Install it from https://github.com/openai/codex and make sure it is on PATH before running 'codex-loop run'."
+        )
     config_path = project_dir / "codex-loop.yaml"
     if not config_path.exists():
         report.errors.append("Missing config file: codex-loop.yaml")

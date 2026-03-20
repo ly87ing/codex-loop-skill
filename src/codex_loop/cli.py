@@ -1081,7 +1081,17 @@ def main(argv: list[str] | None = None) -> int:
                 outcome = run_project(project_dir)
             print(outcome.value)
             if outcome.value != "completed":
-                print("Run 'codex-loop status --summary' to see why it stopped.", file=sys.stderr)
+                try:
+                    _state = StateStore(project_dir / ".codex-loop" / "state.json").load()
+                    _blocker = _state.get("meta", {}).get("last_blocker") or {}
+                    if _blocker.get("reason"):
+                        print(
+                            f"Blocked: [{_blocker.get('code', '?')}] {_blocker['reason']}",
+                            file=sys.stderr,
+                        )
+                except Exception:  # noqa: BLE001
+                    pass
+                print("Run 'codex-loop status --summary' for full details.", file=sys.stderr)
             return 0 if outcome.value == "completed" else 2
 
         if args.command == "watchdog":
