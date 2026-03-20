@@ -61,6 +61,7 @@ def initialize_project(
     prompt: str,
     result: InitResult,
     force: bool,
+    model: str = "gpt-5.4",
 ) -> None:
     paths = [
         project_dir / "codex-loop.yaml",
@@ -110,7 +111,7 @@ def initialize_project(
             "worktree": {"enabled": True, "branch_prefix": "codex-loop/"},
         },
         "codex": {
-            "model": "gpt-5.4",
+            "model": model,
             "use_json": True,
             "output_schema": ".codex-loop/agent_result.schema.json",
         },

@@ -1077,6 +1077,7 @@ def main(argv: list[str] | None = None) -> int:
                 prompt=args.prompt,
                 result=result,
                 force=args.force,
+                model=args.model,
             )
             config = CodexLoopConfig.from_file(project_dir / "codex-loop.yaml")
             hook_runner = HookRunner(project_dir / ".codex-loop" / "hooks")
