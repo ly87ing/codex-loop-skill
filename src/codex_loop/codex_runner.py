@@ -76,7 +76,15 @@ def _read_json_file(path: Path) -> dict[str, Any]:
             "Try updating Codex CLI: npm install -g @openai/codex"
         )
         raise FileNotFoundError(msg)
-    loaded = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        msg = (
+            f"Codex output at {path} is not valid JSON: {exc}\n"
+            "This usually means Codex exited early or wrote partial output. "
+            "Try updating Codex CLI: npm install -g @openai/codex"
+        )
+        raise ValueError(msg) from exc
     if not isinstance(loaded, dict):
         msg = f"Expected JSON object from {path}"
         raise ValueError(msg)
