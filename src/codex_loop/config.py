@@ -63,7 +63,7 @@ class ExecutionConfig:
 
 @dataclass(slots=True)
 class CodexConfig:
-    model: str = "codex-1"
+    model: str = "gpt-5.4"
     use_json: bool = True
     output_schema: str = ".codex-loop/agent_result.schema.json"
 

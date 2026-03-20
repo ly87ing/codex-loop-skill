@@ -105,7 +105,7 @@ def initialize_project(
             "worktree": {"enabled": True, "branch_prefix": "codex-loop/"},
         },
         "codex": {
-            "model": "codex-1",
+            "model": "gpt-5.4",
             "use_json": True,
             "output_schema": ".codex-loop/agent_result.schema.json",
         },

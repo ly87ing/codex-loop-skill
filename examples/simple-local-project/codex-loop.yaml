@@ -27,7 +27,7 @@
     }
   },
   "codex": {
-    "model": "codex-1",
+    "model": "gpt-5.4",
     "use_json": true,
     "output_schema": ".codex-loop/agent_result.schema.json"
   },
