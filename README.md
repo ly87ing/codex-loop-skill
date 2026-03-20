@@ -203,6 +203,7 @@ When the loop stops with `blocked`, the reason is printed directly in the termin
 blocked
 Blocked: [no_progress_limit] No file changes detected for 4 consecutive iterations.
 Run 'codex-loop status --summary' for full details.
+To retry: codex-loop run --retry-blocked
 ```
 
 For more detail:
