@@ -100,8 +100,12 @@ cd ..   # go back — next, cd into YOUR project directory (not this one)
 > **Note:** `-e` (editable install) means the `codex-loop-skill` directory must stay where it is — do not move or delete it after installing.
 
 > **Tip:** if you use virtual environments and want `codex-loop` available everywhere without activating one,
-> install with `pipx` instead: `pipx install -e ./codex-loop-skill`
-> (pipx also puts `codex-loop` on your PATH automatically, which avoids the `command not found` issue)
+> install with `pipx` instead:
+> ```bash
+> pipx install -e ./codex-loop-skill
+> pipx ensurepath   # adds pipx bin dir to PATH; then open a new terminal
+> ```
+> (Avoids the `command not found` issue without touching your system Python.)
 
 Verify it worked:
 
@@ -530,10 +534,12 @@ All thresholds are configurable in `codex-loop.yaml` under `execution`.
 
 The `codex-loop` command is installed by pip into a user scripts directory that may not be on your PATH.
 
-Fix with pipx (recommended — puts it on PATH automatically):
+Fix with pipx (recommended):
 
 ```bash
 pipx install -e ./codex-loop-skill
+pipx ensurepath   # adds pipx bin dir to PATH if not already there
+# Then open a new terminal window (or run: source ~/.zshrc)
 ```
 
 Or find where pip installed the script and add that to your PATH:
