@@ -328,9 +328,16 @@ class CodexRunner:
                     "  export OPENAI_API_KEY=\"sk-...\"\n"
                     "To make it permanent, add that line to your ~/.zshrc or ~/.bashrc."
                 )
-            elif "output-schema" in combined or "unknown option" in combined or "unrecognized" in combined:
+            elif "output-schema" in combined or ("unknown option" in combined and "exec" not in combined) or ("unrecognized" in combined and "exec" not in combined):
                 hint = (
                     "\nHint: your Codex CLI version may not support --output-schema. "
+                    "Update Codex CLI to the latest version:\n"
+                    "  npm install -g @openai/codex\n"
+                    "  # or: brew upgrade --cask codex"
+                )
+            elif "unknown command" in combined or ("exec" in combined and ("unknown" in combined or "unrecognized" in combined or "invalid" in combined)):
+                hint = (
+                    "\nHint: your Codex CLI does not support the 'exec' subcommand. "
                     "Update Codex CLI to the latest version:\n"
                     "  npm install -g @openai/codex\n"
                     "  # or: brew upgrade --cask codex"
