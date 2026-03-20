@@ -191,7 +191,14 @@ def run_project(
                      "codex-loop.yaml", "tasks/"],
                     capture_output=True, text=True, timeout=10,
                 ).stdout.strip()
-                _uncommitted = [f for f in (_untracked + "\n" + _modified).splitlines() if f]
+                _staged = subprocess.run(
+                    ["git", "-C", str(repo_root), "diff", "--name-only", "--cached", "--",
+                     "codex-loop.yaml", "tasks/"],
+                    capture_output=True, text=True, timeout=10,
+                ).stdout.strip()
+                _uncommitted = list(dict.fromkeys(
+                    f for f in (_untracked + "\n" + _modified + "\n" + _staged).splitlines() if f
+                ))
                 if _uncommitted:
                     print(
                         "Warning: these files are not committed and will be invisible to Codex:",
