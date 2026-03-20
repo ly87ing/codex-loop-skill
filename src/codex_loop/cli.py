@@ -1720,6 +1720,12 @@ def main(argv: list[str] | None = None) -> int:
                 else {}
             )
             merged_age.update(age_overrides)
+            if args.apply and not args.no_worktrees:
+                print(
+                    "Note: --apply will remove old worktree directories. "
+                    "Make sure you have merged the Codex branch first (git merge codex-loop/...).",
+                    flush=True,
+                )
             cleanup_kwargs = {
                 "apply": args.apply,
                 "keep": default_keep,
