@@ -804,6 +804,8 @@ def format_health_report(
     ]
     for err in payload['doctor'].get('errors', []):
         lines.append(f"  error: {err}")
+    if any("Missing config file" in e for e in payload['doctor'].get('errors', [])):
+        lines.append("  Hint: run 'codex-loop init --prompt \"your goal\"' to set up the project.")
     for warn in payload['doctor'].get('warnings', []):
         lines.append(f"  warning: {warn}")
     daemon = payload.get("daemon") or {}
