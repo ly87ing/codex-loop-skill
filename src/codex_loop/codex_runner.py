@@ -60,7 +60,7 @@ def _extract_session_id(jsonl: str) -> str | None:
             payload = json.loads(raw_line)
         except json.JSONDecodeError:
             continue
-        for key in ("session_id", "sessionId", "conversation_id", "conversationId"):
+        for key in ("thread_id", "session_id", "sessionId", "conversation_id", "conversationId"):
             value = payload.get(key)
             if isinstance(value, str) and value:
                 return value

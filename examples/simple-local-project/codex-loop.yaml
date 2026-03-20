@@ -4,10 +4,10 @@
     "name": "simple-local-project"
   },
   "goal": {
-    "summary": "Build a local file-driven Codex loop project.",
+    "summary": "Build a command-line todo list tool in Python with JSON storage.",
     "done_when": [
-      "All task documents are completed in order.",
-      "All verification commands pass."
+      "python todo.py add, list, done, delete all work correctly.",
+      "python -m pytest tests/ -q passes with no failures."
     ]
   },
   "execution": {
@@ -27,13 +27,13 @@
     }
   },
   "codex": {
-    "model": "gpt-5.4",
+    "model": "codex-1",
     "use_json": true,
     "output_schema": ".codex-loop/agent_result.schema.json"
   },
   "verification": {
     "commands": [
-      "PYTHONPATH=src python3 -m unittest discover -s tests"
+      "python -m pytest tests/ -q"
     ],
     "pass_requires_all": true
   },

@@ -55,6 +55,22 @@ Codex can plan and act, but long-running work needs an external supervisor:
 
 This project keeps the source of truth on disk and treats Codex as a resumable worker.
 
+## Prerequisites
+
+Before installing `codex-loop`, make sure you have:
+
+1. **Python 3.9+** — check with `python3 --version`
+2. **Codex CLI** installed and working — see [github.com/openai/codex](https://github.com/openai/codex)
+3. **OpenAI API key** — set `OPENAI_API_KEY` in your shell
+4. **A local Git repository** — run `git init` first if needed
+5. **Project directory trusted by Codex** — without this, `codex exec` will immediately fail with
+   "Not inside a trusted directory". Trust it once interactively by running `codex` inside the
+   directory, or add manually to `~/.codex/config.toml`:
+   ```toml
+   [projects."<absolute-path-to-your-project>"]
+   trust_level = "trusted"
+   ```
+
 ## Install
 
 From the repository root:
@@ -63,62 +79,59 @@ From the repository root:
 python3 -m pip install -e .
 ```
 
-Optional:
-
-```bash
-python3 -m codex_loop status --project-dir /path/to/project
-```
-
 ## Quick Start
 
-Inside a local Git repository:
+The minimum path to get started (run these in order inside your Git repository):
 
 ```bash
-codex-loop init --prompt "Build a local autonomous loop that edits code until tests pass."
-codex-loop doctor --repair
+# 1. Scaffold workflow files from your goal
+codex-loop init --prompt "Add input validation to every form in this app"
+
+# 2. Review the generated spec/, plan/, and tasks/ — tighten verification commands if needed
+
+# 3. Run the loop — it will keep working until done or genuinely blocked
 codex-loop run
+
+# 4. Check status at any time
+codex-loop status --summary
+```
+
+That is all you need for most tasks. The loop stops by itself when all tasks pass verification,
+or when it hits a real blocker (no progress, too many failures).
+
+### If the loop blocks
+
+```bash
+# See what happened
+codex-loop status --summary
+codex-loop events --limit 20
+
+# Retry blocked tasks and keep looping
 codex-loop run --continuous --retry-blocked --cycle-sleep-seconds 60
+```
+
+### Unattended long runs (optional)
+
+```bash
+# Run as a background daemon with auto-restart
 codex-loop daemon start --retry-blocked --cycle-sleep-seconds 60
 codex-loop daemon status --json
-codex-loop daemon restart --retry-blocked --cycle-sleep-seconds 60
 codex-loop daemon stop
+
+# Or install as a macOS launchd service that survives reboots
 codex-loop service install --retry-blocked --cycle-sleep-seconds 60
-codex-loop service reinstall --retry-blocked --cycle-sleep-seconds 60
 codex-loop service status --json
 codex-loop service uninstall
+```
+
+### Inspection and cleanup
+
+```bash
 codex-loop health
-codex-loop health --json
-codex-loop status --summary
-codex-loop sessions
 codex-loop sessions --latest --json
-codex-loop sessions --task-id 001-foundation --json
-codex-loop evidence --task-id 001-foundation --json
-codex-loop evidence --latest --json --output ./evidence.json
-codex-loop evidence --task-id 001-foundation --event-limit 5 --json
-codex-loop evidence --task-id 001-foundation --json --output-dir ./snapshots
-codex-loop snapshots --snapshot-dir ./snapshots
-codex-loop snapshots --snapshot-dir ./snapshots --summary
-codex-loop snapshots --snapshot-dir ./snapshots --latest --json
-codex-loop snapshots --snapshot-dir ./snapshots --status blocked --since 2026-03-20T00:00:00+00:00 --until 2026-03-21T00:00:00+00:00 --json
-codex-loop snapshots --snapshot-dir ./snapshots --blocker-code no_progress_limit --json
-codex-loop snapshots --snapshot-dir ./snapshots --watchdog-phase exhausted --json
-codex-loop snapshots --snapshot-dir ./snapshots --sort newest --json
-codex-loop snapshots --snapshot-dir ./snapshots --latest-blocked --json
-codex-loop snapshots --snapshot-dir ./snapshots --summary --group-by blocker --json
-codex-loop snapshots --snapshot-dir ./snapshots --summary --output ./snapshots-summary.txt
-codex-loop snapshots --snapshot-dir ./snapshots --latest-blocked --json --output-dir ./snapshot-reports
-codex-loop snapshots-exports --exports-dir ./snapshot-reports --latest --json
-codex-loop snapshots-exports --exports-dir ./snapshot-reports --status blocked --summary --group-by render --json
-codex-loop snapshots-exports --exports-dir ./snapshot-reports --watchdog-phase exhausted --json
-codex-loop snapshots-exports --exports-dir ./snapshot-reports --summary --group-by render --output-dir ./snapshot-export-reports
-codex-loop events --limit 20
-codex-loop events --summary --json
-codex-loop events --task-id 001-foundation --event-type iteration:continue --json
-codex-loop events --since 2026-03-19T00:00:00+00:00 --until 2026-03-20T00:00:00+00:00 --output ./events.json
 codex-loop logs tail --lines 20
-codex-loop cleanup --keep 10
+codex-loop cleanup --keep 10                          # dry-run preview
 codex-loop cleanup --apply --keep 10 --older-than-days 14
-codex-loop cleanup --logs-keep 20 --prompts-older-than-days 30
 ```
 
 ## Generated Project Layout
@@ -213,6 +226,12 @@ The loop stops with `blocked` when:
 - `.codex-loop/metrics.json` includes blocker aggregates keyed by blocker code, plus watchdog restart totals, exhaustion totals, restart reasons, and the latest watchdog restart/exhausted payloads.
 - `doctor --repair` can backfill missing `operator` defaults into older projects so new CLI behavior does not depend on a manual config rewrite.
 - `doctor` also warns when `operator.cleanup` defaults are configured with `keep=0` and no age threshold, which would make `cleanup --apply` destructive by default, and suggests safer retention values to restore.
+
+## Example
+
+See [`examples/simple-local-project/`](examples/simple-local-project/) for a worked example
+showing what `codex-loop init` generates for a real goal (a Python todo CLI), with realistic
+spec, plan, tasks, and config files you can copy as a starting point.
 
 ## Known Limits
 
