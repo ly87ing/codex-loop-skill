@@ -38,12 +38,18 @@ class Verifier:
                 if completed.returncode == 0:
                     passed_count += 1
             except subprocess.TimeoutExpired as exc:
+                # exc.stdout/stderr are bytes even when text=True because the
+                # timeout fires before the stream is decoded.
+                def _decode(raw: bytes | str | None) -> str:
+                    if raw is None:
+                        return ""
+                    return raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else raw
                 results.append(
                     {
                         "command": command,
                         "exit_code": None,
-                        "stdout": exc.stdout or "",
-                        "stderr": exc.stderr or "",
+                        "stdout": _decode(exc.stdout),
+                        "stderr": _decode(exc.stderr),
                         "timed_out": True,
                     }
                 )

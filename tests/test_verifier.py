@@ -40,6 +40,20 @@ class VerifierTests(unittest.TestCase):
             self.assertTrue(results[0]["timed_out"])
             self.assertIsNone(results[0]["exit_code"])
 
+    def test_timed_out_stdout_is_str_not_bytes(self) -> None:
+        """TimeoutExpired.stdout is bytes even with text=True; Verifier must decode it."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ok, results = Verifier().run(
+                ["python3 -c 'import sys, time; sys.stdout.write(\"partial output\"); sys.stdout.flush(); time.sleep(10)'"],
+                Path(tmpdir),
+                timeout_seconds=1,
+            )
+
+            self.assertFalse(ok)
+            self.assertTrue(results[0]["timed_out"])
+            self.assertIsInstance(results[0]["stdout"], str)
+            self.assertIsInstance(results[0]["stderr"], str)
+
     def test_timeout_result_includes_timed_out_false_on_success(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             ok, results = Verifier().run(
