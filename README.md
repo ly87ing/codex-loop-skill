@@ -92,7 +92,9 @@ The minimum path to get started (run these in order inside your Git repository):
 # 1. Scaffold workflow files from your goal
 codex-loop init --prompt "Add input validation to every form in this app"
 
-# 2. Review the generated spec/, plan/, and tasks/ — tighten verification commands if needed
+# 2. Review generated files and check the verification command
+#    Open codex-loop.yaml and confirm verification.commands matches how you run your tests.
+#    Also skim spec/, plan/, and tasks/ to make sure the goal was captured correctly.
 
 # 3. Run the loop — it will keep working until done or genuinely blocked
 codex-loop run

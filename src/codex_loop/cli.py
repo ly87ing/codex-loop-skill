@@ -325,13 +325,13 @@ def _build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     init_parser = subparsers.add_parser("init", help="Generate codex-loop files from a prompt.")
-    init_parser.add_argument("--prompt", required=True, help="Project request to compile into files.")
+    init_parser.add_argument("--prompt", required=True, help="Describe what you want to build. codex-loop will generate spec, plan, and task files from this description.")
     init_parser.add_argument(
         "--project-dir",
         default=".",
         help="Target project directory. Defaults to current directory.",
     )
-    init_parser.add_argument("--model", default="codex-1", help="Codex model to use.")
+    init_parser.add_argument("--model", default="codex-1", help="Codex model to use (e.g. codex-1).")
     init_parser.add_argument("--force", action="store_true", help="Overwrite existing codex-loop files.")
 
     run_parser = subparsers.add_parser("run", help="Execute the autonomous loop.")
@@ -1018,6 +1018,11 @@ def main(argv: list[str] | None = None) -> int:
                 if reason is not None:
                     raise RuntimeError(reason)
             print(f"Initialized codex-loop files in {project_dir}")
+            print()
+            print("Next steps:")
+            print(f"  1. Open {project_dir / 'codex-loop.yaml'} and confirm verification.commands matches your test command.")
+            print(f"  2. Skim {project_dir / 'tasks'} to make sure the tasks look right.")
+            print(f"  3. Run:  codex-loop run")
             return 0
 
         if args.command == "run":
