@@ -1174,6 +1174,8 @@ def main(argv: list[str] | None = None) -> int:
                         print(f"  git checkout {_default_branch}")
                         print(f"  git merge {_branch}")
                         print("After merging, clean up with: codex-loop cleanup --apply")
+                    else:
+                        print("Changes were made directly in your project directory (worktree disabled).")
                 else:
                     _blocker = _state.get("meta", {}).get("last_blocker") or {}
                     if _blocker.get("reason"):
