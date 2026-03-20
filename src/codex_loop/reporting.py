@@ -803,14 +803,18 @@ def format_health_report(
         snapshot_dir=snapshot_dir,
         exports_dir=exports_dir,
     )
+    _overall_status = payload['status'].get('overall_status')
     lines = [
         f"project: {payload.get('project')}",
         f"health: {payload.get('health')}",
-        f"overall_status: {payload['status'].get('overall_status')}",
-        f"current_task: {payload['status'].get('current_task')}",
+        f"overall_status: {_overall_status}",
+    ]
+    if _overall_status != "completed":
+        lines.append(f"current_task: {payload['status'].get('current_task')}")
+    lines.extend([
         f"doctor_errors: {len(payload['doctor'].get('errors', []))}",
         f"doctor_warnings: {len(payload['doctor'].get('warnings', []))}",
-    ]
+    ])
     for err in payload['doctor'].get('errors', []):
         lines.append(f"  error: {err}")
     if any("Missing config file" in e for e in payload['doctor'].get('errors', [])):
