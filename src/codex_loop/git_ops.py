@@ -82,8 +82,8 @@ def create_worktree(
                 text=True,
             )
             return WorktreeInfo(repo_root=repo_root, branch_name=existing_branch, path=path)
-        except subprocess.CalledProcessError:
-            pass  # Branch deleted — fall through to create a fresh worktree
+        except (OSError, subprocess.CalledProcessError):
+            pass  # Branch deleted or directory inaccessible — fall through to create a fresh worktree
 
     timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
     branch_name = f"{branch_prefix}{task_id}-{timestamp}"
