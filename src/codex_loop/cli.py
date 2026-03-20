@@ -1732,6 +1732,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"codex-loop error: {msg}", file=sys.stderr)
         if "state.json" in msg and "No state file found" in msg:
             print("Run 'codex-loop init --prompt \"your goal\"' first, then 'codex-loop run'.", file=sys.stderr)
+        elif "doctor found blocking issues" in msg:
+            print("Run 'codex-loop doctor --repair' to attempt automatic repair, or 'codex-loop doctor' for details.", file=sys.stderr)
         return 1
 
     parser.error(f"Unsupported command: {args.command}")

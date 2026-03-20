@@ -648,7 +648,11 @@ python3 -m compileall src
 
 ## Getting Help
 
-If something is not working, open an issue at https://github.com/ly87ing/codex-loop-skill/issues with:
-- the command you ran
-- the error message or unexpected output
-- your OS, `codex --version`, and `codex-loop --version`
+If something is not working:
+
+1. Run `codex-loop doctor` — it checks your config, task files, and state file, and prints specific hints for common problems.
+2. Run `codex-loop status --summary` — it shows which task is active, what the last blocker was, and how many iterations have run.
+3. If still stuck, open an issue at https://github.com/ly87ing/codex-loop-skill/issues with:
+   - the command you ran
+   - the error message or unexpected output
+   - your OS, `codex --version`, and `codex-loop --version`
