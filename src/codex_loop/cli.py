@@ -320,7 +320,7 @@ def _load_optional_config(project_dir: Path) -> CodexLoopConfig | None:
     return CodexLoopConfig.from_file(config_path)
 
 
-_HIDDEN_SUBCOMMANDS = frozenset({"watchdog"})
+_HIDDEN_SUBCOMMANDS = frozenset({"watchdog", "evidence", "snapshots", "snapshots-exports", "sessions"})
 
 
 class _CleanHelpParser(argparse.ArgumentParser):
@@ -473,7 +473,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sessions_parser = subparsers.add_parser(
         "sessions",
-        help="Inspect persisted Codex sessions for this workspace.",
+        help=argparse.SUPPRESS,
     )
     sessions_parser.add_argument(
         "--project-dir",
@@ -498,7 +498,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     evidence_parser = subparsers.add_parser(
         "evidence",
-        help="Render the latest operator evidence bundle for a task or session.",
+        help=argparse.SUPPRESS,
     )
     evidence_parser.add_argument(
         "--project-dir",
@@ -551,7 +551,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     snapshots_parser = subparsers.add_parser(
         "snapshots",
-        help="Inspect exported evidence snapshots from an index directory.",
+        help=argparse.SUPPRESS,
     )
     snapshots_parser.add_argument(
         "--snapshot-dir",
@@ -639,7 +639,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     snapshots_exports_parser = subparsers.add_parser(
         "snapshots-exports",
-        help="Inspect archived snapshots query exports from manifest.json.",
+        help=argparse.SUPPRESS,
     )
     snapshots_exports_parser.add_argument(
         "--exports-dir",
