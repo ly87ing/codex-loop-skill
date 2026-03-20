@@ -63,6 +63,8 @@ class Supervisor:
                 self._run_terminal_hooks(outcome=outcome, task=None, extra_env=extra_env)
                 return outcome
             state = self.state_store.load()
+            iteration_num = state["meta"].get("iteration", 0) + 1
+            print(f"[iteration {iteration_num}] task: {task.task_id}", flush=True)
             task_state = state["tasks"][task.task_id]
             hook_failure = self._run_hooks(
                 event_name="pre_iteration",
