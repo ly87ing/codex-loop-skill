@@ -158,11 +158,13 @@ def run_cleanup(
 
 def render_cleanup_report(report: CleanupReport) -> str:
     lines = [
-        f"mode: {'apply' if not report.dry_run else 'dry-run'}",
+        f"mode: {'apply' if not report.dry_run else 'dry-run (preview only — nothing deleted yet)'}",
         f"removed: {len(report.removed)}",
         f"kept: {len(report.kept)}",
         f"removed_worktrees: {len(report.removed_worktrees)}",
     ]
+    if report.dry_run:
+        lines.append("To actually delete, re-run with: codex-loop cleanup --apply")
     if report.removed:
         lines.append("removed_entries:")
         lines.extend(report.removed)
