@@ -559,11 +559,12 @@ def build_status_snapshot(project_dir: Path) -> dict[str, Any]:
     iteration = state.get("meta", {}).get("iteration", 0)
     no_progress = state.get("meta", {}).get("no_progress_iterations", 0)
     metrics_path = project_dir / ".codex-loop" / "metrics.json"
-    metrics = (
-        json.loads(metrics_path.read_text(encoding="utf-8"))
-        if metrics_path.exists()
-        else {}
-    )
+    metrics: dict[str, Any] = {}
+    if metrics_path.exists():
+        try:
+            metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            pass
     tasks = state.get("tasks", {})
     current_task_id = _current_task_id(tasks)
     current_task_state = tasks.get(current_task_id, {}) if current_task_id != "none" else {}
@@ -575,7 +576,10 @@ def build_status_snapshot(project_dir: Path) -> dict[str, Any]:
     watchdog: dict[str, Any] = {}
     for candidate in watchdog_candidates:
         if candidate.exists():
-            watchdog = json.loads(candidate.read_text(encoding="utf-8"))
+            try:
+                watchdog = json.loads(candidate.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001
+                pass
             break
     return {
         "project": project_name,
@@ -873,7 +877,10 @@ def _iter_hook_events(project_dir: Path) -> list[dict[str, Any]]:
         for line in path.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
-            payload = json.loads(line)
+            try:
+                payload = json.loads(line)
+            except Exception:  # noqa: BLE001
+                continue
             command = str(payload.get("command", "")).strip()
             success = bool(payload.get("success", False))
             exit_code = payload.get("exit_code")
@@ -988,7 +995,11 @@ def load_events_timeline(
     if not state_path.exists():
         msg = f"No state file found at {state_path}"
         raise FileNotFoundError(msg)
-    state = json.loads(state_path.read_text(encoding="utf-8"))
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        msg = f"Corrupt state file at {state_path}: {exc}"
+        raise ValueError(msg) from exc
     combined = _history_timeline_entries(state)
     next_order = len(combined)
     hook_events = _iter_hook_events(project_dir)
