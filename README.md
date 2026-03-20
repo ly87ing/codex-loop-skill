@@ -31,6 +31,9 @@ Codex handles individual prompts well, but longer tasks need:
 
 ## Command Reference
 
+For most tasks, you only need three commands: `init`, `run`, and `status --summary`.
+The rest are for inspection, long-running unattended jobs, or cleanup.
+
 | Command | What it does |
 |---|---|
 | `init --prompt "..."` | Scaffold spec, plan, tasks, and config from your goal. Add `--model <name>` to override the Codex model used for init (default: `gpt-5.4`). |
