@@ -174,6 +174,11 @@ class Supervisor:
                         f"Task failed {task_failures} times consecutively.",
                         code="task_failure_circuit_breaker",
                     )
+                    print(
+                        f"  Task {task.task_id} blocked after {task_failures} consecutive failures "
+                        f"— moving on to next task. Run 'codex-loop status --summary' for details.",
+                        flush=True,
+                    )
                     self._sleep_between_iterations()
                     continue
                 if (
@@ -337,6 +342,11 @@ class Supervisor:
                     task.task_id,
                     f"Task failed {task_failures} times consecutively.",
                     code="task_failure_circuit_breaker",
+                )
+                print(
+                    f"  Task {task.task_id} blocked after {task_failures} consecutive failures "
+                    f"— moving on to next task. Run 'codex-loop status --summary' for details.",
+                    flush=True,
                 )
                 self._sleep_between_iterations()
                 continue

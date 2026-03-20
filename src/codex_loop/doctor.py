@@ -176,6 +176,8 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
 
 def render_doctor_report(report: DoctorReport) -> str:
     lines: list[str] = []
+    if not report.errors and not report.warnings:
+        lines.append("All checks passed.")
     if report.checked:
         lines.append("Checked:")
         lines.extend(f"- {item}" for item in report.checked)
