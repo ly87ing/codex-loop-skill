@@ -59,7 +59,13 @@ spec, plan, tasks, and config files you can copy as a starting point.
 Before installing `codex-loop`, make sure you have:
 
 1. **Python 3.11+** — check with `python3 --version`
-2. **Codex CLI** installed and working — see [github.com/openai/codex](https://github.com/openai/codex)
+2. **Codex CLI** installed and working — install via npm or Homebrew:
+   ```bash
+   npm install -g @openai/codex
+   # or
+   brew install --cask codex
+   ```
+   Verify: `codex --version`
 3. **OpenAI API key** — set it in your shell before running any commands:
    ```bash
    export OPENAI_API_KEY="sk-..."
