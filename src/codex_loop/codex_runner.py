@@ -308,11 +308,23 @@ class CodexRunner:
             )
             raise RuntimeError(msg) from exc
         if completed.returncode != 0:
+            combined = (completed.stdout + completed.stderr).lower()
+            if "not inside a trusted" in combined or "trusted directory" in combined:
+                hint = (
+                    "\nHint: this directory is not trusted by Codex. "
+                    "Run `codex` once interactively inside the project directory "
+                    "and accept the trust prompt, or add it manually to "
+                    "~/.codex/config.toml:\n"
+                    "  [projects.\"/absolute/path/to/your-project\"]\n"
+                    "  trust_level = \"trusted\""
+                )
+            else:
+                hint = ""
             msg = (
                 "Codex command failed.\n"
                 f"Command: {' '.join(command)}\n"
                 f"STDOUT:\n{completed.stdout}\n"
-                f"STDERR:\n{completed.stderr}"
+                f"STDERR:\n{completed.stderr}{hint}"
             )
             raise RuntimeError(msg)
         return completed.stdout
