@@ -17,6 +17,7 @@
     "max_no_progress_iterations": 4,
     "max_consecutive_runner_failures": 3,
     "max_consecutive_verification_failures": 0,
+    "max_consecutive_task_failures": 5,
     "iteration_timeout_seconds": 1800,
     "iteration_backoff_seconds": 0.0,
     "iteration_backoff_jitter_seconds": 0.0,
@@ -35,7 +36,8 @@
     "commands": [
       "python -m pytest tests/ -q"
     ],
-    "pass_requires_all": true
+    "pass_requires_all": true,
+    "timeout_seconds": 300
   },
   "tasks": {
     "strategy": "sequential",
