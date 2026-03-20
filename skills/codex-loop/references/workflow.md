@@ -20,7 +20,7 @@ Those artifacts are written locally so future iterations do not depend on the or
 3. Select the next `ready` or `in_progress` task
 4. Create or reuse a temporary worktree
 5. Call `codex exec` or `codex exec resume`
-6. If resume fails because the session is stale, retry once with a fresh `codex exec`
+6. If resume fails because the session is stale or invalid, retry once with a fresh `codex exec`; transient failures (timeout, network error) are not treated as stale sessions and propagate to the retry path instead
 7. Run local verification commands
 8. Apply circuit-breaker thresholds for repeated runner or verification failures
 9. Apply base backoff plus optional jitter before the next non-terminal iteration

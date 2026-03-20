@@ -22,7 +22,7 @@
 - `iteration_timeout_seconds`: timeout for each `codex exec` or `codex exec resume` call
 - `iteration_backoff_seconds`: base sleep between non-terminal iterations
 - `iteration_backoff_jitter_seconds`: random jitter added on top of the base backoff
-- `resume_fallback_to_fresh`: retry once without `resume` when the saved session is stale
+- `resume_fallback_to_fresh`: retry once without `resume` when the saved session is stale or invalid (e.g. "session not found"); transient failures such as timeouts and network errors are not treated as stale sessions and do not trigger this fallback
 - `worktree.enabled`: whether to run inside a temporary worktree
 - `worktree.branch_prefix`: branch prefix for generated worktree branches
 

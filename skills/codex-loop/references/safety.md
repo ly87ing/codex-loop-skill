@@ -21,4 +21,4 @@
 - Prefer a clean repository before starting a long unattended run.
 - If a task is too broad, rerun `init` with a narrower prompt or edit the generated task docs.
 - If Codex repeatedly makes no file changes, the loop should block instead of spinning forever.
-- If a saved resume session goes stale, prefer a controlled fresh exec over blind repeated resume attempts.
+- If a saved resume session goes stale or invalid, prefer a controlled fresh exec over blind repeated resume attempts. Transient failures (timeout, network error) are not treated as stale sessions; the session is preserved and the supervisor retries with backoff.
