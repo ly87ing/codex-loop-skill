@@ -156,5 +156,34 @@ class DoctorTests(unittest.TestCase):
             )
 
 
+    def test_repair_write_oserror_records_warning_not_crash(self) -> None:
+        # If operator defaults repair fails to write (e.g. read-only fs),
+        # doctor must record a warning rather than propagating the OSError.
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "tasks").mkdir(parents=True)
+            (root / "tasks" / "001-task.md").write_text("# Task\n\nDo it.\n")
+            # Config missing operator section so repair will try to write defaults.
+            (root / "codex-loop.yaml").write_text(
+                json.dumps({
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["tests pass"]},
+                    "verification": {"commands": ["python -m unittest"]},
+                }),
+                encoding="utf-8",
+            )
+
+            # Simulate read-only filesystem for the tmp file write.
+            with patch("codex_loop.doctor.Path.write_text", side_effect=OSError("read-only")):
+                report = run_doctor(root, repair=True)
+
+            # Should warn about write failure, not crash.
+            self.assertTrue(
+                any("Could not update" in w for w in report.warnings),
+                msg=f"Expected write-failure warning, got: {report.warnings}",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()
