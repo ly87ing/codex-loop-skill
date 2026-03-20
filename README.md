@@ -18,6 +18,8 @@ to keep working on it while you do something else, and stop only when it is actu
 
 All state lives on disk in your project directory, so runs are resumable and inspectable.
 
+**Ready to start?** → Jump to [Prerequisites](#prerequisites) then [Quick Start](#quick-start).
+
 ## Why This Exists
 
 Codex handles individual prompts well, but longer tasks need:
