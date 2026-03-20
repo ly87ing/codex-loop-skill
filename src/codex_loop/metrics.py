@@ -99,7 +99,9 @@ def build_metrics_snapshot(state: dict[str, Any]) -> dict[str, Any]:
 
 def write_metrics_snapshot(path: Path, state: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(
         json.dumps(build_metrics_snapshot(state), indent=2),
         encoding="utf-8",
     )
+    tmp_path.replace(path)

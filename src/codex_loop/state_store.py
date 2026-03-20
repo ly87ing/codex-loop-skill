@@ -63,7 +63,10 @@ class StateStore:
         tmp_path = self.path.with_suffix(self.path.suffix + ".tmp")
         tmp_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
         tmp_path.replace(self.path)
-        write_metrics_snapshot(self.path.parent / "metrics.json", state)
+        try:
+            write_metrics_snapshot(self.path.parent / "metrics.json", state)
+        except OSError:
+            pass
 
     def create_initial(
         self,
