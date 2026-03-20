@@ -44,6 +44,8 @@ codex-loop run
 #   [iteration 1/20] task: 001-foundation  (0/2 done, running Codex...) [14:23:01]
 #     (waiting for Codex — this can take up to 30 minutes; run 'codex-loop events --limit 10' in another terminal to watch)
 #     -> status=continue verification=FAIL files_changed=2
+#        verification error (last 300 chars):
+#        FAILED tests/test_todo.py::test_add - AssertionError: expected 1 item, got 0
 #   [iteration 2/20] task: 001-foundation  (0/2 done, running Codex...) [14:39:45]
 #     (waiting for Codex — this can take up to 30 minutes; run 'codex-loop events --limit 10' in another terminal to watch)
 #     -> status=complete verification=pass files_changed=3

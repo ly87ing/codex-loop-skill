@@ -153,6 +153,8 @@ codex-loop run
 #     (waiting for Codex — this can take up to 30 minutes per iteration; run 'codex-loop events --limit 10' in another terminal to watch)
 #     -> status=continue verification=FAIL files_changed=3
 #        ("continue" = Codex is still working on it; "FAIL" = tests not passing yet — this is normal)
+#        verification error (last 300 chars):
+#        FAILED tests/test_todo.py::test_add - AssertionError: expected 1 item, got 0
 #   [iteration 2/30] task: 001-foundation  (0/2 done, running Codex...) [14:31:45]
 #     (waiting for Codex — this can take up to 30 minutes per iteration; run 'codex-loop events --limit 10' in another terminal to watch)
 #     -> status=complete verification=FAIL files_changed=2
