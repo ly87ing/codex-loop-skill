@@ -147,7 +147,8 @@ codex-loop run
 #   To merge: git merge codex-loop/my-project-abc123
 #   After merging, clean up with: codex-loop cleanup --apply
 
-# 4. Merge the changes — copy the printed command above and run it, e.g.:
+# 4. Merge the changes — first switch to your main branch, then run the printed command:
+git checkout main
 git merge codex-loop/my-project-abc123
 # Then clean up old artifacts:
 codex-loop cleanup --apply
@@ -170,9 +171,12 @@ Changes are on branch: codex-loop/my-project-abc123
 To merge: git merge codex-loop/my-project-abc123
 ```
 
-Copy that `git merge` command and run it in your project directory. Or inspect first:
+Copy that `git merge` command and run it in your project directory (make sure you are on your main branch first). Or inspect first:
 
 ```bash
+# Make sure you're on your main branch
+git checkout main   # or master, or whatever your default branch is
+
 # Inspect the changes before merging
 git diff main..codex-loop/my-project-abc123
 
@@ -258,7 +262,8 @@ your-project/
     001-implementation-plan.md
   tasks/
     001-*.md
-  .codex-loop/            # do NOT commit — auto-excluded from git by codex-loop
+  .codex-loop/            # do NOT commit — excluded via .git/info/exclude (local only)
+                          # If you push to GitHub, add .codex-loop/ to your .gitignore
     state.json            # loop state (task status, history, blockers)
     metrics.json          # counters and blocker aggregates
     agent_result.schema.json

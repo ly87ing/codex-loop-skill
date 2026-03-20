@@ -43,9 +43,11 @@ codex-loop run
 #   After merging, clean up with: codex-loop cleanup --apply
 
 # 5. Merge the changes
-#    When the run completes it prints the exact command, e.g.:
-#      To merge: git merge codex-loop/my-todo-project-abc123
-#    Copy and run that printed command — do not guess the branch name.
+#    Make sure you are on your main branch first, then run the printed command:
+git checkout main
+#    Copy and run the printed merge command, e.g.:
+#      git merge codex-loop/my-todo-project-abc123
+#    Do not guess the branch name — copy the exact command printed above.
 #    If you need to find it later:
 git branch | grep codex-loop
 #    or: codex-loop status --summary  (shows worktree_branch)
