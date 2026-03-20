@@ -1093,6 +1093,12 @@ def main(argv: list[str] | None = None) -> int:
                 if reason is not None:
                     raise RuntimeError(reason)
             print(f"Initialized codex-loop files in {project_dir}")
+            if not result.verification_commands:
+                print()
+                print("Warning: no verification command was detected for this project.")
+                print("The loop will run until Codex declares all tasks done, but cannot verify the code works.")
+                print("Edit codex-loop.yaml and add a test command under \"verification\": { \"commands\": [...] }")
+                print("Example: \"python -m pytest tests/ -q\", \"npm test\", \"go test ./...\"")
             print()
             print("Next steps:")
             print( "  1. Skim the generated files to confirm the goal was captured correctly:")
@@ -1204,13 +1210,18 @@ def main(argv: list[str] | None = None) -> int:
                             _default_branch = "main"
                         print(f"Changes are on branch: {_branch}")
                         print(f"(Your working directory is unchanged until you merge.)")
+                        print()
                         print(f"Run these commands from your project directory ({project_dir}):")
-                        print(f"To inspect before merging:")
+                        print()
+                        print(f"  # 1. Review the changes (optional)")
                         print(f"  git diff --stat {_default_branch}..{_branch}")
-                        print(f"To merge:")
+                        print()
+                        print(f"  # 2. Merge into your main branch")
                         print(f"  git checkout {_default_branch}")
                         print(f"  git merge {_branch}")
-                        print("After merging, clean up with: codex-loop cleanup --apply")
+                        print()
+                        print("  # 3. Clean up worktree and old artifacts")
+                        print("  codex-loop cleanup --apply")
                     else:
                         print("Changes were made directly in your project directory (worktree disabled).")
                 else:
