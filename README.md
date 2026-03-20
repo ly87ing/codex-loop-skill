@@ -437,7 +437,6 @@ codex-loop service uninstall
 
 ```bash
 codex-loop health
-codex-loop sessions --latest --json
 codex-loop logs tail --lines 20
 codex-loop cleanup --keep 10                          # dry-run preview
 codex-loop cleanup --apply --keep 10 --older-than-days 14
@@ -458,7 +457,6 @@ The rest are for inspection, long-running unattended jobs, or cleanup.
 | `health` | One-command overview: status, warnings, events, daemon state |
 | `status --summary` | Show current task status and loop health |
 | `events --limit 20` | Show the recent event timeline |
-| `sessions --latest --json` | Show the last Codex session details |
 | `logs tail --lines 20` | Tail the loop log |
 | `cleanup --keep 10` | Preview artifact pruning (dry-run) |
 | `cleanup --apply --keep 10` | Actually prune old artifacts |
