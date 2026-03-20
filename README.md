@@ -147,8 +147,9 @@ codex-loop init --prompt "Add input validation to every form in this app"
 #    Each iteration calls Codex and waits up to 30 minutes for a response.
 #    A typical small task takes 3–10 iterations (15 minutes to a few hours).
 #    The terminal will be silent while Codex works — that is normal.
-#    To watch what Codex is doing, open another terminal and run:
-#      codex-loop logs tail --lines 50
+#    To see a human-readable summary of what happened, open another terminal and run:
+#      codex-loop events --limit 10
+#    (For raw Codex output: codex-loop logs tail --lines 50)
 #    You can press Ctrl-C at any time to stop safely; the next run picks up where it left off.
 codex-loop run
 # You will see output like:
@@ -627,20 +628,18 @@ codex-loop init --prompt "your goal" --force
 
 ### How do I see what Codex is actually doing?
 
-While the loop runs, Codex output is captured internally (not shown live) so the supervisor can parse the JSON result. To inspect what happened after an iteration:
+While the loop runs, Codex output is captured internally (not shown live) so the supervisor can parse the JSON result.
 
-```bash
-# Tail the most recent Codex output
-codex-loop logs tail --lines 50
-
-# Or look directly at the raw logs (one JSON object per line)
-ls .codex-loop/logs/
-```
-
-For a structured summary of recent iterations:
+For a human-readable summary of what happened in recent iterations (recommended):
 
 ```bash
 codex-loop events --limit 10
+```
+
+To see the raw Codex output (one JSON object per line — useful for debugging):
+
+```bash
+codex-loop logs tail --lines 50
 ```
 
 ### I edited task files or `codex-loop.yaml` manually
