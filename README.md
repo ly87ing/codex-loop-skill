@@ -187,8 +187,14 @@ Copy that `git merge` command and run it in your project directory (make sure yo
 # Make sure you're on your main branch
 git checkout main   # or master, or whatever your default branch is
 
-# Inspect the changes before merging
+# See which files were changed
+git diff --stat main..codex-loop/my-project-abc123
+
+# See the full diff
 git diff main..codex-loop/my-project-abc123
+
+# See the commit history
+git log main..codex-loop/my-project-abc123 --oneline
 
 # Then merge
 git merge codex-loop/my-project-abc123
