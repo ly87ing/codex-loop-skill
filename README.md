@@ -397,7 +397,7 @@ If you see this error, initialize the repository first:
 
 ```bash
 git init
-git add .
+git add -A -- ':!.codex-loop'
 git commit -m "init"
 ```
 

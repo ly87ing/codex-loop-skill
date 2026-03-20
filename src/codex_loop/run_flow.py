@@ -157,7 +157,7 @@ def run_project(
                 if "no commits" in stderr or "does not have any commits" in stderr:
                     hint = (
                         "\nHint: your repository has no commits yet. "
-                        "Run: git add . && git commit -m 'init'"
+                        "Run: git add -A -- ':!.codex-loop' && git commit -m 'init'"
                     )
                 raise RuntimeError(
                     f"Failed to create git worktree: {stderr}{hint}"
