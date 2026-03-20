@@ -262,5 +262,38 @@ class WatchdogManagerTests(unittest.TestCase):
             self.assertEqual(state["phase"], "spawn_failed")
 
 
+    def test_run_watchdog_survives_state_init_oserror(self) -> None:
+        """If state_store.ensure_initialized raises OSError (e.g. read-only
+        filesystem), run_watchdog must continue rather than crashing."""
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            heartbeat_path = root / "heartbeat.json"
+            state_path = root / "watchdog.json"
+            process = _FakeProcess(9001, [0])
+
+            with patch(
+                "codex_loop.watchdog_manager.StateStore.ensure_initialized",
+                side_effect=OSError("read-only filesystem"),
+            ):
+                exit_code = run_watchdog(
+                    root,
+                    heartbeat_path=heartbeat_path,
+                    watchdog_state_path=state_path,
+                    retry_blocked=False,
+                    cycle_sleep_seconds=60.0,
+                    max_cycles=None,
+                    poll_interval_seconds=0.0,
+                    restart_backoff_seconds=0.0,
+                    max_restarts=0,
+                    worker_factory=lambda args, **kwargs: process,
+                    sleep_fn=lambda seconds: None,
+                    now_fn=lambda: datetime(2026, 3, 19, tzinfo=UTC),
+                )
+
+            # Should complete (exit 0 because process exited cleanly)
+            self.assertEqual(exit_code, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -200,10 +200,13 @@ def run_watchdog(
     heartbeat_path = heartbeat_path.resolve()
     watchdog_state_path = watchdog_state_path.resolve()
     state_store = StateStore(project_dir / ".codex-loop" / "state.json")
-    state_store.ensure_initialized(
-        project_name=project_dir.name,
-        source_prompt="Watchdog runtime state",
-    )
+    try:
+        state_store.ensure_initialized(
+            project_name=project_dir.name,
+            source_prompt="Watchdog runtime state",
+        )
+    except OSError:
+        pass  # State init failure must not abort the watchdog; _safe_record handles subsequent I/O errors
     sleep = sleep_fn or time.sleep
     now = now_fn or (lambda: datetime.now(UTC))
 
