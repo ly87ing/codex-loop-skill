@@ -58,6 +58,8 @@ spec, plan, tasks, and config files you can copy as a starting point.
 
 ## Prerequisites
 
+**Platform:** macOS and Linux. Windows is not supported (requires Git worktrees and Unix process management). The `service` subcommand is macOS-only (launchd); all other commands work on Linux too.
+
 Before installing `codex-loop`, make sure you have:
 
 1. **Python 3.11+** — check with `python3 --version`
