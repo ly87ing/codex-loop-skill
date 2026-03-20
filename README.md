@@ -90,6 +90,9 @@ python3 -m pip install -e .
 cd ..   # go back — codex-loop runs in your own project, not here
 ```
 
+> **Tip:** if you use virtual environments and want `codex-loop` available everywhere without activating one,
+> install with `pipx` instead: `pipx install -e ./codex-loop-skill`
+
 Verify it worked:
 
 ```bash
