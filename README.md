@@ -65,6 +65,7 @@ After merging, clean up with: codex-loop cleanup --apply
 Before installing `codex-loop`, make sure you have:
 
 1. **Python 3.11+** — check with `python3 --version`
+   If you have an older version, upgrade via [python.org](https://www.python.org/downloads/) or Homebrew: `brew install python@3.11`
 2. **[Codex CLI](https://github.com/openai/codex)** installed and working — install via npm or Homebrew:
    ```bash
    npm install -g @openai/codex
