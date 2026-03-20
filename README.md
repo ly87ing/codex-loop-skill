@@ -262,8 +262,8 @@ your-project/
     001-implementation-plan.md
   tasks/
     001-*.md
-  .codex-loop/            # do NOT commit — excluded via .git/info/exclude (local only)
-                          # If you push to GitHub, add .codex-loop/ to your .gitignore
+  .codex-loop/            # do NOT commit — codex-loop init automatically adds this
+                          # to both .gitignore and .git/info/exclude
     state.json            # loop state (task status, history, blockers)
     metrics.json          # counters and blocker aggregates
     agent_result.schema.json
