@@ -42,7 +42,11 @@ def _is_older_than(
         if now_timestamp is not None
         else datetime.now(UTC).timestamp()
     )
-    age_seconds = current_timestamp - path.stat().st_mtime
+    try:
+        mtime = path.stat().st_mtime
+    except FileNotFoundError:
+        return True
+    age_seconds = current_timestamp - mtime
     threshold_seconds = older_than_days * 24 * 60 * 60
     return age_seconds >= threshold_seconds
 
@@ -60,10 +64,16 @@ def _cleanup_directory(
 ) -> None:
     if not directory.exists():
         return
-    files = sorted(
-        (path for path in directory.iterdir() if path.is_file()),
-        key=lambda path: (path.stat().st_mtime, path.name),
-    )
+    _entries = []
+    for _p in directory.iterdir():
+        if not _p.is_file():
+            continue
+        try:
+            _mtime = _p.stat().st_mtime
+        except FileNotFoundError:
+            continue
+        _entries.append((_mtime, _p.name, _p))
+    files = [_p for _, _, _p in sorted(_entries)]
     if len(files) <= keep:
         report.kept.extend(_relative_to_project(project_dir, path) for path in files)
         return
