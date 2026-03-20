@@ -17,6 +17,7 @@
 
 ## Operational Guidance
 
+- The project directory must be added to the Codex trust list before running. Add it via `codex` interactively or by adding a `[projects."<absolute-path>"]` entry with `trust_level = "trusted"` to `~/.codex/config.toml`. Without this, every `codex exec` call will fail with "Not inside a trusted directory".
 - Use strong verification commands. Weak verification creates false completion.
 - Prefer a clean repository before starting a long unattended run.
 - If a task is too broad, rerun `init` with a narrower prompt or edit the generated task docs.

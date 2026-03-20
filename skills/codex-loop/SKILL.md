@@ -123,6 +123,7 @@ When blocked, it also surfaces the latest `blocker_code` and reason, and when a 
 
 ## Key Rules
 
+- The project directory must be trusted by Codex before running. Add it via `codex` interactively or set `trust_level = "trusted"` under `[projects."<absolute-path>"]` in `~/.codex/config.toml`. Without this, `codex exec` will fail immediately with "Not inside a trusted directory".
 - Treat generated files as the persistent source of truth, not the original prompt.
 - Strengthen `verification.commands` before trusting unattended execution.
 - Prefer fixing bad task decomposition at `init` time instead of hoping the loop self-corrects.
