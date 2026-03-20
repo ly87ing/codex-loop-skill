@@ -69,7 +69,8 @@ class Supervisor:
             _all_tasks = state.get("tasks", {})
             _done_count = sum(1 for t in _all_tasks.values() if t.get("status") == "done")
             _total_count = len(_all_tasks)
-            print(f"[iteration {iteration_num}] task: {task.task_id}  ({_done_count}/{_total_count} done, running Codex...)", flush=True)
+            _ts = datetime.now(UTC).strftime("%H:%M:%S")
+            print(f"[iteration {iteration_num}] task: {task.task_id}  ({_done_count}/{_total_count} done, running Codex...) [{_ts}]", flush=True)
             task_state = state["tasks"][task.task_id]
             hook_failure = self._run_hooks(
                 event_name="pre_iteration",
