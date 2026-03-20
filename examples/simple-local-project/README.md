@@ -44,7 +44,7 @@ codex-loop run
 
 # 5. Merge the changes
 #    Make sure you are on your main branch first, then run the printed command:
-git checkout main
+git checkout main   # or master, or whatever your default branch is
 #    Copy and run the printed merge command, e.g.:
 #      git merge codex-loop/my-todo-project-abc123
 #    Do not guess the branch name — copy the exact command printed above.

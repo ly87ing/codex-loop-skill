@@ -148,7 +148,7 @@ codex-loop run
 #   After merging, clean up with: codex-loop cleanup --apply
 
 # 4. Merge the changes — copy the exact branch name printed above, then run:
-git checkout main
+git checkout main   # or master, or whatever your default branch is
 git merge codex-loop/<branch-name-printed-above>
 # Then clean up old artifacts:
 codex-loop cleanup --apply
