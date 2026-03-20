@@ -158,5 +158,26 @@ class StateStoreTests(unittest.TestCase):
             self.assertEqual(metrics["latest_watchdog_exhausted"]["child_exit_code"], 2)
 
 
+    def test_save_succeeds_even_if_metrics_write_fails(self) -> None:
+        """state.json save must not raise when metrics.json write fails."""
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            state = store.create_initial(
+                project_name="demo",
+                source_prompt="Build it",
+                tasks=["001-foundation"],
+            )
+            with patch(
+                "codex_loop.state_store.write_metrics_snapshot",
+                side_effect=OSError("disk full"),
+            ):
+                store.save(state)  # must not raise
+
+            saved = json.loads((root / ".codex-loop" / "state.json").read_text())
+            self.assertIn("001-foundation", saved["tasks"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -64,6 +64,23 @@ class TaskGraphTests(unittest.TestCase):
 
             self.assertEqual(tasks[0].depends_on, [])
 
+    def test_unreadable_task_file_is_skipped(self) -> None:
+        """discover() skips files that cannot be read instead of raising."""
+        import os
+        import stat
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tasks_dir = Path(tmpdir)
+            (tasks_dir / "001-foundation.md").write_text("# Foundation\n\nDo it.\n")
+            bad = tasks_dir / "002-broken.md"
+            bad.write_text("# Broken\n")
+            bad.chmod(0o000)
+            try:
+                tasks = TaskGraph(tasks_dir).discover()
+                self.assertEqual(len(tasks), 1)
+                self.assertEqual(tasks[0].task_id, "001-foundation")
+            finally:
+                bad.chmod(stat.S_IRUSR | stat.S_IWUSR)
+
 
 if __name__ == "__main__":
     unittest.main()
