@@ -21,7 +21,7 @@ For those, just use Codex directly.
 
 All state lives on disk in your project directory, so runs are resumable and inspectable.
 
-**Ready to start?** → Jump to [Prerequisites](#prerequisites) then [Quick Start](#quick-start).
+**Ready to start?** → [Prerequisites](#prerequisites) → [Install](#install) → [Quick Start](#quick-start).
 
 ## Prerequisites
 
