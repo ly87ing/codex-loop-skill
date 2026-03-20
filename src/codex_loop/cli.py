@@ -1326,6 +1326,8 @@ def main(argv: list[str] | None = None) -> int:
                         exports_dir=exports_dir,
                     )
                 )
+                if not (project_dir / "codex-loop.yaml").exists():
+                    print("Hint: run 'codex-loop init --prompt \"your goal\"' first to set up the project.")
             return _health_exit_code(str(payload.get("health")))
 
         if args.command == "sessions":
@@ -1666,7 +1668,10 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 0
     except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as exc:
-        print(f"codex-loop error: {exc}", file=sys.stderr)
+        msg = str(exc)
+        print(f"codex-loop error: {msg}", file=sys.stderr)
+        if "state.json" in msg and "No state file found" in msg:
+            print("Run 'codex-loop init --prompt \"your goal\"' first, then 'codex-loop run'.", file=sys.stderr)
         return 1
 
     parser.error(f"Unsupported command: {args.command}")
