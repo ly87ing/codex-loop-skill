@@ -23,15 +23,6 @@ All state lives on disk in your project directory, so runs are resumable and ins
 
 **Ready to start?** → Jump to [Prerequisites](#prerequisites) then [Quick Start](#quick-start).
 
-## Why This Exists
-
-Codex handles individual prompts well, but longer tasks need:
-
-- durable state across iterations (a single prompt drifts and forgets)
-- verification gates (the loop only calls something done when tests actually pass)
-- unattended execution (no interactive approval prompts mid-run)
-- a structured way to see what happened when something went wrong
-
 ## Prerequisites
 
 **Platform:** macOS and Linux. Windows is not supported (requires Git worktrees and Unix process management). The `service` subcommand is macOS-only (launchd); all other commands work on Linux too.
@@ -146,8 +137,8 @@ codex-loop run
 #     git merge codex-loop/my-project-abc123
 #   After merging, clean up with: codex-loop cleanup --apply
 
-# Note: Codex makes changes in an isolated Git branch (at ../.codex-loop-worktrees/).
-#       You won't see the changes in your project directory until you merge in step 4.
+# Note: Codex writes all changes to an isolated Git branch, not your project directory.
+#       You won't see any changed files locally until you merge in step 4.
 
 # 4. Merge the changes
 #    When the loop completes, it prints the exact commands to run. Copy and run them:
@@ -234,8 +225,7 @@ git branch | grep codex-loop
 codex-loop status --summary   # shows worktree_branch
 ```
 
-The worktree directory is kept at `../.codex-loop-worktrees/` by default so you can
-review the work before merging. After merging, you can clean it up with:
+The changes live in an isolated Git branch (`codex-loop/...`) in a worktree at `../.codex-loop-worktrees/` relative to your project's parent directory. Use `git diff` and `git log` (shown above) to review — you don't need to navigate there directly. After merging, clean up with:
 
 ```bash
 codex-loop cleanup --apply
@@ -343,6 +333,15 @@ The rest are for inspection, long-running unattended jobs, or cleanup.
 | `service install` | Install as a macOS launchd service (survives reboots) |
 | `service status` | Check service health |
 | `service uninstall` | Remove the launchd service |
+
+## Why This Exists
+
+Codex handles individual prompts well, but longer tasks need:
+
+- durable state across iterations (a single prompt drifts and forgets)
+- verification gates (the loop only calls something done when tests actually pass)
+- unattended execution (no interactive approval prompts mid-run)
+- a structured way to see what happened when something went wrong
 
 ## Generated Project Layout
 
