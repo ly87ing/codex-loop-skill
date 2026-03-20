@@ -371,6 +371,40 @@ The loop skips a task until all its dependencies are `done`. `codex-loop init` g
 
 You can edit task files freely before or between runs to tighten the description, split a task, or remove tasks you don't need. After editing, run `codex-loop doctor --repair` to sync the state file.
 
+## Hooks (optional)
+
+Hooks let you run shell commands at key points in the loop. Configure them in `codex-loop.yaml`:
+
+```json
+"hooks": {
+  "pre_iteration": ["cp .env $CODEX_LOOP_WORKING_DIR/"],
+  "post_iteration": [],
+  "on_completed": ["bash scripts/notify.sh"],
+  "on_blocked": []
+}
+```
+
+Available events:
+
+| Event | When it runs |
+|---|---|
+| `pre_iteration` | Before each Codex call |
+| `post_iteration` | After verification completes |
+| `on_completed` | When the loop finishes successfully |
+| `on_blocked` | When the loop stops due to a blocker |
+
+Environment variables available in every hook:
+
+| Variable | Value |
+|---|---|
+| `CODEX_LOOP_PROJECT_DIR` | Absolute path to your project directory |
+| `CODEX_LOOP_WORKING_DIR` | Absolute path to the worktree (where Codex is working) |
+| `CODEX_LOOP_TASK_ID` | Current task ID (e.g. `001-foundation`) |
+| `CODEX_LOOP_TASK_TITLE` | Current task title |
+| `CODEX_LOOP_EVENT` | Event name (`pre_iteration`, `on_completed`, etc.) |
+
+Hooks run in the worktree directory. If a hook exits non-zero and `hooks.failure_policy` is `"block"` (default: `"ignore"`), the loop stops.
+
 ## How Run Works
 
 1. Load `codex-loop.yaml` and auto-repair any state drift
