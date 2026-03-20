@@ -886,7 +886,11 @@ def _iter_hook_events(project_dir: Path) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
     for path in sorted(hooks_dir.glob("*.jsonl")):
         event_name = path.stem
-        for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            raw_text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for line in raw_text.splitlines():
             if not line.strip():
                 continue
             try:

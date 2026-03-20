@@ -1226,5 +1226,35 @@ class ReportingTests(unittest.TestCase):
                 load_snapshot_exports_manifest(exports_dir)
 
 
+    def test_events_timeline_skips_unreadable_hook_jsonl(self) -> None:
+        """_iter_hook_events skips hook log files that cannot be read."""
+        import os
+        import stat
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            StateStore(root / ".codex-loop" / "state.json").create_initial(
+                "demo", "Build demo", ["001-foundation"]
+            )
+            hooks_dir = root / ".codex-loop" / "hooks"
+            hooks_dir.mkdir(parents=True, exist_ok=True)
+            good = hooks_dir / "pre_iteration.jsonl"
+            good.write_text(
+                '{"timestamp": "2026-01-01T00:00:00+00:00", "command": "echo ok", "success": true, "exit_code": 0}\n',
+                encoding="utf-8",
+            )
+            bad = hooks_dir / "post_iteration.jsonl"
+            bad.write_text(
+                '{"timestamp": "2026-01-01T00:00:00+00:00", "command": "echo bad", "success": false, "exit_code": 1}\n',
+                encoding="utf-8",
+            )
+            bad.chmod(0o000)
+            try:
+                rendered = format_events_timeline(root, limit=10)
+                self.assertIn("hook:pre_iteration", rendered)
+                self.assertNotIn("hook:post_iteration", rendered)
+            finally:
+                bad.chmod(stat.S_IRUSR | stat.S_IWUSR)
+
+
 if __name__ == "__main__":
     unittest.main()
