@@ -103,7 +103,14 @@ When blocked, it also surfaces the latest `blocker_code` and reason, and when a 
 
 ## Key Rules
 
-- The project directory must be trusted by Codex before running. Add it via `codex` interactively or set `trust_level = "trusted"` under `[projects."<absolute-path>"]` in `~/.codex/config.toml`. Without this, `codex exec` will fail immediately with "Not inside a trusted directory".
+- Both the project directory **and** the worktree parent must be trusted by Codex before running. `codex-loop run` executes Codex inside an isolated Git worktree at `../.codex-loop-worktrees/<project>/<branch>/` — trusting only the project directory is not enough. Add both paths to `~/.codex/config.toml`:
+  ```toml
+  [projects."/absolute/path/to/your-project"]
+  trust_level = "trusted"
+  [projects."/absolute/path/to/.codex-loop-worktrees"]
+  trust_level = "trusted"
+  ```
+  Without the second entry, `codex-loop run` fails with "Not inside a trusted directory".
 - Treat generated files as the persistent source of truth, not the original prompt.
 - Strengthen `verification.commands` before trusting unattended execution.
 - Prefer fixing bad task decomposition at `init` time instead of hoping the loop self-corrects.

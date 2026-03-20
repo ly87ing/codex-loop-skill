@@ -17,7 +17,14 @@
 
 ## Operational Guidance
 
-- The project directory must be added to the Codex trust list before running. Add it via `codex` interactively or by adding a `[projects."<absolute-path>"]` entry with `trust_level = "trusted"` to `~/.codex/config.toml`. Without this, every `codex exec` call will fail with "Not inside a trusted directory".
+- Both the project directory **and** the worktree parent must be added to the Codex trust list before running. `codex-loop run` executes Codex inside an isolated Git worktree at `../.codex-loop-worktrees/<project>/<branch>/` — trusting only the project directory is not enough. Add both to `~/.codex/config.toml`:
+  ```toml
+  [projects."/absolute/path/to/your-project"]
+  trust_level = "trusted"
+  [projects."/absolute/path/to/.codex-loop-worktrees"]
+  trust_level = "trusted"
+  ```
+  Without this, `codex exec` will fail with "Not inside a trusted directory".
 - Use strong verification commands. Weak verification creates false completion.
 - Prefer a clean repository before starting a long unattended run.
 - If a task is too broad, rerun `init` with a narrower prompt or edit the generated task docs.
