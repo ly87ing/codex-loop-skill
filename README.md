@@ -673,6 +673,14 @@ For a human-readable summary of what happened in recent iterations (recommended)
 codex-loop events --limit 10
 ```
 
+Example output:
+```
+2024-01-15T14:23:01+00:00 iteration:continue task=001-foundation iteration 1: wrote Storage class skeleton
+2024-01-15T14:39:45+00:00 iteration:continue task=001-foundation iteration 2: added argparse subcommands, tests still failing
+2024-01-15T14:55:03+00:00 iteration:complete task=001-foundation iteration 3: all tests passing
+2024-01-15T15:10:22+00:00 iteration:complete task=002-core-commands iteration 4: implemented add/list/done/delete
+```
+
 To see the raw Codex output (one JSON object per line — useful for debugging):
 
 ```bash
