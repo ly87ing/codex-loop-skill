@@ -132,6 +132,7 @@ cat codex-loop.yaml
 #      "verification": { "commands": ["python -m pytest tests/ -q"] }
 #    Tip: run that command manually now to confirm it works before starting the loop.
 #    Note: codex-loop.yaml uses JSON syntax (not indented YAML) — that is normal.
+#    To use a different Codex model, change "codex": { "model": "gpt-5.4" } in codex-loop.yaml.
 #    Do NOT change execution.sandbox or execution.approval — required for unattended runs.
 #    Also skim spec/, plan/, and tasks/ to make sure the goal was captured correctly.
 #    If the output looks wrong, re-run with a better prompt:
