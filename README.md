@@ -235,7 +235,7 @@ codex-loop cleanup --apply
 codex-loop status --summary
 ```
 
-Example output:
+Example output (while running):
 
 ```
 project: my-project
@@ -250,6 +250,21 @@ current_task: 002-add-api
 runner_failures_total: 0         # total codex exec failures so far
 verification_failures_total: 2   # total failed verification runs so far
 worktree_branch: codex-loop/my-project-abc123
+```
+
+When the run finishes successfully (`overall_status: completed`), `codex-loop status --summary` also prints the merge commands:
+
+```
+project: my-project
+overall_status: completed
+...
+worktree_branch: codex-loop/my-project-abc123
+
+Next steps (all tasks done):
+  git diff --stat main..codex-loop/my-project-abc123
+  git checkout main
+  git merge codex-loop/my-project-abc123
+  codex-loop cleanup --apply
 ```
 
 Task markers: `[x]` done, `[~]` in progress, `[!]` blocked, `[ ]` pending.
