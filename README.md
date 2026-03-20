@@ -27,11 +27,17 @@ run `git merge`. If you don't like the result, just don't merge — your origina
 
 ```
 $ codex-loop run
+Codex working in: /path/to/.codex-loop-worktrees/my-project/codex-loop-001-add-validation-20240115/
 [iteration 1/30] task: 001-add-validation  (0/2 done, running Codex...) [10:15:02]
+  (waiting for Codex — this can take up to 30 minutes per iteration; run 'codex-loop events --limit 10' in another terminal to watch)
   -> status=continue verification=FAIL files_changed=3
+     verification error (last 300 chars):
+     FAILED tests/test_forms.py::test_email_validation - AssertionError: expected ValidationError
 [iteration 2/30] task: 001-add-validation  (0/2 done, running Codex...) [10:31:18]
+  (waiting for Codex — this can take up to 30 minutes per iteration; run 'codex-loop events --limit 10' in another terminal to watch)
   -> status=complete verification=pass files_changed=2
 [iteration 3/30] task: 002-write-tests  (1/2 done, running Codex...) [10:47:55]
+  (waiting for Codex — this can take up to 30 minutes per iteration; run 'codex-loop events --limit 10' in another terminal to watch)
   -> status=complete verification=pass files_changed=4
 All tasks done and verification passed.
 completed
@@ -179,6 +185,7 @@ cat codex-loop.yaml
 #    You can press Ctrl-C at any time to stop safely; the next run picks up where it left off.
 codex-loop run
 # You will see output like:
+#   Codex working in: /path/to/.codex-loop-worktrees/my-project/codex-loop-.../
 #   [iteration 1/30] task: 001-foundation  (0/2 done, running Codex...) [14:23:01]
 #     (waiting for Codex — this can take up to 30 minutes per iteration; run 'codex-loop events --limit 10' in another terminal to watch)
 #     -> status=continue verification=FAIL files_changed=3
