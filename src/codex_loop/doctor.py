@@ -182,7 +182,10 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
             return report
         state_task_ids = list(state.get("tasks", {}).keys())
         if state_task_ids != task_ids:
-            report.warnings.append("tasks state does not match task files")
+            report.warnings.append(
+                "tasks state does not match task files — "
+                "run 'codex-loop doctor --repair' to sync"
+            )
         else:
             report.checked.append(".codex-loop/state.json")
     return report
