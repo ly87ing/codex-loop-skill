@@ -140,7 +140,10 @@ def _write_watchdog_state(
 def _read_heartbeat(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
 
 
 def _heartbeat_is_stale(

@@ -21,6 +21,13 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _read_json(path: Path) -> dict[str, Any]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(path.suffix + ".tmp")
@@ -147,20 +154,12 @@ def daemon_status(
             "heartbeat_path": str(paths["heartbeat"]),
         }
 
-    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata = _read_json(metadata_path)
     pid = int(metadata.get("pid", -1))
-    heartbeat_path = Path(metadata.get("heartbeat_path", paths["heartbeat"]))
-    watchdog_path = Path(metadata.get("watchdog_path", paths["watchdog"]))
-    heartbeat = (
-        json.loads(heartbeat_path.read_text(encoding="utf-8"))
-        if heartbeat_path.exists()
-        else {}
-    )
-    watchdog = (
-        json.loads(watchdog_path.read_text(encoding="utf-8"))
-        if watchdog_path.exists()
-        else {}
-    )
+    heartbeat_path = Path(metadata.get("heartbeat_path", str(paths["heartbeat"])))
+    watchdog_path = Path(metadata.get("watchdog_path", str(paths["watchdog"])))
+    heartbeat = _read_json(heartbeat_path) if heartbeat_path.exists() else {}
+    watchdog = _read_json(watchdog_path) if watchdog_path.exists() else {}
     heartbeat_stale_seconds = metadata.get("heartbeat_stale_seconds")
     heartbeat_ts = _parse_timestamp(heartbeat.get("updated_at"))
     stale_heartbeat = False
@@ -216,7 +215,7 @@ def stop_daemon(
         msg = f"No daemon metadata found at {metadata_path}"
         raise RuntimeError(msg)
 
-    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    metadata = _read_json(metadata_path)
     pid = int(metadata.get("pid", -1))
     sleep = sleep_fn or time.sleep
     if pid_alive_fn(pid):
