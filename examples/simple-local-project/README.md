@@ -51,7 +51,7 @@ git checkout main   # or master, or whatever your default branch is
 #    If you need to find it later:
 git branch | grep codex-loop
 #    or: codex-loop status --summary  (shows worktree_branch)
-#    After merging, clean up old artifacts:
+#    After merging, clean up old log/run artifacts (does NOT delete your code or git history):
 codex-loop cleanup --apply
 
 # 6. Watch progress (or inspect after a blocked run)

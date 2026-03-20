@@ -95,7 +95,7 @@ Before installing `codex-loop`, make sure you have:
 git clone https://github.com/ly87ing/codex-loop-skill.git
 cd codex-loop-skill
 python3 -m pip install -e .
-cd ..   # go back — codex-loop runs in your own project, not here
+cd ..   # go back — next, cd into YOUR project directory (not this one)
 ```
 
 > **Tip:** if you use virtual environments and want `codex-loop` available everywhere without activating one,
@@ -135,6 +135,7 @@ codex-loop init --prompt "Add input validation to every form in this app"
 #    Note: codex-loop.yaml uses JSON syntax (not indented YAML) — that is normal.
 #    Open codex-loop.yaml and confirm:
 #      - verification.commands matches how you run your tests (e.g. "python -m pytest tests/ -q")
+#        Tip: run that command manually in your project to confirm it works before starting the loop.
 #      - codex.model is the OpenAI model passed to Codex (default: gpt-5.4, leave as-is unless you have a reason to change)
 #    Do NOT change execution.sandbox or execution.approval — these are required for unattended runs.
 #    Everything else can be left at the generated defaults — you do not need to understand every field.
@@ -175,7 +176,7 @@ codex-loop run
 # 4. Merge the changes — copy the exact branch name printed above, then run:
 git checkout main   # or master, or whatever your default branch is
 git merge codex-loop/<branch-name-printed-above>
-# Then clean up old artifacts:
+# Optional: clean up old log/run artifacts (does NOT delete your code or git history):
 codex-loop cleanup --apply
 
 # 5. Check status at any time
