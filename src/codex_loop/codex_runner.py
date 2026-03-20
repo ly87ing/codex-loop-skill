@@ -221,6 +221,7 @@ class CodexRunner:
             if (
                 resume_session
                 and config.execution.resume_fallback_to_fresh
+                and not self._is_transient_error(str(exc))
                 and self._should_retry_without_resume(str(exc))
             ):
                 resume_fallback_used = True
@@ -310,7 +311,38 @@ class CodexRunner:
         return completed.stdout
 
     @staticmethod
+    def _is_transient_error(message: str) -> bool:
+        """Return True for temporary infrastructure failures (network, timeout, kill).
+        Transient errors must not trigger resume fallback — the session may still be valid.
+        """
+        lowered = message.lower()
+        return any(
+            token in lowered
+            for token in (
+                "timed out",
+                "timeout",
+                "connection reset",
+                "connection refused",
+                "broken pipe",
+                "network",
+                "killed",
+                "sigkill",
+                "sigterm",
+                "rate limit",
+                "429",
+                "500",
+                "502",
+                "503",
+                "overloaded",
+                "temporarily unavailable",
+            )
+        )
+
+    @staticmethod
     def _should_retry_without_resume(message: str) -> bool:
+        """Return True when the error indicates the saved session is no longer valid
+        and a fresh exec (without resume) is the correct recovery.
+        """
         lowered = message.lower()
         return any(
             token in lowered

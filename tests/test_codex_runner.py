@@ -159,5 +159,67 @@ class CodexRunnerTests(unittest.TestCase):
             self.assertNotIn('b"', msg)
 
 
+    def test_transient_error_does_not_trigger_resume_fallback(self) -> None:
+        """Transient errors (timeout, network) must not trigger resume fallback.
+        The session may still be valid; discarding it would cause unnecessary work."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            runner = CodexRunner(root)
+            task = Task(
+                task_id="001-foundation",
+                path=root / "tasks" / "001-foundation.md",
+                title="Foundation",
+                body="# Foundation\n",
+            )
+            config = CodexLoopConfig.from_dict(
+                {
+                    "project": {"name": "demo"},
+                    "goal": {"summary": "Build demo", "done_when": ["Tests pass"]},
+                    "execution": {
+                        "resume_fallback_to_fresh": True,
+                        "iteration_timeout_seconds": 30,
+                    },
+                    "verification": {"commands": ["python -m unittest"]},
+                },
+                root,
+            )
+            schema_path = root / ".codex-loop" / "agent_result.schema.json"
+            schema_path.parent.mkdir(parents=True, exist_ok=True)
+            schema_path.write_text("{}", encoding="utf-8")
+
+            calls: list[list[str]] = []
+
+            def invoke_side_effect(
+                command: list[str],
+                prompt: str,
+                cwd: Path,
+                *,
+                timeout_seconds: int,
+            ) -> str:
+                del timeout_seconds, prompt, cwd
+                calls.append(command)
+                # Simulate a timeout — the error message contains "resume" in the
+                # command line ("codex exec resume <id>") but this is transient.
+                raise RuntimeError(
+                    "Codex command timed out after 30s.\n"
+                    "Command: codex exec resume expired-session\n"
+                    "STDOUT: (empty)"
+                )
+
+            with patch.object(CodexRunner, "_invoke", side_effect=invoke_side_effect):
+                with self.assertRaises(RuntimeError) as ctx:
+                    runner.run_task(
+                        config=config,
+                        task=task,
+                        state={"history": []},
+                        working_directory=root,
+                        resume_session="expired-session",
+                    )
+
+            # Only one call — transient error must NOT trigger a second fresh call.
+            self.assertEqual(len(calls), 1)
+            self.assertIn("timed out", str(ctx.exception).lower())
+
+
 if __name__ == "__main__":
     unittest.main()
