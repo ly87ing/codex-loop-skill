@@ -655,7 +655,7 @@ After the loop completes, merge the branch first:
 
 ```bash
 git checkout main   # or master
-git merge codex-loop/<branch-name-printed-above>
+git merge codex-loop/<branch>   # use the branch name printed by codex-loop run
 ```
 
 Then run your tests. They should pass against the merged code.
