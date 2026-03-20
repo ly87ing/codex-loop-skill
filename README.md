@@ -43,9 +43,12 @@ All tasks done and verification passed.
 completed
 Changes are on branch: codex-loop/my-project-a1b2c3
 (Your working directory is unchanged until you merge.)
+To inspect before merging:
+  git diff --stat main..codex-loop/my-project-a1b2c3
 To merge:
   git checkout main
   git merge codex-loop/my-project-a1b2c3
+After merging, clean up with: codex-loop cleanup --apply
 ```
 
 **Ready to start?** → [Prerequisites](#prerequisites) → [Install](#install) → [Quick Start](#quick-start).
