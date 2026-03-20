@@ -174,6 +174,8 @@ The minimum path to get started. Run these inside **your own project directory**
    > **Why two entries?** `codex-loop run` runs Codex inside an isolated Git worktree next to your project.
    > Without the second entry, `codex-loop run` fails with "Not inside a trusted directory".
 
+**Steps 1–6 — Run the loop:**
+
 ```bash
 # Move into your own project first
 cd /path/to/your-project
