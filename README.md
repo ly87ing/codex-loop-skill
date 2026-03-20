@@ -600,6 +600,25 @@ git commit -m "init"
 ```
 (`.codex-loop/` is automatically added to `.gitignore` by `codex-loop init`, so `git add -A` is safe.)
 
+### "Another codex-loop run is already active"
+
+This means a previous run left a lock file behind (usually because it was force-killed or crashed).
+The error message prints the exact `kill` and `rm` commands to unblock:
+
+```bash
+# If the listed PID is no longer running, delete the lock file directly:
+rm .codex-loop/run.lock
+
+# Then re-run:
+codex-loop run
+```
+
+If the PID is still alive (a run genuinely in progress), wait for it to finish or stop it first:
+
+```bash
+kill <pid>   # use the PID shown in the error message
+```
+
 ### The loop stops with `blocked`
 
 This is not a crash — it means the loop hit a real limit it could not resolve on its own.
