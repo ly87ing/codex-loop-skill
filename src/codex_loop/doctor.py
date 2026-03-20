@@ -183,4 +183,6 @@ def render_doctor_report(report: DoctorReport) -> str:
     if report.errors:
         lines.append("Errors:")
         lines.extend(f"- {item}" for item in report.errors)
+        if any("Missing config file" in e for e in report.errors):
+            lines.append("Hint: run 'codex-loop init --prompt \"your goal\"' first to set up the project.")
     return "\n".join(lines)
