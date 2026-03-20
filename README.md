@@ -201,6 +201,8 @@ The minimum path to get started. Run these inside **your own project directory**
    > **Why two entries?** `codex-loop run` runs Codex inside an isolated Git worktree next to your project.
    > Without the second entry, `codex-loop run` fails with "Not inside a trusted directory".
 
+   Verify the file was saved: `cat ~/.codex/config.toml` — you should see both entries.
+
 **Steps 1–6 — Run the loop:**
 
 ```bash
