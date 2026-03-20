@@ -185,4 +185,8 @@ def render_doctor_report(report: DoctorReport) -> str:
         lines.extend(f"- {item}" for item in report.errors)
         if any("Missing config file" in e for e in report.errors):
             lines.append("Hint: run 'codex-loop init --prompt \"your goal\"' first to set up the project.")
+        elif any("No task files found" in e for e in report.errors):
+            lines.append("Hint: tasks/ is empty. Run 'codex-loop init --prompt \"your goal\"' to generate task files, or add task files manually.")
+        elif any("Missing state file" in e for e in report.errors):
+            lines.append("Hint: run 'codex-loop doctor --repair' to recreate the state file.")
     return "\n".join(lines)
