@@ -371,7 +371,8 @@ class StateStore:
         meta["last_fingerprint"] = fingerprint
         task["last_summary"] = summary
         task["files_changed"] = files_changed
-        task["session_id"] = session_id
+        if session_id is not None:
+            task["session_id"] = session_id
         task["last_error"] = None if verification_passed else summary
         task["last_verification_results"] = verification_results or []
         task["blocker_code"] = None

@@ -179,5 +179,42 @@ class StateStoreTests(unittest.TestCase):
             self.assertIn("001-foundation", saved["tasks"])
 
 
+    def test_record_iteration_preserves_session_id_when_none_passed(self) -> None:
+        """record_iteration must not overwrite an existing session_id with None.
+        If the runner doesn't return a session_id in a given iteration, the
+        previously saved session_id must be kept for resume to work."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            store = StateStore(root / ".codex-loop" / "state.json")
+            store.create_initial("demo", "Build it", ["001-task"])
+
+            # First iteration establishes a session_id.
+            store.record_iteration(
+                task_id="001-task",
+                summary="initial",
+                fingerprint="fp1",
+                files_changed=["a.py"],
+                verification_passed=True,
+                agent_status="continue",
+                session_id="session-abc",
+            )
+            state = store.load()
+            self.assertEqual(state["tasks"]["001-task"]["session_id"], "session-abc")
+
+            # Second iteration passes session_id=None (agent didn't echo it back).
+            store.record_iteration(
+                task_id="001-task",
+                summary="follow-up",
+                fingerprint="fp2",
+                files_changed=["b.py"],
+                verification_passed=True,
+                agent_status="continue",
+                session_id=None,
+            )
+            state = store.load()
+            # session_id must still be the original value.
+            self.assertEqual(state["tasks"]["001-task"]["session_id"], "session-abc")
+
+
 if __name__ == "__main__":
     unittest.main()
