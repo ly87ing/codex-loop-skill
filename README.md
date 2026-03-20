@@ -413,14 +413,13 @@ All thresholds are configurable in `codex-loop.yaml` under `execution`.
 - Hook execution is local and explicit through `codex-loop.yaml`; never inferred from prompts
 - The default finish mode is conservative: keep the worktree and branch after completion
 
-## Operator Notes
+## Useful Things to Know
 
-- `health` gives the fastest single-command overview: it combines status, doctor warnings, event signals, and daemon/service state into one report. Exit code `0=ok`, `2=degraded`, `3=error` — probe-friendly.
+- `health` gives the fastest single-command overview: it combines status, doctor warnings, event signals, and daemon/service state into one report.
 - `status --summary` shows the current task, blocker code, and blocker reason when the loop stops.
 - `doctor --repair` backfills missing config defaults and reconciles task/state drift. Run it after editing files manually.
-- `cleanup` defaults to dry-run. Use `--apply` only after reviewing what would be deleted.
-- Artifact retention is configured in `codex-loop.yaml` under `operator.cleanup`. Per-directory overrides (`logs-keep`, `prompts-older-than-days`) can be passed as CLI flags.
-- `daemon` and `service` are mutually exclusive for the same project root.
+- `cleanup` defaults to dry-run (preview only). Use `--apply` only after reviewing what would be deleted.
+- `daemon` and `service` are mutually exclusive for the same project root — pick one or the other for background runs.
 
 ## Troubleshooting
 
