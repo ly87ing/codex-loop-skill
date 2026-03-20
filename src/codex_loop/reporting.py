@@ -858,12 +858,18 @@ def format_health_report(
 def tail_log_lines(project_dir: Path, *, lines: int, task_id: str | None = None) -> str:
     logs_dir = project_dir / ".codex-loop" / "logs"
     if not logs_dir.exists():
-        msg = f"No logs directory found at {logs_dir}"
+        msg = (
+            f"No logs directory found at {logs_dir}\n"
+            "Logs are created when codex-loop run executes at least one iteration."
+        )
         raise FileNotFoundError(msg)
     pattern = "*.jsonl" if task_id is None else f"*-{task_id}.jsonl"
     candidates = sorted(logs_dir.glob(pattern))
     if not candidates:
-        msg = f"No log files found for pattern {pattern}"
+        msg = (
+            f"No log files found for pattern {pattern}\n"
+            "Logs are created when codex-loop run executes at least one iteration."
+        )
         raise FileNotFoundError(msg)
     try:
         content = candidates[-1].read_text(encoding="utf-8").splitlines()
