@@ -76,10 +76,10 @@ Run these commands from your project directory:
 python3 --version    # need 3.11 or newer
 codex --version      # need Codex CLI installed
 echo $OPENAI_API_KEY # need a non-empty API key
-git log --oneline -1 # need at least one commit in your project
 ```
 
 If any of those fail, see the details below. Otherwise skip straight to [Install](#install).
+(The Git requirement is checked when you run `codex-loop run` — it will tell you if anything is missing.)
 
 Before installing `codex-loop`, make sure you have:
 
