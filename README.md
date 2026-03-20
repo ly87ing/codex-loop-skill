@@ -652,6 +652,16 @@ All thresholds are configurable in `codex-loop.yaml` under `execution`.
 
 ## Troubleshooting
 
+**Something not working? Start here:**
+
+```bash
+codex-loop doctor        # checks config, task files, and state — prints specific hints
+codex-loop status --summary  # shows current task, last blocker, iteration count
+codex-loop events --limit 10 # shows what happened in recent iterations
+```
+
+Then look up your specific error below.
+
 ### `codex-loop: command not found`
 
 The `codex-loop` command is installed by pip into a user scripts directory that may not be on your PATH.
