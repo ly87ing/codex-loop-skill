@@ -81,5 +81,24 @@ class GitOpsTests(unittest.TestCase):
             self.assertNotEqual(info.branch_name, existing_branch)
 
 
+    def test_remove_worktree_survives_oserror(self) -> None:
+        # If git is not found (OSError), remove_worktree must fall back to
+        # shutil.rmtree rather than propagating the exception.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            repo_root = root / "repo"
+            repo_root.mkdir()
+            worktree_path = root / "wt"
+            worktree_path.mkdir()
+            (worktree_path / "file.txt").write_text("x")
+
+            from codex_loop.git_ops import remove_worktree
+            with patch("codex_loop.git_ops.subprocess.run", side_effect=OSError("git not found")):
+                # Must not raise; directory should be removed via shutil.rmtree.
+                remove_worktree(repo_root, worktree_path)
+
+            self.assertFalse(worktree_path.exists())
+
+
 if __name__ == "__main__":
     unittest.main()

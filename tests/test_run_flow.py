@@ -133,5 +133,15 @@ class RunFlowTests(unittest.TestCase):
             self.assertEqual(len(calls), 2)
 
 
+    def test_retry_blocked_tasks_returns_false_when_state_missing(self) -> None:
+        # retry_blocked_tasks_for_retry must not raise when state.json is absent.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            # No state.json created — directory doesn't even exist.
+            from codex_loop.run_flow import retry_blocked_tasks_for_retry
+            result = retry_blocked_tasks_for_retry(root)
+            self.assertFalse(result)
+
+
 if __name__ == "__main__":
     unittest.main()

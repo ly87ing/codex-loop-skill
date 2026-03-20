@@ -97,7 +97,10 @@ def _run_supervisor_with_heartbeat(
 
 def retry_blocked_tasks_for_retry(project_dir: Path) -> bool:
     store = StateStore(project_dir / ".codex-loop" / "state.json")
-    state = store.load()
+    try:
+        state = store.load()
+    except (FileNotFoundError, OSError):
+        return False
     tasks = state.get("tasks", {})
     if not any(task.get("status") == "blocked" for task in tasks.values()):
         return False

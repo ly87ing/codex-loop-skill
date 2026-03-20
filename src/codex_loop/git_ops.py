@@ -110,5 +110,5 @@ def remove_worktree(repo_root: Path, path: Path) -> None:
             capture_output=True,
             text=True,
         )
-    except subprocess.CalledProcessError:
+    except (OSError, subprocess.CalledProcessError):
         shutil.rmtree(path, ignore_errors=True)
