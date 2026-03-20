@@ -635,6 +635,9 @@ class SupervisorTests(unittest.TestCase):
         self.assertTrue(Supervisor._is_transient_runner_error("Codex command timed out."))
         self.assertTrue(Supervisor._is_transient_runner_error("connection reset by peer"))
         self.assertTrue(Supervisor._is_transient_runner_error("rate limit exceeded 429"))
+        self.assertTrue(Supervisor._is_transient_runner_error("HTTP 500 Internal Server Error"))
+        self.assertTrue(Supervisor._is_transient_runner_error("service overloaded, please retry"))
+        self.assertTrue(Supervisor._is_transient_runner_error("temporarily unavailable"))
         self.assertFalse(Supervisor._is_transient_runner_error("schema validation failed"))
         self.assertFalse(Supervisor._is_transient_runner_error("task_id mismatch"))
 

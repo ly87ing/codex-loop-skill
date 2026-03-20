@@ -463,8 +463,11 @@ class Supervisor:
                 "sigterm",
                 "rate limit",
                 "429",
-                "503",
+                "500",
                 "502",
+                "503",
+                "overloaded",
+                "temporarily unavailable",
             )
         )
 
