@@ -36,5 +36,18 @@ class RunLockTests(unittest.TestCase):
                 self.assertNotEqual(data["pid"], 999999)
 
 
+    def test_recovers_corrupt_lock_file(self) -> None:
+        # A corrupt (non-JSON) lock file must not raise — acquire should treat
+        # it as absent and overwrite it with a valid lock.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            lock_path = Path(tmpdir) / ".codex-loop" / "run.lock"
+            lock_path.parent.mkdir(parents=True, exist_ok=True)
+            lock_path.write_text("not valid json {{{", encoding="utf-8")
+
+            with RunLock(lock_path, stale_seconds=3600):
+                data = json.loads(lock_path.read_text(encoding="utf-8"))
+                self.assertIn("pid", data)
+
+
 if __name__ == "__main__":
     unittest.main()
