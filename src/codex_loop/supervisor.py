@@ -236,9 +236,15 @@ class Supervisor:
             if not files_changed and not passed:
                 _no_prog = state["meta"].get("no_progress_iterations", 0) + 1
                 _max_no_prog = self.config.execution.max_no_progress_iterations
+                _hint = (
+                    " — if this keeps happening, try making the task description more specific"
+                    " (edit tasks/*.md, commit, then codex-loop run --retry-blocked)"
+                    if _no_prog >= max(_max_no_prog - 1, 1)
+                    else ""
+                )
                 print(
                     f"     (no file changes detected; "
-                    f"{_no_prog}/{_max_no_prog} no-progress iterations)",
+                    f"{_no_prog}/{_max_no_prog} no-progress iterations{_hint})",
                     flush=True,
                 )
             updated = self.state_store.record_iteration(
