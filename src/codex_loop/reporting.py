@@ -882,6 +882,31 @@ def format_health_report(
         lines.append(
             f"snapshot_exports_total: {snapshot_exports.get('total_exports', 0)}"
         )
+    # Human-readable next-step guidance based on current state
+    _health = payload.get("health")
+    _doctor_errors = payload.get("doctor", {}).get("errors", [])
+    if _doctor_errors:
+        lines.append("")
+        lines.append("Next steps:")
+        lines.append("  Fix the errors above, then run 'codex-loop run'.")
+    elif _overall_status in ("pending", "initialized", None):
+        lines.append("")
+        lines.append("Next steps:")
+        lines.append("  Run 'codex-loop run' to start the loop.")
+    elif _overall_status == "running":
+        lines.append("")
+        lines.append("Next steps:")
+        lines.append("  Run 'codex-loop run' to resume (the loop was interrupted).")
+        lines.append("  Or 'codex-loop run --retry-blocked' if tasks are blocked.")
+    elif _overall_status == "blocked":
+        lines.append("")
+        lines.append("Next steps:")
+        lines.append("  Run 'codex-loop run --retry-blocked' to retry blocked tasks.")
+        lines.append("  See 'codex-loop events --limit 20' for details on what went wrong.")
+    elif _overall_status == "completed":
+        lines.append("")
+        lines.append("Next steps:")
+        lines.append("  Run 'codex-loop status --summary' for merge instructions.")
     return "\n".join(lines)
 
 
