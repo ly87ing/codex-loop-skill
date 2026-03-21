@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 
+from . import __version__
 from .cleanup import render_cleanup_report, run_cleanup
 from .codex_runner import CodexRunner
 from .config import CodexLoopConfig
@@ -365,7 +366,7 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--version", action="version", version="codex-loop 0.1.0")
+    parser.add_argument("--version", action="version", version=f"codex-loop {__version__}")
     subparsers = parser.add_subparsers(dest="command", required=False)
 
     init_parser = subparsers.add_parser("init", help="Generate codex-loop files from a prompt.")
