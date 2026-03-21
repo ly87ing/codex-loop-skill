@@ -672,6 +672,8 @@ def format_status_summary(project_dir: Path) -> str:
             lines.append("hint: one task hit the failure limit and was skipped; edit tasks/ to clarify it, commit, then: codex-loop run --retry-blocked")
         elif _bcode == "max_iterations":
             lines.append("hint: increase max_iterations in codex-loop.yaml, then: codex-loop run --retry-blocked")
+        elif _bcode == "no_selectable_task":
+            lines.append("hint: likely a dependency cycle or all tasks blocked; run 'codex-loop status --summary' to see task states, edit tasks/ to fix, commit, then: codex-loop run --retry-blocked")
         else:
             lines.append("hint: run 'codex-loop run --retry-blocked' to retry, or 'codex-loop events --limit 20' for full details")
     if snapshot.get("overall_status") == "completed" and snapshot.get("worktree_branch"):

@@ -1248,6 +1248,9 @@ def main(argv: list[str] | None = None) -> int:
                         print("One task hit the failure limit and was skipped. Run 'codex-loop status --summary' to see which task, then: codex-loop run --retry-blocked", file=sys.stderr)
                     elif _code == "max_iterations":
                         print("Increase max_iterations in codex-loop.yaml, then: codex-loop run --retry-blocked", file=sys.stderr)
+                    elif _code == "no_selectable_task":
+                        print("A task could not be selected — likely a dependency cycle or all tasks blocked.", file=sys.stderr)
+                        print("Run 'codex-loop status --summary' to see task states, then edit tasks/ to fix dependencies, commit, and: codex-loop run --retry-blocked", file=sys.stderr)
                     else:
                         print("To retry: codex-loop run --retry-blocked", file=sys.stderr)
             except Exception:  # noqa: BLE001
