@@ -522,7 +522,7 @@ codex-loop run --continuous --retry-blocked --cycle-sleep-seconds 60
 
 If retrying still blocks, common fixes:
 
-- **`no_progress_limit`** (no file changes): the task description may be too vague or too large. Edit the task file in `tasks/` to be more specific or split it into smaller steps, then run `codex-loop doctor --repair` before retrying.
+- **`no_progress_limit`** (no file changes): the task description may be too vague or too large. Edit the task file in `tasks/` to be more specific or split it into smaller steps, **commit the change** (`git add -A && git commit -m 'refine task'`), then run `codex-loop doctor --repair` before retrying.
 - **`runner_failure_limit`** (Codex exec keeps failing): check your API key, network, and Codex version (`codex --version`). Update with `npm install -g @openai/codex`.
 - **`verification_failure_limit`** (tests always fail): the verification command may be wrong — check `verification.commands` in `codex-loop.yaml`. Run it manually to confirm it works.
 - **Increase the iteration budget**: edit `execution.max_iterations` in `codex-loop.yaml` (default: 30) for tasks that need more attempts.
@@ -889,12 +889,12 @@ Common causes and fixes:
 
 | Blocker | What happened | What to do |
 |---|---|---|
-| `no_progress_limit` | Codex made no file changes for 5 consecutive iterations (default) | Review the task description; make it more specific |
+| `no_progress_limit` | Codex made no file changes for 5 consecutive iterations (default) | Review the task description; make it more specific, then `git add -A && git commit -m 'refine task'` and `codex-loop run --retry-blocked` |
 | `runner_failure_circuit_breaker` | `codex exec` failed repeatedly | Check your API key and network; run `codex` manually to verify |
 | `verification_failure_circuit_breaker` | Tests kept failing | Look at `codex-loop events --limit 20` for the error output |
 | `task_failure_circuit_breaker` | One task failed too many times; loop continues with next task | Check `codex-loop status --summary` to see which task was skipped |
 | `max_iterations` | Hit the iteration cap | Increase `max_iterations` in `codex-loop.yaml` or break the task into smaller pieces |
-| `agent_blocked` | Codex reported it is stuck and cannot continue | Edit the relevant task file to give more context, then `codex-loop run --retry-blocked` |
+| `agent_blocked` | Codex reported it is stuck and cannot continue | Edit the relevant task file to give more context, `git add -A && git commit -m 'refine task'`, then `codex-loop run --retry-blocked` |
 | `no_selectable_task` | All remaining tasks are waiting on dependencies that are not done | Check `codex-loop status --summary`; a dependency task may be blocked and need `--retry-blocked` |
 
 After fixing the root cause:
