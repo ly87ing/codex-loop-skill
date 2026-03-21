@@ -273,7 +273,15 @@ cat codex-loop.yaml
 #    committed yet are invisible to Codex)
 git add -A && git commit -m "add codex-loop files"
 
-# 4. Run the loop — it will keep working until done or genuinely blocked
+# 4. Confirm ~/.codex/config.toml has the worktree trust entry
+#    (codex-loop run runs Codex in a worktree next to your project — that path must also be trusted)
+#    If you already completed Prerequisites step 5, skip this.
+#    Otherwise: open ~/.codex/config.toml and make sure this entry is present:
+#      [projects."$(dirname $(pwd))/.codex-loop-worktrees"]
+#      trust_level = "trusted"
+#    Verify: cat ~/.codex/config.toml
+
+# 5. Run the loop — it will keep working until done or genuinely blocked
 #    Note: Codex runs in an isolated Git worktree containing only committed files.
 #    If your tests need untracked files (e.g. .env, node_modules), add a hook:
 #      "hooks": { "pre_iteration": ["cp /path/to/.env $CODEX_LOOP_WORKING_DIR/"] }
@@ -322,9 +330,9 @@ codex-loop run
 #     codex-loop cleanup --apply
 
 # Note: Codex writes all changes to an isolated Git branch, not your project directory.
-#       You won't see any changed files locally until you merge in step 5.
+#       You won't see any changed files locally until you merge in step 6.
 
-# 5. Merge the changes
+# 6. Merge the changes
 #    When the loop completes, it prints the exact commands to run. Copy and run them:
 #      git checkout main   # or master, or your default branch
 #      git merge codex-loop/<branch>   # use the branch name printed above
@@ -333,7 +341,7 @@ codex-loop run
 #    After merging, clean up old log/run artifacts (does NOT delete your code or git history):
 codex-loop cleanup --apply
 
-# 6. Check status at any time
+# 7. Check status at any time
 codex-loop status --summary
 ```
 
