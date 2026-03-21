@@ -306,6 +306,7 @@ echo "[projects.\"$(pwd)\"]" && echo 'trust_level = "trusted"' && echo && echo "
 #      codex-loop events --limit 10
 #    (For raw Codex output: codex-loop logs tail --lines 50)
 #    You can press Ctrl-C at any time to stop safely; the next run picks up where it left off.
+#    If the loop stops with 'blocked', see 'If the loop blocks' section below for common causes and fixes.
 codex-loop run
 # You will see output like:
 #   Codex working in: /path/to/.codex-loop-worktrees/my-project/codex-loop-.../
