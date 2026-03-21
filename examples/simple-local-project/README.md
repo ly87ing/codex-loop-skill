@@ -19,10 +19,13 @@ It shows a beginner-friendly task: build a command-line todo list tool in Python
 
 ```bash
 # 1. Install codex-loop (skip if already installed)
+#    Run from your home directory or any permanent location (NOT inside a project)
+cd ~
 git clone https://github.com/ly87ing/codex-loop-skill.git
 python3 -m pip install -e codex-loop-skill/
 
 # 2. Copy this example into a fresh Git repository
+#    (Run this from the same directory where you cloned codex-loop-skill above, e.g. ~)
 git init my-todo-project
 cp -r codex-loop-skill/examples/simple-local-project/* my-todo-project/
 cd my-todo-project          # <-- must be inside the project from here on
