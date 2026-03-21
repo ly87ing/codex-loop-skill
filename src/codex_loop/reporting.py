@@ -967,7 +967,20 @@ def _format_event(event: dict[str, Any]) -> str:
     task_id = event.get("task_id")
     task_fragment = f" task={task_id}" if task_id else ""
     summary = str(event.get("summary", "")).strip()
-    return f"{timestamp} {label}{task_fragment} {summary}".rstrip()
+    base = f"{timestamp} {label}{task_fragment} {summary}".rstrip()
+    if event.get("verification_passed") is False:
+        verification_results = event.get("verification_results") or []
+        first_fail = next(
+            (r for r in verification_results if r.get("exit_code") != 0 or r.get("timed_out")),
+            None,
+        )
+        if first_fail:
+            _raw = (str(first_fail.get("stderr") or "").strip()
+                    or str(first_fail.get("stdout") or "").strip())
+            _snippet = _raw[-300:].strip() if len(_raw) > 300 else _raw.strip()
+            if _snippet:
+                base += f"\n     verification error (last 300 chars):\n{_snippet}"
+    return base
 
 
 def _parse_timestamp(value: str) -> datetime:
@@ -1027,6 +1040,7 @@ def _history_timeline_entries(state: dict[str, Any]) -> list[dict[str, Any]]:
                 "child_pid": entry.get("child_pid"),
                 "child_exit_code": entry.get("child_exit_code"),
                 "verification_passed": entry.get("verification_passed"),
+                "verification_results": entry.get("verification_results"),
                 "agent_status": entry.get("agent_status"),
                 "summary": str(entry.get("summary", "")).strip(),
                 "source": "history",
