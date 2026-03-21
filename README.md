@@ -35,7 +35,7 @@ run `git merge`. If you don't like the result, just don't merge — your origina
 
 ```
 $ codex-loop run
-Codex working in: /path/to/.codex-loop-worktrees/my-project/codex-loop-001-add-validation-20240115/
+Codex working in: /path/to/.codex-loop-worktrees/my-project/codex-loop-001-add-validation-20250610/
 [iteration 1/30] task: 001-add-validation  (0/2 done, running Codex...) [10:15:02]
   (waiting for Codex — this can take up to 30 minutes per iteration; run 'codex-loop events --limit 10' in another terminal to watch)
   -> status=continue verification=FAIL files_changed=3
