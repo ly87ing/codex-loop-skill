@@ -21,8 +21,12 @@ It shows a beginner-friendly task: build a command-line todo list tool in Python
 # 1. Install codex-loop (skip if already installed)
 #    Run from your home directory or any permanent location (NOT inside a project)
 cd ~
-git clone https://github.com/ly87ing/codex-loop-skill.git
+git clone https://github.com/ly87ing/codex-loop-skill.git   # skip if already cloned
 python3 -m pip install -e codex-loop-skill/
+#    If you get "externally managed environment" error, add --break-system-packages:
+#      python3 -m pip install -e codex-loop-skill/ --break-system-packages
+#    Or use pipx (avoids the error entirely):
+#      pipx install -e ./codex-loop-skill && pipx ensurepath
 
 # 2. Copy this example into a fresh Git repository
 #    (Run this from the same directory where you cloned codex-loop-skill above, e.g. ~)
