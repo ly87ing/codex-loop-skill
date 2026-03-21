@@ -827,7 +827,17 @@ Trusting only your project directory is not enough; you need to trust the worktr
 The error message will print the exact path that needs to be trusted.
 For `codex-loop init` failures, the missing path is your project directory.
 For `codex-loop run` failures, it is usually the worktree parent.
-The quickest fix is to add both entries to `~/.codex/config.toml`:
+The quickest fix — run this **inside your project directory** to print the exact lines to paste, then open `~/.codex/config.toml` and add them:
+
+```bash
+echo "[projects.\"$(pwd)\"]"
+echo 'trust_level = "trusted"'
+echo
+echo "[projects.\"$(dirname $(pwd))/.codex-loop-worktrees\"]"
+echo 'trust_level = "trusted"'
+```
+
+The result will look like:
 
 ```toml
 # Trust your project directory (needed for codex-loop init)
@@ -835,10 +845,16 @@ The quickest fix is to add both entries to `~/.codex/config.toml`:
 trust_level = "trusted"
 
 # Trust the worktree parent directory (needed for codex-loop run)
-# Replace /absolute/path/to with the parent of your project directory
 [projects."/absolute/path/to/.codex-loop-worktrees"]
 trust_level = "trusted"
 ```
+
+Open `~/.codex/config.toml` (create it if needed: `mkdir -p ~/.codex`) and paste the output:
+```bash
+mkdir -p ~/.codex
+open ~/.codex/config.toml    # macOS — or: nano ~/.codex/config.toml  (Linux)
+```
+Verify both entries are present: `cat ~/.codex/config.toml`
 
 Alternatively, run `codex` once interactively inside each directory to trigger the interactive
 trust prompt (but you would need to do that after the worktree is created, so the `config.toml`
