@@ -204,8 +204,7 @@ The minimum path to get started. Run these inside **your own project directory**
 3. Trust your project directory and the worktree parent in `~/.codex/config.toml`.
    Run these commands **inside your project directory** — they append the correct entries automatically:
    ```bash
-   mkdir -p ~/.codex
-   printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[projects."%s/.codex-loop-worktrees"]\ntrust_level = "trusted"\n' "$(pwd)" "$(dirname $(pwd))" | tee -a ~/.codex/config.toml
+   mkdir -p ~/.codex && printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[projects."%s/.codex-loop-worktrees"]\ntrust_level = "trusted"\n' "$(pwd)" "$(dirname $(pwd))" | tee -a ~/.codex/config.toml
    ```
    > **Why two entries?** Both `codex-loop init` and `codex-loop run` call `codex exec`, which refuses to run in untrusted directories.
    > The first entry trusts your project directory (needed for `init`). The second trusts the worktree parent (needed for `run`, which runs Codex in an isolated Git worktree next to your project).
