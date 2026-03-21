@@ -136,7 +136,10 @@ Before installing `codex-loop`, make sure you have:
 
 `codex-loop` has no third-party Python dependencies — just Python 3.11+ and the tools you already have.
 
+> **Where to clone:** run these commands from your **home directory** (or any permanent location — NOT inside your project). The `codex-loop-skill` directory must stay in place after installing.
+
 ```bash
+cd ~   # or wherever you keep tools — NOT inside your project directory
 git clone https://github.com/ly87ing/codex-loop-skill.git
 cd codex-loop-skill
 python3 -m pip install -e .
