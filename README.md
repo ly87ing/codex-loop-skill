@@ -759,10 +759,12 @@ python3 -c "import sysconfig; print(sysconfig.get_path('scripts'))"
 #   export PATH="/Users/you/Library/Python/3.11/bin:$PATH"
 ```
 
-Or run it directly without installing:
+Or run it directly without installing (run this from inside the `codex-loop-skill` directory):
 
 ```bash
-python3 -m codex_loop.cli --help
+cd ~/codex-loop-skill   # or wherever you cloned it
+PYTHONPATH=src python3 -m codex_loop.cli --help
+# Use PYTHONPATH=src python3 -m codex_loop.cli <command> for all commands
 ```
 
 ### "error: externally-managed-environment" during install
