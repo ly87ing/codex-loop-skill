@@ -888,7 +888,7 @@ Common causes and fixes:
 | `task_failure_circuit_breaker` | One task failed too many times; loop continues with next task | Check `codex-loop status --summary` to see which task was skipped |
 | `max_iterations` | Hit the iteration cap | Increase `max_iterations` in `codex-loop.yaml` or break the task into smaller pieces |
 | `agent_blocked` | Codex reported it is stuck and cannot continue | Edit the relevant task file to give more context, `git add -A && git commit -m 'refine task'`, then `codex-loop run --retry-blocked` |
-| `no_selectable_task` | All remaining tasks are waiting on dependencies that are not done | Check `codex-loop status --summary`; a dependency task may be blocked and need `--retry-blocked` |
+| `no_selectable_task` | No task can be selected — likely a dependency cycle or all remaining tasks are blocked | Run `codex-loop status --summary` to see which tasks are blocked; if a dependency is blocked, edit that task file and `codex-loop run --retry-blocked`; if it is a dependency cycle, edit `tasks/` to remove the cycle, commit, then retry |
 
 After fixing the root cause:
 
