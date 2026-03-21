@@ -392,15 +392,22 @@ The loop runs Codex in an isolated Git branch (prefix: `codex-loop/`). When it f
 ```
 completed
 Changes are on branch: codex-loop/my-project-abc123
-To inspect before merging:
+(Your working directory is unchanged until you merge.)
+
+Run these commands from your project directory (/path/to/your-project):
+
+  # 1. Review the changes (optional)
   git diff --stat main..codex-loop/my-project-abc123
-To merge:
-  git checkout main   # or master, or your default branch
+
+  # 2. Merge into your main branch
+  git checkout main
   git merge codex-loop/my-project-abc123
-After merging, clean up with: codex-loop cleanup --apply
+
+  # 3. Clean up worktree and old artifacts
+  codex-loop cleanup --apply
 ```
 
-Copy that `git merge` command and run it in your project directory (make sure you are on your main branch first). Or inspect first:
+The exact branch name is printed by the loop — copy it from your terminal output. Or inspect the changes first:
 
 ```bash
 # Make sure you're on your main branch
