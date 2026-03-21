@@ -558,7 +558,7 @@ The rest are for inspection, long-running unattended jobs, or cleanup.
 | `run` | Run the loop until done or blocked (exits 0 on success, 2 if blocked) |
 | `run --retry-blocked` | Requeue blocked tasks then run |
 | `run --continuous --retry-blocked` | Keep retrying after blocks until `--max-cycles` |
-| `doctor --repair` | Fix state drift if you edited files manually |
+| `doctor --repair` | Diagnose and repair state drift — `run` does this automatically on startup, but running it explicitly surfaces errors earlier |
 | `health` | One-command overview: status, warnings, events, daemon state |
 | `status --summary` | Show current task status and loop health |
 | `events --limit 20` | Show the recent event timeline |
