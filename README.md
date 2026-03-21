@@ -97,7 +97,7 @@ Before installing `codex-loop`, make sure you have:
    brew install --cask codex
    ```
    Verify: `codex --version`
-3. **OpenAI API key** — set it in your shell before running any commands:
+3. **OpenAI API key** — get one at [platform.openai.com/api-keys](https://platform.openai.com/api-keys), then set it in your shell:
    ```bash
    export OPENAI_API_KEY="sk-..."
    ```
@@ -783,7 +783,7 @@ python3 -m pip install -e . --break-system-packages
 ### "Codex could not authenticate" / API key error
 
 Both `codex-loop init` and `codex-loop run` call `codex exec`, which exits immediately if
-`OPENAI_API_KEY` is not set or is invalid.
+`OPENAI_API_KEY` is not set or is invalid. Get a key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
 
 ```bash
 export OPENAI_API_KEY="sk-..."
