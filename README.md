@@ -92,7 +92,7 @@ Before installing `codex-loop`, make sure you have:
    If you have an older version, upgrade via [python.org](https://www.python.org/downloads/) or Homebrew: `brew install python@3.11`
 2. **[Codex CLI](https://github.com/openai/codex)** installed and working — install via npm or Homebrew:
    ```bash
-   npm install -g @openai/codex   # requires Node.js; if npm is not found: brew install node
+   npm install -g @openai/codex   # requires Node.js 16+; if npm is not found: brew install node
    # or
    brew install --cask codex
    ```
