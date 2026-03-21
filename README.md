@@ -491,7 +491,7 @@ codex-loop init --prompt "your next goal" --force   # re-scaffold with new goal
 codex-loop run
 ```
 
-`--force` is required because `codex-loop.yaml` and the task files already exist. It will replace them with a fresh scaffold for the new goal.
+`--force` is required because `codex-loop.yaml` and the task files already exist. It will replace them with a fresh scaffold for the new goal. Your source code and git history are not affected — only the codex-loop workflow files (`codex-loop.yaml`, `spec/`, `plan/`, `tasks/`, `.codex-loop/`) are overwritten.
 
 ### If the loop blocks
 
