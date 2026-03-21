@@ -75,8 +75,13 @@ cat ~/.codex/config.toml
 You should see both entries with `trust_level = "trusted"`.
 
 ```bash
-# Make sure OPENAI_API_KEY is set before running (both codex-loop init and run need it)
+# Make sure OPENAI_API_KEY is set before running
 export OPENAI_API_KEY="sk-..."   # skip if already set
+
+# Check the model in codex-loop.yaml — the default is gpt-5.4 which requires special access.
+# If you get a model error, change it to o3 or o4-mini:
+#   Open codex-loop.yaml in a text editor and change:
+#     "model": "gpt-5.4"  ->  "model": "o3"
 
 # 4. Run the loop
 #    Each iteration prints a progress line, then goes quiet while Codex works

@@ -806,8 +806,10 @@ directories that Codex has not explicitly trusted.
 `../.codex-loop-worktrees/<project>/<branch>/` — a different directory from your project.
 Trusting only your project directory is not enough; you need to trust the worktree parent too.
 
-The error message from `codex-loop run` will print the exact path that needs to be trusted.
-The quickest fix is to add the worktree parent to `~/.codex/config.toml`:
+The error message will print the exact path that needs to be trusted.
+For `codex-loop init` failures, the missing path is your project directory.
+For `codex-loop run` failures, it is usually the worktree parent.
+The quickest fix is to add both entries to `~/.codex/config.toml`:
 
 ```toml
 # Trust your project directory (needed for codex-loop init)
