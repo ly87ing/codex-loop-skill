@@ -1802,7 +1802,10 @@ def main(argv: list[str] | None = None) -> int:
         elif "state.json" in msg and ("JSONDecodeError" in type(exc).__name__ or "Expecting" in msg or "line" in msg and "column" in msg):
             print("Hint: .codex-loop/state.json appears to be corrupted. Run 'codex-loop doctor --repair' to recreate it.", file=sys.stderr)
         elif "doctor found blocking issues" in msg:
-            print("Run 'codex-loop doctor --repair' to attempt automatic repair, or 'codex-loop doctor' for details.", file=sys.stderr)
+            if "'codex' command not found" in msg:
+                print("Install Codex CLI first: npm install -g @openai/codex  (or: brew install --cask codex)", file=sys.stderr)
+            else:
+                print("Run 'codex-loop doctor --repair' to attempt automatic repair, or 'codex-loop doctor' for details.", file=sys.stderr)
         elif "Init result missing fields" in msg or "Init result must include" in msg:
             print("Hint: Codex returned an incomplete response during init. Re-run with a more specific prompt:", file=sys.stderr)
             print("  codex-loop init --prompt \"<your goal — name the language, framework, and test tool>\" --force", file=sys.stderr)
