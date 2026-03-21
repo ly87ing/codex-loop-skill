@@ -518,8 +518,8 @@ codex-loop run --continuous --retry-blocked --cycle-sleep-seconds 60
 If retrying still blocks, common fixes:
 
 - **`no_progress_limit`** (no file changes): the task description may be too vague or too large. Edit the task file in `tasks/` to be more specific or split it into smaller steps, **commit the change** (`git add -A && git commit -m 'refine task'`), then run `codex-loop doctor --repair` before retrying.
-- **`runner_failure_limit`** (Codex exec keeps failing): check your API key, network, and Codex version (`codex --version`). Update with `npm install -g @openai/codex`.
-- **`verification_failure_limit`** (tests always fail): the verification command may be wrong — check `verification.commands` in `codex-loop.yaml`. Run it manually to confirm it works.
+- **`runner_failure_circuit_breaker`** (Codex exec keeps failing): check your API key, network, and Codex version (`codex --version`). Update with `npm install -g @openai/codex`.
+- **`verification_failure_circuit_breaker`** (tests always fail): the verification command may be wrong — check `verification.commands` in `codex-loop.yaml`. Run it manually to confirm it works. See `codex-loop events --limit 20` for the test output.
 - **Increase the iteration budget**: edit `execution.max_iterations` in `codex-loop.yaml` (default: 30) if the task is large or the tests are flaky. A rule of thumb: allow roughly 5–10 iterations per task file.
 
 ### Unattended long runs (optional)
