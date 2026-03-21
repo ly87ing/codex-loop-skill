@@ -620,8 +620,8 @@ You can edit task files freely before or between runs to tighten the description
 
 1. Commit the changes: `git add tasks/ && git commit -m 'update task'`
    (Codex runs in an isolated Git worktree built from your latest commit — uncommitted edits are invisible to it.)
-2. Run `codex-loop doctor --repair` to sync the state file.
-3. Then `codex-loop run --retry-blocked` to resume.
+2. Run `codex-loop run --retry-blocked` to resume.
+   (`codex-loop run` automatically runs `doctor --repair` on startup to sync the state file — no need to run it manually.)
 
 **What makes a good task description?** The content is passed verbatim to Codex, so the more specific it is, the better the result:
 
@@ -1013,8 +1013,7 @@ After editing, commit the changes so Codex can see them (it runs in an isolated 
 
 ```bash
 git add -A && git commit -m 'update task'
-codex-loop doctor --repair
-codex-loop run --retry-blocked
+codex-loop run --retry-blocked   # doctor --repair runs automatically on startup
 ```
 
 ### `git merge` reports conflicts
