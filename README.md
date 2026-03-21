@@ -125,6 +125,7 @@ Before installing `codex-loop`, make sure you have:
    echo 'trust_level = "trusted"'
    ```
    Then open `~/.codex/config.toml` (create it if needed: `mkdir -p ~/.codex`) and paste the output.
+   **If the file already exists, append these entries — do not delete anything already in the file.**
    The result should look like:
    ```toml
    [projects."/Users/alice/code/my-app"]
@@ -851,7 +852,7 @@ trust_level = "trusted"
 trust_level = "trusted"
 ```
 
-Open `~/.codex/config.toml` (create it if needed: `mkdir -p ~/.codex`) and paste the output:
+Open `~/.codex/config.toml` (create it if needed: `mkdir -p ~/.codex`) and **append** the output — do not delete anything already in the file:
 ```bash
 mkdir -p ~/.codex
 open ~/.codex/config.toml    # macOS — or: nano ~/.codex/config.toml  (Linux)
