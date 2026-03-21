@@ -1002,7 +1002,13 @@ codex-loop logs tail --lines 50
 
 ### I edited task files or `codex-loop.yaml` manually
 
-Run `codex-loop doctor --repair` to reconcile state before the next run.
+After editing, commit the changes so Codex can see them (it runs in an isolated Git worktree built from your latest commit — uncommitted edits are invisible to it):
+
+```bash
+git add -A && git commit -m 'update task'
+codex-loop doctor --repair
+codex-loop run --retry-blocked
+```
 
 ### `git merge` reports conflicts
 
