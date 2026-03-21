@@ -1239,6 +1239,12 @@ def main(argv: list[str] | None = None) -> int:
                         print("Check your API key and network, then: codex-loop run --retry-blocked", file=sys.stderr)
                     elif _code == "no_progress_limit":
                         print("Edit the task files to be more specific, commit, then: codex-loop run --retry-blocked", file=sys.stderr)
+                    elif _code == "agent_blocked":
+                        print("Edit the blocked task file to give more context, commit, then: codex-loop run --retry-blocked", file=sys.stderr)
+                    elif _code == "task_failure_circuit_breaker":
+                        print("One task hit the failure limit and was skipped. Run 'codex-loop status --summary' to see which task, then: codex-loop run --retry-blocked", file=sys.stderr)
+                    elif _code == "max_iterations":
+                        print("Increase max_iterations in codex-loop.yaml, then: codex-loop run --retry-blocked", file=sys.stderr)
                     else:
                         print("To retry: codex-loop run --retry-blocked", file=sys.stderr)
             except Exception:  # noqa: BLE001
