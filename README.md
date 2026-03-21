@@ -776,6 +776,24 @@ export OPENAI_API_KEY="sk-..."
 
 To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
 
+### "Model not found" / model access error
+
+`codex-loop` defaults to `gpt-5.4`, which requires special API access. If you see an error like
+`model not found`, `invalid model`, or `you do not have access to this model`, use a different model:
+
+```bash
+# Re-run init with a supported model (--model is written into codex-loop.yaml automatically)
+codex-loop init --prompt "..." --model o3
+# or
+codex-loop init --prompt "..." --model o4-mini
+```
+
+If you already ran `init` and just need to change the model, edit `codex-loop.yaml` directly:
+```json
+"codex": { "model": "o3" }
+```
+Then verify the file is valid JSON: `python3 -m json.tool codex-loop.yaml`
+
 ### "Not inside a trusted directory"
 
 Both `codex-loop init` and `codex-loop run` call `codex exec`, which refuses to run in
