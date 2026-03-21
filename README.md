@@ -66,6 +66,8 @@ Run these commands from your project directory:
 
 **Ready to start?** → [Prerequisites](#prerequisites) → [Install](#install) → [Quick Start](#quick-start).
 
+**Want to try a complete worked example first?** → [examples/simple-local-project](examples/simple-local-project/README.md) — a self-contained todo CLI project you can run without touching your own code.
+
 **Time to first run:** setup takes ~5 minutes; each Codex iteration takes 5–30 minutes. A small task (2–3 iterations) typically completes in under an hour.
 
 ## Prerequisites
