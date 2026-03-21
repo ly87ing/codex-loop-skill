@@ -207,8 +207,9 @@ The minimum path to get started. Run these inside **your own project directory**
    mkdir -p ~/.codex
    printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[projects."%s/.codex-loop-worktrees"]\ntrust_level = "trusted"\n' "$(pwd)" "$(dirname $(pwd))" | tee -a ~/.codex/config.toml
    ```
-   > **Why two entries?** `codex-loop run` runs Codex inside an isolated Git worktree next to your project.
-   > Without the second entry, `codex-loop run` fails with "Not inside a trusted directory".
+   > **Why two entries?** Both `codex-loop init` and `codex-loop run` call `codex exec`, which refuses to run in untrusted directories.
+   > The first entry trusts your project directory (needed for `init`). The second trusts the worktree parent (needed for `run`, which runs Codex in an isolated Git worktree next to your project).
+   > Without both entries you will see "Not inside a trusted directory".
 
    Verify both entries were added: `cat ~/.codex/config.toml`
 
