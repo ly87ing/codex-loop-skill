@@ -377,9 +377,14 @@ overall_status: completed
 worktree_branch: codex-loop/my-project-abc123
 
 Next steps (all tasks done):
-  git diff --stat main..codex-loop/my-project-abc123   # 'main' = your actual default branch
+  # 1. Review the changes (optional)
+  git diff --stat main..codex-loop/my-project-abc123
+
+  # 2. Merge into your main branch
   git checkout main
   git merge codex-loop/my-project-abc123
+
+  # 3. Clean up worktree and old artifacts
   codex-loop cleanup --apply
 ```
 
