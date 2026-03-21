@@ -1043,12 +1043,14 @@ Then run your tests. They should pass against the merged code.
 
 This repository also ships a Codex skill at `skills/codex-loop/SKILL.md`. The skill teaches Codex when and how to use `codex-loop` — so instead of running CLI commands yourself, you can just describe your goal to Codex and it will call `codex-loop init`, review the output, and start the loop for you.
 
-To use it, run this from inside the `codex-loop-skill` directory you cloned:
+To use it, run these commands (replace `~/codex-loop-skill` with wherever you cloned the repo):
 
 ```bash
 mkdir -p ~/.codex/skills
-ln -s "$(pwd)/skills/codex-loop" ~/.codex/skills/codex-loop
+ln -s ~/codex-loop-skill/skills/codex-loop ~/.codex/skills/codex-loop
 ```
+
+(This creates a symlink so Codex always uses the latest version when you `git pull`.)
 
 Codex will pick it up automatically on the next run.
 
