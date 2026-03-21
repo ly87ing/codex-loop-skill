@@ -115,6 +115,16 @@ def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
             "verification.commands is empty — the loop will treat every iteration as passing. "
             "Add at least one test command (e.g. 'python -m pytest tests/ -q') to codex-loop.yaml."
         )
+    if config.execution.sandbox != "workspace-write":
+        report.warnings.append(
+            f"execution.sandbox is '{config.execution.sandbox}' — expected 'workspace-write'. "
+            "Changing this may cause codex-loop run to hang waiting for interactive input."
+        )
+    if config.execution.approval != "never":
+        report.warnings.append(
+            f"execution.approval is '{config.execution.approval}' — expected 'never'. "
+            "Changing this may cause codex-loop run to hang waiting for interactive approval."
+        )
 
     tasks_dir = project_dir / config.tasks.source_dir
     task_graph = TaskGraph(tasks_dir)

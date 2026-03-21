@@ -1069,6 +1069,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.force:
                 print("Warning: --force will overwrite existing codex-loop files and reset all run history.", flush=True)
             print("Generating spec, plan, and tasks from your prompt...", flush=True)
+            print(f"(Using model: {args.model} — if you get a model access error, re-run with --model o3)", flush=True)
             print("(This calls Codex to produce your project files — usually takes 30–90 seconds.)", flush=True)
             runner = CodexRunner(project_dir)
             result = runner.initialize_from_prompt(prompt=args.prompt, model=args.model)
