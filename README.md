@@ -1079,7 +1079,7 @@ Then run your tests. They should pass against the merged code.
     ]
   }
   ```
-  Common cases: `.env` files (copy them in), `node_modules/` (run `npm install` rather than copying — it's faster), Python virtualenvs (run `pip install -e .` or `pip install -r requirements.txt` in the worktree). The worktree path is also available as `$CODEX_LOOP_WORKING_DIR` in hooks.
+  Common cases: `.env` files (copy them in), `node_modules/` (run `npm install` rather than copying — it's faster), Python virtualenvs (run `pip install -e .` or `pip install -r requirements.txt` in the worktree). The worktree path is also available as `$CODEX_LOOP_WORKING_DIR` in hooks. Alternatively, use the full interpreter path in `verification.commands` (e.g. `".venv/bin/python -m pytest tests/ -q"`) — see [Verification keeps failing](#verification-keeps-failing).
 - Each iteration waits up to **30 minutes** for Codex to respond (`iteration_timeout_seconds: 1800` in `codex-loop.yaml`). A progress line is printed when each iteration starts; the terminal then goes quiet while Codex works — that silence is normal. A result line is printed when the iteration completes. Run `codex-loop events --limit 10` to see a summary of recent iterations, or reduce `iteration_timeout_seconds` in `codex-loop.yaml` if you need a shorter timeout.
 - `codex-loop.yaml` uses JSON syntax (curly braces and quoted keys), not indented YAML. This is intentional — it avoids a PyYAML dependency. Edit it with any text editor; just keep the JSON structure intact. If you break it accidentally, check with: `python3 -m json.tool codex-loop.yaml`
 - Codex CLI approval behavior can vary by CLI version. This project asks for `approval_policy="never"`, but some Codex releases have known approval edge cases.
