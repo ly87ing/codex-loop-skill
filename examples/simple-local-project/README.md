@@ -164,10 +164,13 @@ Common causes and fixes:
 
 | Blocker | What to do |
 |---|---|
-| `no_progress_limit` | The task description may be too vague. Edit the task file in `tasks/` to be more specific, then `codex-loop doctor --repair` before retrying. |
+| `no_progress_limit` | The task description may be too vague. Edit the task file in `tasks/` to be more specific, commit, then `codex-loop run --retry-blocked`. |
 | `runner_failure_circuit_breaker` | Check your API key and network. Run `codex --version` to confirm Codex is installed. Update with `npm install -g @openai/codex`. |
 | `verification_failure_circuit_breaker` | Check `verification.commands` in `codex-loop.yaml`. Run the command manually to see the real error. Run `codex-loop events --limit 20` to see the test output. |
 | `max_iterations` | Increase `execution.max_iterations` in `codex-loop.yaml` (default: 20 in this example). |
+| `agent_blocked` | Codex declared itself blocked. Edit the task file in `tasks/` to give more context or break it into smaller steps, commit, then `codex-loop run --retry-blocked`. |
+| `task_failure_circuit_breaker` | One task failed too many times and was skipped. Run `codex-loop status --summary` to see which task, edit it, commit, then `codex-loop run --retry-blocked`. |
+| `no_selectable_task` | Likely a dependency cycle or all tasks blocked. Run `codex-loop status --summary` to see task states, fix dependencies in `tasks/`, commit, then `codex-loop run --retry-blocked`. |
 
 ## Use this as a template for your own project
 
