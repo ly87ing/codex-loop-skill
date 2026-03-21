@@ -103,7 +103,7 @@ Before installing `codex-loop`, make sure you have:
    export OPENAI_API_KEY="sk-..."
    ```
    To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
-   **Cost:** each iteration calls Codex with a large prompt and expects a structured response. A typical small task (3–10 iterations) costs roughly $0.10–$1.00 depending on the model and codebase size. Set a spending limit on your OpenAI account before running long unattended loops.
+   **Cost:** each iteration calls Codex with a large prompt. Cost depends on the model and codebase size — check current pricing at [platform.openai.com/docs/pricing](https://platform.openai.com/docs/pricing). Set a spending limit on your OpenAI account before running long unattended loops.
    **Model access:** `codex-loop` defaults to `gpt-5.4`. If your API key does not have access to that model, pass `--model` to `init` — it is automatically written into `codex-loop.yaml`:
    ```bash
    codex-loop init --prompt "..." --model o3
