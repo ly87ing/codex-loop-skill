@@ -239,7 +239,8 @@ codex-loop init --prompt "Add input validation to every form in this app (Python
 # If you get a model access error, add: --model o3
 #   codex-loop init --prompt "..." --model o3
 # (--model is automatically written into codex-loop.yaml — no manual edit needed)
-# (This calls Codex to generate your project files — usually takes 30–90 seconds.)
+# (This calls Codex to generate your project files — usually takes 30–90 seconds.
+#  The terminal is quiet while Codex works — that silence is normal, not a hang.)
 # Success looks like:
 #   Initialized codex-loop files in /your/project
 #
