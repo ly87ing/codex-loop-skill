@@ -14,15 +14,16 @@ For those, just use Codex directly.
 
 ## How It Works (in brief)
 
-1. `codex-loop init --prompt "..."` — turns your goal into local files: a spec, a plan,
+1. **One-time setup:** trust your project directory and the worktree parent in `~/.codex/config.toml` (details in [Prerequisites](#prerequisites)).
+2. `codex-loop init --prompt "..."` — turns your goal into local files: a spec, a plan,
    numbered task documents, and a config (`codex-loop.yaml`).
-2. Commit those files so Codex can see them: `git add -A && git commit -m "add codex-loop files"`
-3. `codex-loop run` — works through each task in order, running Codex and your
+3. Commit those files so Codex can see them: `git add -A && git commit -m "add codex-loop files"`
+4. `codex-loop run` — works through each task in order, running Codex and your
    verification commands after every iteration. Stops when everything passes, or
    when it is genuinely stuck.
-4. `git merge codex-loop/<branch>` — merge the changes into your main branch when the loop completes.
+5. `git merge codex-loop/<branch>` — merge the changes into your main branch when the loop completes.
    (Your working directory is unchanged until you do this.)
-5. `codex-loop cleanup --apply` — remove the worktree and old log artifacts after merging. (Does not delete your code or git history.)
+6. `codex-loop cleanup --apply` — remove the worktree and old log artifacts after merging. (Does not delete your code or git history.)
 
 At any time: `codex-loop status --summary` shows what is happening, and `codex-loop events --limit 10` shows the iteration timeline.
 
