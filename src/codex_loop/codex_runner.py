@@ -330,16 +330,27 @@ class CodexRunner:
         if completed.returncode != 0:
             combined = (completed.stdout + completed.stderr).lower()
             if "not inside a trusted" in combined or "trusted directory" in combined:
-                hint = (
-                    f"\nHint: Codex refused to run in: {cwd}\n"
-                    "codex-loop runs Codex inside an isolated Git worktree, not your "
-                    "original project directory — you need to trust that worktree path too.\n"
-                    "Quickest fix — run this (safe to run more than once):\n"
-                    f"  grep -qF '[projects.\"{cwd.parent}\"]' ~/.codex/config.toml 2>/dev/null || "
-                    f"printf '\\n[projects.\"{cwd.parent}\"]\\ntrust_level = \"trusted\"\\n' >> ~/.codex/config.toml\n"
-                    "Then re-run codex-loop run. "
-                    "(You only need to do this once — the parent covers all future worktrees.)"
-                )
+                _is_worktree = ".codex-loop-worktrees" in str(cwd)
+                if _is_worktree:
+                    hint = (
+                        f"\nHint: Codex refused to run in: {cwd}\n"
+                        "codex-loop runs Codex inside an isolated Git worktree, not your "
+                        "original project directory — you need to trust that worktree path too.\n"
+                        "Quickest fix — run this (safe to run more than once):\n"
+                        f"  grep -qF '[projects.\"{cwd.parent}\"]' ~/.codex/config.toml 2>/dev/null || "
+                        f"printf '\\n[projects.\"{cwd.parent}\"]\\ntrust_level = \"trusted\"\\n' >> ~/.codex/config.toml\n"
+                        "Then re-run codex-loop run. "
+                        "(You only need to do this once — the parent covers all future worktrees.)"
+                    )
+                else:
+                    hint = (
+                        f"\nHint: Codex refused to run in: {cwd}\n"
+                        "You need to trust this directory in ~/.codex/config.toml.\n"
+                        "Quickest fix — run this inside your project directory (safe to run more than once):\n"
+                        f"  mkdir -p ~/.codex && grep -qF '[projects.\"{cwd}\"]' ~/.codex/config.toml 2>/dev/null || "
+                        f"printf '\\n[projects.\"{cwd}\"]\\ntrust_level = \"trusted\"\\n' >> ~/.codex/config.toml\n"
+                        "Then re-run codex-loop init."
+                    )
             elif "api key" in combined or "openai_api_key" in combined or "authentication" in combined or "unauthorized" in combined or "401" in combined:
                 hint = (
                     "\nHint: Codex could not authenticate. "
