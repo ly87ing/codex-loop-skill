@@ -208,33 +208,26 @@ The minimum path to get started. Run these inside **your own project directory**
    git init && git add -A && git commit -m "init"
    ```
 3. Trust your project directory and the worktree parent in `~/.codex/config.toml`.
-   Run the following to create the file and open it in a text editor:
+   Run these commands **inside your project directory** — they append the correct entries automatically:
    ```bash
-   mkdir -p ~/.codex   # create the directory if it doesn't exist yet
-   open ~/.codex/config.toml        # macOS: opens in TextEdit
-   # Linux alternative: nano ~/.codex/config.toml
-   ```
-   Add these two entries (replace the paths with your actual project location).
-   **Important:** if the file already exists, *append* these entries — do not delete anything already in the file.
-   ```toml
-   [projects."/Users/alice/code/my-app"]
-   trust_level = "trusted"
-
-   [projects."/Users/alice/code/.codex-loop-worktrees"]
-   trust_level = "trusted"
-   ```
-   Not sure what your absolute path is? Run this inside your project directory to print the exact entries to paste:
-   ```bash
-   echo "[projects.\"$(pwd)\"]"
-   echo "trust_level = \"trusted\""
-   echo
-   echo "[projects.\"$(dirname $(pwd))/.codex-loop-worktrees\"]"
-   echo "trust_level = \"trusted\""
+   mkdir -p ~/.codex
+   printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[projects."%s/.codex-loop-worktrees"]\ntrust_level = "trusted"\n' "$(pwd)" "$(dirname $(pwd))" | tee -a ~/.codex/config.toml
    ```
    > **Why two entries?** `codex-loop run` runs Codex inside an isolated Git worktree next to your project.
    > Without the second entry, `codex-loop run` fails with "Not inside a trusted directory".
 
-   Verify the file was saved: `cat ~/.codex/config.toml` — you should see both entries.
+   Verify both entries were added: `cat ~/.codex/config.toml`
+
+   > **Prefer editing manually?** Open `~/.codex/config.toml` in any text editor and *append* these lines
+   > (replace the paths with your actual project directory — run `pwd` to find it):
+   > ```toml
+   > [projects."/Users/alice/code/my-app"]
+   > trust_level = "trusted"
+   >
+   > [projects."/Users/alice/code/.codex-loop-worktrees"]
+   > trust_level = "trusted"
+   > ```
+   > **Important:** if the file already exists, *append* these entries — do not delete anything already in the file.
 
 **Steps 1–6 — Run the loop:**
 
@@ -290,14 +283,12 @@ git add -A && git commit -m "add codex-loop files"
 
 # 4. Confirm ~/.codex/config.toml has both trust entries
 #    (codex-loop run runs Codex in a worktree next to your project — both paths must be trusted)
-#    If you already did Step 0 above, both entries are already in place — skip this.
-#    Otherwise, run this to print the exact lines to add, then paste them into ~/.codex/config.toml:
-#    (open it with: open ~/.codex/config.toml  (macOS)  or: nano ~/.codex/config.toml  (Linux))
-echo "[projects.\"$(pwd)\"]" && echo 'trust_level = "trusted"' && echo && echo "[projects.\"$(dirname $(pwd))/.codex-loop-worktrees\"]" && echo 'trust_level = "trusted"'
-#    Verify both are present:
-#    cat ~/.codex/config.toml
-#
-#    Skip the echo command above if you already ran it — just verify with cat.
+#    If you already did Step 0 above, both entries are already in place — just verify:
+#      cat ~/.codex/config.toml
+#    Otherwise, run this inside your project directory to append the correct entries:
+mkdir -p ~/.codex && printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[projects."%s/.codex-loop-worktrees"]\ntrust_level = "trusted"\n' "$(pwd)" "$(dirname $(pwd))" | tee -a ~/.codex/config.toml
+#    Then verify:
+#      cat ~/.codex/config.toml
 
 # 5. Run the loop — it will keep working until done or genuinely blocked
 #    Note: Codex runs in an isolated Git worktree containing only committed files.
@@ -830,34 +821,16 @@ Trusting only your project directory is not enough; you need to trust the worktr
 The error message will print the exact path that needs to be trusted.
 For `codex-loop init` failures, the missing path is your project directory.
 For `codex-loop run` failures, it is usually the worktree parent.
-The quickest fix — run this **inside your project directory** to print the exact lines to paste, then open `~/.codex/config.toml` and add them:
+The quickest fix — run this **inside your project directory** to append the correct entries directly:
 
 ```bash
-echo "[projects.\"$(pwd)\"]"
-echo 'trust_level = "trusted"'
-echo
-echo "[projects.\"$(dirname $(pwd))/.codex-loop-worktrees\"]"
-echo 'trust_level = "trusted"'
+mkdir -p ~/.codex && printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[projects."%s/.codex-loop-worktrees"]\ntrust_level = "trusted"\n' "$(pwd)" "$(dirname $(pwd))" | tee -a ~/.codex/config.toml
 ```
 
-The result will look like:
-
-```toml
-# Trust your project directory (needed for codex-loop init)
-[projects."/absolute/path/to/your-project"]
-trust_level = "trusted"
-
-# Trust the worktree parent directory (needed for codex-loop run)
-[projects."/absolute/path/to/.codex-loop-worktrees"]
-trust_level = "trusted"
-```
-
-Open `~/.codex/config.toml` (create it if needed: `mkdir -p ~/.codex`) and **append** the output — do not delete anything already in the file:
+This appends (never overwrites) to the file. Verify both entries are present:
 ```bash
-mkdir -p ~/.codex
-open ~/.codex/config.toml    # macOS — or: nano ~/.codex/config.toml  (Linux)
+cat ~/.codex/config.toml
 ```
-Verify both entries are present: `cat ~/.codex/config.toml`
 
 Alternatively, run `codex` once interactively inside each directory to trigger the interactive
 trust prompt (but you would need to do that after the worktree is created, so the `config.toml`
