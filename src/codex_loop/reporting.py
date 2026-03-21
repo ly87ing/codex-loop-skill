@@ -656,6 +656,8 @@ def format_status_summary(project_dir: Path) -> str:
         lines.append(f"last_blocker_reason: {snapshot.get('last_blocker_reason')}")
     if snapshot.get("overall_status") in ("pending", "initialized"):
         lines.append("hint: run 'codex-loop run' to start the loop")
+    if snapshot.get("overall_status") == "running":
+        lines.append("hint: run 'codex-loop run' to resume (or 'codex-loop run --retry-blocked' if tasks are blocked)")
     if snapshot.get("overall_status") == "blocked":
         lines.append("hint: run 'codex-loop run --retry-blocked' to retry, or 'codex-loop events --limit 20' for full details")
     if snapshot.get("overall_status") == "completed" and snapshot.get("worktree_branch"):
