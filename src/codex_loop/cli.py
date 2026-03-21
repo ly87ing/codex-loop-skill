@@ -1231,8 +1231,16 @@ def main(argv: list[str] | None = None) -> int:
                             f"Blocked: [{_blocker.get('code', '?')}] {_blocker['reason']}",
                             file=sys.stderr,
                         )
+                    _code = _blocker.get('code', '')
                     print("Run 'codex-loop status --summary' for full details.", file=sys.stderr)
-                    print("To retry: codex-loop run --retry-blocked", file=sys.stderr)
+                    if _code == "verification_failure_circuit_breaker":
+                        print("See the failed test output: codex-loop events --limit 20", file=sys.stderr)
+                    elif _code in ("runner_failure_circuit_breaker", "max_consecutive_runner_failures"):
+                        print("Check your API key and network, then: codex-loop run --retry-blocked", file=sys.stderr)
+                    elif _code == "no_progress_limit":
+                        print("Edit the task files to be more specific, commit, then: codex-loop run --retry-blocked", file=sys.stderr)
+                    else:
+                        print("To retry: codex-loop run --retry-blocked", file=sys.stderr)
             except Exception:  # noqa: BLE001
                 pass
             return 0 if outcome.value == "completed" else 2
