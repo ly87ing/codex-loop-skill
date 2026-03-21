@@ -141,6 +141,8 @@ Before installing `codex-loop`, make sure you have:
 
 `codex-loop` has no third-party Python dependencies — just Python 3.11+ and the tools you already have.
 
+> **Note on the repo name:** the repository is called `codex-loop-skill` (it also ships a Codex skill), but the installed CLI command is `codex-loop`. After installing, use `codex-loop` — not `codex-loop-skill`.
+
 > **Where to clone:** run these commands from your **home directory** (or any permanent location — NOT inside your project). The `codex-loop-skill` directory must stay in place after installing.
 
 ```bash
