@@ -201,13 +201,17 @@ def run_project(
                 ))
                 if _uncommitted:
                     print(
-                        "Warning: these files are not committed and will be invisible to Codex:",
+                        "Warning: these task files are not committed and will be invisible to Codex:",
                         flush=True,
                     )
                     for _f in _uncommitted:
                         print(f"  {_f}", flush=True)
                     print(
-                        "  Run: git add -A && git commit -m 'add codex-loop files'",
+                        "  Codex runs in an isolated Git worktree built from your latest commit.",
+                        flush=True,
+                    )
+                    print(
+                        "  Commit first, then re-run: git add -A && git commit -m 'add codex-loop files'",
                         flush=True,
                     )
             except Exception:  # noqa: BLE001
