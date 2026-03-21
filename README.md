@@ -11,6 +11,7 @@ to keep working on it while you do something else, and stop only when it is actu
 
 **Not a good fit for:** quick one-off edits, questions, or tasks with no clear pass/fail test.
 For those, just use Codex directly.
+(If your project has no tests yet, you can still use `codex-loop` — set `verification.commands: []` in `codex-loop.yaml` and the loop runs until Codex declares all tasks done.)
 
 ## How It Works (in brief)
 
