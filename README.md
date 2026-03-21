@@ -281,6 +281,9 @@ cat codex-loop.yaml
 # 3. Commit the generated files so Codex can see them in its isolated worktree
 #    (codex-loop run creates a Git worktree from your latest commit — files not
 #    committed yet are invisible to Codex)
+#    If git commit fails with 'Author identity unknown', set your Git identity first:
+#      git config --global user.email "you@example.com"
+#      git config --global user.name "Your Name"
 git add -A && git commit -m "add codex-loop files"
 
 # 4. Confirm ~/.codex/config.toml has both trust entries
