@@ -276,13 +276,16 @@ cat codex-loop.yaml
 #    committed yet are invisible to Codex)
 git add -A && git commit -m "add codex-loop files"
 
-# 4. Confirm ~/.codex/config.toml has the worktree trust entry
-#    (codex-loop run runs Codex in a worktree next to your project — that path must also be trusted)
-#    If you already completed Prerequisites step 5, skip this.
-#    Otherwise, run this to print the exact line to add, then open and paste it:
-echo "[projects.\"$(dirname $(pwd))/.codex-loop-worktrees\"]" && echo 'trust_level = "trusted"'
-#    Open: open ~/.codex/config.toml  (macOS)  or: nano ~/.codex/config.toml  (Linux)
-#    Verify: cat ~/.codex/config.toml
+# 4. Confirm ~/.codex/config.toml has both trust entries
+#    (codex-loop run runs Codex in a worktree next to your project — both paths must be trusted)
+#    If you already did Step 0 above, both entries are already in place — skip this.
+#    Otherwise, run this to print the exact lines to add, then paste them into ~/.codex/config.toml:
+#    (open it with: open ~/.codex/config.toml  (macOS)  or: nano ~/.codex/config.toml  (Linux))
+echo "[projects.\"$(pwd)\"]" && echo 'trust_level = "trusted"' && echo && echo "[projects.\"$(dirname $(pwd))/.codex-loop-worktrees\"]" && echo 'trust_level = "trusted"'
+#    Verify both are present:
+#    cat ~/.codex/config.toml
+#
+#    Skip the echo command above if you already ran it — just verify with cat.
 
 # 5. Run the loop — it will keep working until done or genuinely blocked
 #    Note: Codex runs in an isolated Git worktree containing only committed files.

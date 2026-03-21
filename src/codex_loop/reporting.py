@@ -1107,7 +1107,7 @@ def format_events_timeline(
         until=until,
     )
     if not events:
-        return "No events recorded."
+        return "No events recorded yet. Events appear here once 'codex-loop run' has started."
     rendered = [_format_event(event) for event in events]
     return "\n".join(rendered)
 
