@@ -69,7 +69,7 @@ Run these commands from your project directory:
 
 **Want to try a complete worked example first?** → [examples/simple-local-project](examples/simple-local-project/README.md) — a self-contained todo CLI project you can run without touching your own code.
 
-**Time to first run:** setup takes ~5 minutes; each Codex iteration takes 5–30 minutes. A small task (2–3 iterations) typically completes in under an hour.
+**Time to first run:** ~5 minutes if you already have Python 3.11+, Node.js, Codex CLI, and an OpenAI API key. Allow 20–30 minutes if you need to install any of those first (see [Prerequisites](#prerequisites)). Each Codex iteration takes 5–30 minutes; a small task (2–3 iterations) typically completes in under an hour.
 
 ## Prerequisites
 
