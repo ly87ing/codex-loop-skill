@@ -22,7 +22,7 @@ For those, just use Codex directly.
    verification commands after every iteration. Stops when everything passes, or
    when it is genuinely stuck.
 5. `git merge codex-loop/<branch>` — merge the changes into your main branch when the loop completes.
-   (Your working directory is unchanged until you do this.)
+   (`codex-loop run` prints the exact command when it finishes. Your working directory is unchanged until you do this.)
 6. `codex-loop cleanup --apply` — remove the worktree and old log artifacts after merging. (Does not delete your code or git history.)
 
 At any time: `codex-loop status --summary` shows what is happening, and `codex-loop events --limit 10` shows the iteration timeline.
