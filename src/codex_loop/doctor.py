@@ -213,4 +213,8 @@ def render_doctor_report(report: DoctorReport) -> str:
             lines.append("Hint: tasks/ is empty. Run 'codex-loop init --prompt \"your goal\"' to generate task files, or add task files manually.")
         elif any("Missing state file" in e for e in report.errors):
             lines.append("Hint: run 'codex-loop doctor --repair' to recreate the state file.")
+        elif any("Corrupt state file" in e for e in report.errors):
+            lines.append("Hint: run 'codex-loop doctor --repair' to recreate the state file from task files.")
+        elif report.errors:
+            lines.append("Hint: check codex-loop.yaml for syntax errors. Validate with: python3 -m json.tool codex-loop.yaml")
     return "\n".join(lines)
