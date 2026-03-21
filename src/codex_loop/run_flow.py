@@ -183,17 +183,17 @@ def run_project(
             try:
                 _untracked = subprocess.run(
                     ["git", "-C", str(repo_root), "ls-files", "--others", "--exclude-standard",
-                     "codex-loop.yaml", "tasks/"],
+                     "tasks/"],
                     capture_output=True, text=True, timeout=10,
                 ).stdout.strip()
                 _modified = subprocess.run(
                     ["git", "-C", str(repo_root), "diff", "--name-only", "HEAD", "--",
-                     "codex-loop.yaml", "tasks/"],
+                     "tasks/"],
                     capture_output=True, text=True, timeout=10,
                 ).stdout.strip()
                 _staged = subprocess.run(
                     ["git", "-C", str(repo_root), "diff", "--name-only", "--cached", "--",
-                     "codex-loop.yaml", "tasks/"],
+                     "tasks/"],
                     capture_output=True, text=True, timeout=10,
                 ).stdout.strip()
                 _uncommitted = list(dict.fromkeys(
