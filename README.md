@@ -117,11 +117,11 @@ Before installing `codex-loop`, make sure you have:
    - The worktree parent `../.codex-loop-worktrees/` (needed for `codex-loop run`, which runs Codex
      inside an isolated Git worktree next to your project)
 
-   Easiest setup — run this **inside your project directory** to append the correct entries automatically:
+   Easiest setup — run this **inside your project directory** to add the correct entries (safe to run more than once — skips entries that already exist):
    ```bash
-   mkdir -p ~/.codex && printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[projects."%s/.codex-loop-worktrees"]\ntrust_level = "trusted"\n' "$(pwd)" "$(dirname $(pwd))" | tee -a ~/.codex/config.toml
+   mkdir -p ~/.codex && for p in "$(pwd)" "$(dirname "$(pwd)")/.codex-loop-worktrees"; do grep -qF "[projects.\"$p\"]" ~/.codex/config.toml 2>/dev/null || printf '\n[projects."%s"]\ntrust_level = "trusted"\n' "$p" >> ~/.codex/config.toml; done
    ```
-   This appends (never overwrites) to the file. Verify both entries were added: `cat ~/.codex/config.toml`
+   Verify both entries were added: `cat ~/.codex/config.toml`
    The result should look like:
    ```toml
    [projects."/Users/alice/code/my-app"]
@@ -204,9 +204,9 @@ The minimum path to get started. Run these inside **your own project directory**
    git init && git add -A && git commit -m "init"
    ```
 3. Trust your project directory and the worktree parent in `~/.codex/config.toml`.
-   Run these commands **inside your project directory** — they append the correct entries automatically:
+   Run this **inside your project directory** — safe to run more than once (skips entries that already exist):
    ```bash
-   mkdir -p ~/.codex && printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[projects."%s/.codex-loop-worktrees"]\ntrust_level = "trusted"\n' "$(pwd)" "$(dirname $(pwd))" | tee -a ~/.codex/config.toml
+   mkdir -p ~/.codex && for p in "$(pwd)" "$(dirname "$(pwd)")/.codex-loop-worktrees"; do grep -qF "[projects.\"$p\"]" ~/.codex/config.toml 2>/dev/null || printf '\n[projects."%s"]\ntrust_level = "trusted"\n' "$p" >> ~/.codex/config.toml; done
    ```
    > **Why two entries?** Both `codex-loop init` and `codex-loop run` call `codex exec`, which refuses to run in untrusted directories.
    > The first entry trusts your project directory (needed for `init`). The second trusts the worktree parent (needed for `run`, which runs Codex in an isolated Git worktree next to your project).
@@ -282,8 +282,8 @@ git add -A && git commit -m "add codex-loop files"
 #    (codex-loop run runs Codex in a worktree next to your project — both paths must be trusted)
 #    If you already did Step 0 above, both entries are already in place — just verify:
 #      cat ~/.codex/config.toml
-#    Otherwise, run this inside your project directory to append the correct entries:
-mkdir -p ~/.codex && printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[projects."%s/.codex-loop-worktrees"]\ntrust_level = "trusted"\n' "$(pwd)" "$(dirname $(pwd))" | tee -a ~/.codex/config.toml
+#    Otherwise, run this inside your project directory to add the correct entries (safe to run more than once):
+mkdir -p ~/.codex && for p in "$(pwd)" "$(dirname "$(pwd)")/.codex-loop-worktrees"; do grep -qF "[projects.\"$p\"]" ~/.codex/config.toml 2>/dev/null || printf '\n[projects."%s"]\ntrust_level = "trusted"\n' "$p" >> ~/.codex/config.toml; done
 #    Then verify:
 #      cat ~/.codex/config.toml
 
@@ -823,13 +823,13 @@ Trusting only your project directory is not enough; you need to trust the worktr
 The error message will print the exact path that needs to be trusted.
 For `codex-loop init` failures, the missing path is your project directory.
 For `codex-loop run` failures, it is usually the worktree parent.
-The quickest fix — run this **inside your project directory** to append the correct entries directly:
+The quickest fix — run this **inside your project directory** (safe to run more than once — skips entries that already exist):
 
 ```bash
-mkdir -p ~/.codex && printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[projects."%s/.codex-loop-worktrees"]\ntrust_level = "trusted"\n' "$(pwd)" "$(dirname $(pwd))" | tee -a ~/.codex/config.toml
+mkdir -p ~/.codex && for p in "$(pwd)" "$(dirname "$(pwd)")/.codex-loop-worktrees"; do grep -qF "[projects.\"$p\"]" ~/.codex/config.toml 2>/dev/null || printf '\n[projects."%s"]\ntrust_level = "trusted"\n' "$p" >> ~/.codex/config.toml; done
 ```
 
-This appends (never overwrites) to the file. Verify both entries are present:
+Verify both entries are present:
 ```bash
 cat ~/.codex/config.toml
 ```

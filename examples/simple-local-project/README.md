@@ -42,13 +42,13 @@ git commit -m "init"
 `codex-loop run` runs Codex inside an isolated Git worktree next to your project.
 You must trust **two** paths in `~/.codex/config.toml`.
 
-Run this **inside `my-todo-project`** to append the correct entries automatically:
+Run this **inside `my-todo-project`** to add the correct entries (safe to run more than once — skips entries that already exist):
 
 ```bash
-mkdir -p ~/.codex && printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[projects."%s/.codex-loop-worktrees"]\ntrust_level = "trusted"\n' "$(pwd)" "$(dirname $(pwd))" | tee -a ~/.codex/config.toml
+mkdir -p ~/.codex && for p in "$(pwd)" "$(dirname "$(pwd)")/.codex-loop-worktrees"; do grep -qF "[projects.\"$p\"]" ~/.codex/config.toml 2>/dev/null || printf '\n[projects."%s"]\ntrust_level = "trusted"\n' "$p" >> ~/.codex/config.toml; done
 ```
 
-This appends (never overwrites) to the file. Skip either entry and `codex-loop run` will fail with "Not inside a trusted directory".
+Skip either entry and `codex-loop run` will fail with "Not inside a trusted directory".
 
 Verify both entries are present:
 
