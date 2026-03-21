@@ -241,7 +241,7 @@ cd /path/to/your-project
 #      "Add input validation to every form in this app (Python/Flask). Tests in pytest."
 #      "Implement a REST API endpoint for user registration (Node/Express). Tests in jest."
 #      "Refactor the database layer to use SQLAlchemy. Tests in pytest."
-codex-loop init --prompt "Add input validation to every form in this app"
+codex-loop init --prompt "Add input validation to every form in this app (Python/Flask). Tests in pytest."
 # If you get a model access error, add: --model o3
 #   codex-loop init --prompt "..." --model o3
 # (--model is automatically written into codex-loop.yaml — no manual edit needed)
