@@ -165,8 +165,8 @@ Common causes and fixes:
 | Blocker | What to do |
 |---|---|
 | `no_progress_limit` | The task description may be too vague. Edit the task file in `tasks/` to be more specific, then `codex-loop doctor --repair` before retrying. |
-| `runner_failure_limit` | Check your API key and network. Run `codex --version` to confirm Codex is installed. Update with `npm install -g @openai/codex`. |
-| `verification_failure_limit` | Check `verification.commands` in `codex-loop.yaml`. Run the command manually to see the real error. |
+| `runner_failure_circuit_breaker` | Check your API key and network. Run `codex --version` to confirm Codex is installed. Update with `npm install -g @openai/codex`. |
+| `verification_failure_circuit_breaker` | Check `verification.commands` in `codex-loop.yaml`. Run the command manually to see the real error. Run `codex-loop events --limit 20` to see the test output. |
 | `max_iterations` | Increase `execution.max_iterations` in `codex-loop.yaml` (default: 20 in this example). |
 
 ## Use this as a template for your own project
