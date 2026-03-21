@@ -37,43 +37,20 @@ git commit -m "init"
 
 `codex-loop run` runs Codex inside an isolated Git worktree next to your project.
 You must trust **two** paths in `~/.codex/config.toml`.
-Run the following to create and open it:
+
+Run this **inside `my-todo-project`** to append the correct entries automatically:
 
 ```bash
-mkdir -p ~/.codex   # create the directory if it doesn't exist yet
-open ~/.codex/config.toml        # macOS: opens in TextEdit
-# Linux alternative: nano ~/.codex/config.toml
+mkdir -p ~/.codex && printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[projects."%s/.codex-loop-worktrees"]\ntrust_level = "trusted"\n' "$(pwd)" "$(dirname $(pwd))" | tee -a ~/.codex/config.toml
 ```
 
-```toml
-[projects."/Users/alice/code/my-todo-project"]
-trust_level = "trusted"
+This appends (never overwrites) to the file. Skip either entry and `codex-loop run` will fail with "Not inside a trusted directory".
 
-[projects."/Users/alice/code/.codex-loop-worktrees"]
-trust_level = "trusted"
-```
-
-Replace `/Users/alice/code` with the **parent directory** of `my-todo-project`.
-**If the file already exists, append these entries — do not delete anything already in the file.**
-Not sure of the path? Run this inside `my-todo-project` to print the exact entries to paste:
-
-```bash
-echo "[projects.\"$(pwd)\"]"
-echo "trust_level = \"trusted\""
-echo
-echo "[projects.\"$(dirname $(pwd))/.codex-loop-worktrees\"]"
-echo "trust_level = \"trusted\""
-```
-
-Skip either entry and `codex-loop run` will fail with "Not inside a trusted directory".
-
-Verify the file was saved correctly:
+Verify both entries are present:
 
 ```bash
 cat ~/.codex/config.toml
 ```
-
-You should see both entries with `trust_level = "trusted"`.
 
 **Step 3.5 — Check the model (do this before step 4)**
 
