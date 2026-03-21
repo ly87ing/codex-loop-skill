@@ -722,7 +722,7 @@ All thresholds are configurable in `codex-loop.yaml` under `execution`.
 
 - `health` gives the fastest single-command overview: it combines status, doctor warnings, event signals, and daemon/service state into one report.
 - `status --summary` shows the current task, blocker code, and blocker reason when the loop stops.
-- `doctor --repair` backfills missing config defaults and reconciles task/state drift. Run it after editing files manually.
+- `doctor --repair` backfills missing config defaults and reconciles task/state drift. `codex-loop run` does this automatically on startup — run it explicitly only if you want to surface issues before starting the loop.
 - `cleanup` defaults to dry-run (preview only). Use `--apply` only after reviewing what would be deleted.
 - `daemon` and `service` are mutually exclusive for the same project root — pick one or the other for background runs.
 
