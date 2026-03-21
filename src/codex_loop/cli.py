@@ -1135,6 +1135,9 @@ def main(argv: list[str] | None = None) -> int:
             print( "       git add -A && git commit -m 'add codex-loop files'")
             print( "     (If brand-new repo: git init && git add -A && git commit -m 'init')")
             print( "     (.codex-loop/ is automatically added to .gitignore — safe to git add -A)")
+            print( "     (If commit fails with 'Author identity unknown', set Git identity first:")
+            print( "       git config --global user.email 'you@example.com'")
+            print( "       git config --global user.name 'Your Name')")
             print( "  5. Run:  codex-loop run")
             return 0
 
