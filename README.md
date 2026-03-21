@@ -898,12 +898,22 @@ codex-loop run --retry-blocked
 ### Verification keeps failing
 
 The loop injects the last failed verification output into the next prompt automatically.
-If it keeps failing, the test command itself may be wrong. Check it manually:
+If it keeps failing, the test command itself may be wrong.
+
+Note: verification commands run inside the **worktree** (the isolated Git branch), not your project directory.
+To reproduce what the loop sees, run from the worktree path printed by `codex-loop run`:
 
 ```bash
-# Run your verification command directly to see the real error
+# Find the worktree path
+codex-loop status --summary   # shows worktree_branch
+git worktree list              # shows all worktree paths
+
+# Run your verification command from the worktree directory
+cd /path/to/.codex-loop-worktrees/my-project/codex-loop-...
 python -m pytest tests/ -q
 ```
+
+Or run it from your project directory to check the command syntax is correct (results may differ if files are not yet committed):
 
 To fix the test command, edit `verification.commands` in `codex-loop.yaml`:
 
