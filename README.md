@@ -618,7 +618,12 @@ To declare that a task depends on another:
 
 The loop skips a task until all its dependencies are `done`. `codex-loop init` generates these automatically from your prompt.
 
-You can edit task files freely before or between runs to tighten the description, split a task, or remove tasks you don't need. After editing, run `codex-loop doctor --repair` to sync the state file.
+You can edit task files freely before or between runs to tighten the description, split a task, or remove tasks you don't need. After editing:
+
+1. Commit the changes: `git add tasks/ && git commit -m 'update task'`
+   (Codex runs in an isolated Git worktree built from your latest commit — uncommitted edits are invisible to it.)
+2. Run `codex-loop doctor --repair` to sync the state file.
+3. Then `codex-loop run --retry-blocked` to resume.
 
 **What makes a good task description?** The content is passed verbatim to Codex, so the more specific it is, the better the result:
 
