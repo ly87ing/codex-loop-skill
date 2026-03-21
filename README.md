@@ -616,7 +616,7 @@ To declare that a task depends on another:
 
 The loop skips a task until all its dependencies are `done`. `codex-loop init` generates these automatically from your prompt.
 
-You can edit task files freely before or between runs to tighten the description, split a task, or remove tasks you don't need. After editing:
+You can edit task files freely before or between runs to tighten the description, split a task, or remove tasks you don't need. To add a new task, create a new Markdown file with the next number in the sequence (e.g. `tasks/003-my-new-task.md`) — the loop will pick it up automatically. After editing or adding tasks:
 
 1. Commit the changes: `git add tasks/ && git commit -m 'update task'`
    (Codex runs in an isolated Git worktree built from your latest commit — uncommitted edits are invisible to it.)
