@@ -175,7 +175,8 @@ def run_project(
             state["meta"]["worktree_branch"] = worktree.branch_name
             state_store.save(state)
             print(
-                f"Codex working in: {working_directory}",
+                f"Codex working in: {working_directory}"
+                " (isolated Git branch — your project files are unchanged until you merge)",
                 flush=True,
             )
             # Warn if key loop files are not committed — Codex runs in an isolated

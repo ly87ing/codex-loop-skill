@@ -35,7 +35,7 @@ run `git merge`. If you don't like the result, just don't merge — your origina
 
 ```
 $ codex-loop run
-Codex working in: /path/to/.codex-loop-worktrees/my-project/codex-loop-001-add-validation-20250610/
+Codex working in: /path/to/.codex-loop-worktrees/my-project/codex-loop-001-add-validation-20250610/ (isolated Git branch — your project files are unchanged until you merge)
 [iteration 1/30] task: 001-add-validation  (0/2 done, running Codex...) [10:15:02]
   (waiting for Codex — this can take up to 30 minutes per iteration; run 'codex-loop events --limit 10' in another terminal to watch)
   -> status=continue verification=FAIL files_changed=3
@@ -303,7 +303,7 @@ mkdir -p ~/.codex && printf '\n[projects."%s"]\ntrust_level = "trusted"\n\n[proj
 #    If the loop stops with 'blocked', see 'If the loop blocks' section below for common causes and fixes.
 codex-loop run
 # You will see output like:
-#   Codex working in: /path/to/.codex-loop-worktrees/my-project/codex-loop-.../
+#   Codex working in: /path/to/.codex-loop-worktrees/my-project/codex-loop-.../ (isolated Git branch — your files unchanged until you merge)
 #   [iteration 1/30] task: 001-foundation  (0/2 done, running Codex...) [14:23:01]
 #     (waiting for Codex — this can take up to 30 minutes per iteration; run 'codex-loop events --limit 10' in another terminal to watch)
 #     -> status=continue verification=FAIL files_changed=3
