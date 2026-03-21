@@ -1113,7 +1113,7 @@ def main(argv: list[str] | None = None) -> int:
             print( "  2. Confirm verification.commands and codex.model in codex-loop.yaml:")
             print( "       cat codex-loop.yaml")
             print( "     Two fields to check:")
-            print( "       \"codex\": { \"model\": \"gpt-5.4\" }  <- change to o3 or o4-mini if you get a model access error")
+            print(f"       \"codex\": {{ \"model\": \"{args.model}\" }}  <- change to o3 or o4-mini if you get a model access error")
             print( "       \"verification\": { \"commands\": [\"python -m pytest tests/ -q\"] }")
             print( "     Common examples: \"python -m pytest tests/ -q\", \"npm test\", \"go test ./...\"")
             print( "     To fix it, edit codex-loop.yaml in any text editor (it uses JSON syntax, not YAML — curly braces, quoted keys, no # comments).")
