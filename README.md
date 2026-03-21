@@ -915,6 +915,10 @@ python -m pytest tests/ -q
 
 Or run it from your project directory to check the command syntax is correct (results may differ if files are not yet committed):
 
+```bash
+python -m pytest tests/ -q
+```
+
 To fix the test command, edit `verification.commands` in `codex-loop.yaml`:
 
 ```json
