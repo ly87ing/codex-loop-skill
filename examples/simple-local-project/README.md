@@ -54,6 +54,7 @@ trust_level = "trusted"
 ```
 
 Replace `/Users/alice/code` with the **parent directory** of `my-todo-project`.
+**If the file already exists, append these entries — do not delete anything already in the file.**
 Not sure of the path? Run this inside `my-todo-project` to print the exact entries to paste:
 
 ```bash

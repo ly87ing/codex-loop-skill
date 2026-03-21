@@ -213,7 +213,8 @@ The minimum path to get started. Run these inside **your own project directory**
    open ~/.codex/config.toml        # macOS: opens in TextEdit
    # Linux alternative: nano ~/.codex/config.toml
    ```
-   Add these two entries (replace the paths with your actual project location):
+   Add these two entries (replace the paths with your actual project location).
+   **Important:** if the file already exists, *append* these entries — do not delete anything already in the file.
    ```toml
    [projects."/Users/alice/code/my-app"]
    trust_level = "trusted"
