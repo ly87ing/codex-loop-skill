@@ -39,7 +39,7 @@ This generates `codex-loop.yaml`, `spec/`, `plan/`, `tasks/`, and `.codex-loop/s
 - Sanity check the generated spec and task breakdown.
 - Tighten verification commands in `codex-loop.yaml` if the defaults are weak.
 - Remove obviously unnecessary tasks before starting the loop.
-- If you edit any files manually after this point, run `codex-loop doctor --repair` before starting the loop. (`codex-loop run` includes automatic repair, but explicit repair surfaces errors earlier.)
+- If you edit any files manually after this point, commit the changes before running the loop — `codex-loop run` automatically repairs state drift on startup.
 
 ### 3. Commit the generated files
 
@@ -114,7 +114,7 @@ When blocked, it also surfaces the latest `blocker_code` and reason, and when a 
 - Treat generated files as the persistent source of truth, not the original prompt.
 - Strengthen `verification.commands` before trusting unattended execution.
 - Prefer fixing bad task decomposition at `init` time instead of hoping the loop self-corrects.
-- Use `doctor --repair` before reruns if tasks or state have been edited manually.
+- If tasks or state have been edited manually, commit first, then use `codex-loop run --retry-blocked` — `run` automatically repairs state drift on startup.
 - Keep hooks local and explicit in `codex-loop.yaml`; do not hide operational behavior in prompts alone.
 - Use hook `failure_policy=block` only for operational checks that should genuinely stop the loop.
 - If the loop reports `blocked`, inspect the blocker instead of retrying blindly.
