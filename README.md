@@ -115,22 +115,24 @@ Before installing `codex-loop`, make sure you have:
    - The worktree parent `../.codex-loop-worktrees/` (needed for `codex-loop run`, which runs Codex
      inside an isolated Git worktree next to your project)
 
-   Easiest setup — add both to `~/.codex/config.toml`:
+   Easiest setup — run this inside your project directory to print the exact entries to paste:
    ```bash
-   mkdir -p ~/.codex   # create the directory if it doesn't exist yet
-   # then open ~/.codex/config.toml in your editor and add:
+   echo "[projects.\"$(pwd)\"]"
+   echo 'trust_level = "trusted"'
+   echo
+   echo "[projects.\"$(dirname $(pwd))/.codex-loop-worktrees\"]"
+   echo 'trust_level = "trusted"'
    ```
+   Then open `~/.codex/config.toml` (create it if needed: `mkdir -p ~/.codex`) and paste the output.
+   The result should look like:
    ```toml
-   [projects."/absolute/path/to/your-project"]
+   [projects."/Users/alice/code/my-app"]
    trust_level = "trusted"
 
-   [projects."/absolute/path/to/.codex-loop-worktrees"]
+   [projects."/Users/alice/code/.codex-loop-worktrees"]
    trust_level = "trusted"
    ```
-   (Replace `/absolute/path/to` with the parent directory of your project.
-   Example: if your project is at `/Users/alice/code/my-app`, the two entries are
-   `/Users/alice/code/my-app` and `/Users/alice/code/.codex-loop-worktrees`.)
-   Not sure of your path? Run `pwd` inside your project — that's the first entry.
+   Verify both are present: `cat ~/.codex/config.toml`
 
 ## Install
 
