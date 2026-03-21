@@ -334,9 +334,8 @@ class CodexRunner:
                     f"\nHint: Codex refused to run in: {cwd}\n"
                     "codex-loop runs Codex inside an isolated Git worktree, not your "
                     "original project directory — you need to trust that worktree path too.\n"
-                    "Quickest fix: add the worktree parent directory to ~/.codex/config.toml:\n"
-                    f"  [projects.\"{cwd.parent}\"]\n"
-                    "  trust_level = \"trusted\"\n"
+                    "Quickest fix — run this once to append the missing entry:\n"
+                    f"  printf '\\n[projects.\"{cwd.parent}\"]\\ntrust_level = \"trusted\"\\n' | tee -a ~/.codex/config.toml\n"
                     "Then re-run codex-loop run. "
                     "(You only need to do this once — the parent covers all future worktrees.)"
                 )
