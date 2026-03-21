@@ -401,6 +401,7 @@ If `overall_status` is `blocked`, the loop stopped — run `codex-loop run --ret
 
 That is all you need for most tasks. The loop stops by itself when all tasks pass verification,
 or when it hits a real blocker (no progress, too many failures).
+If something goes wrong, see the [Troubleshooting](#troubleshooting) section below for common errors and fixes.
 
 ### Example
 
