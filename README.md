@@ -797,7 +797,7 @@ To make it permanent, add that line to your `~/.zshrc` or `~/.bashrc`.
 
 ### "Model not found" / model access error
 
-`codex-loop` defaults to `gpt-5.4`, which requires special API access. If you see an error like
+`codex-loop` defaults to `gpt-5.4`. Not all API keys have access to this model. If you see an error like
 `model not found`, `invalid model`, or `you do not have access to this model`, use a different model:
 
 ```bash

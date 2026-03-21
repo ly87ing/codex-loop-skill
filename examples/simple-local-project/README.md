@@ -56,14 +56,12 @@ Verify both entries are present:
 cat ~/.codex/config.toml
 ```
 
-**Step 3.5 — Check the model (do this before step 4)**
-
-This example uses `"model": "gpt-5.4"` in `codex-loop.yaml`, which requires special API access.
-If your key does not have access, open `codex-loop.yaml` in any text editor and change:
+**Model access note:** This example uses `"model": "gpt-5.4"` in `codex-loop.yaml`. Not all API keys have access to this model.
+If step 4 fails with a model access error, open `codex-loop.yaml` in any text editor and change:
 ```
 "model": "gpt-5.4"   →   "model": "o3"
 ```
-Common alternatives: `o3`, `o4-mini`. You will get a clear error in step 4 if the model is wrong — this is the fix.
+Common alternatives: `o3`, `o4-mini`. Then re-run `codex-loop run`.
 
 ```bash
 # Make sure OPENAI_API_KEY is set before running
@@ -128,7 +126,7 @@ Most fields can be left at their defaults. These are the ones worth knowing:
 | Field | What it does | When to change it |
 |---|---|---|
 | `verification.commands` | Commands that must pass for the loop to declare success | **Always check this first** — make sure it matches how you run your tests |
-| `codex.model` | The Codex model to use | Default is `gpt-5.4` (requires access). If you get a model error, edit `codex-loop.yaml` and change `"model": "gpt-5.4"` to `"model": "o3"` |
+| `codex.model` | The Codex model to use | Default is `gpt-5.4`. If your API key does not have access to this model, edit `codex-loop.yaml` and change `"model": "gpt-5.4"` to `"model": "o3"` |
 | `execution.max_iterations` | Total iteration cap across all tasks | Increase for large tasks that need more attempts |
 | `goal.done_when` | Human-readable completion criteria | Edit if the generated criteria don't match your real goal |
 
