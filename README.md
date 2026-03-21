@@ -184,6 +184,7 @@ To upgrade later:
 cd codex-loop-skill   # go into the cloned repo directory
 git pull              # fetch the latest changes
 # No reinstall needed — the -e install picks up changes automatically.
+# (If codex-loop --help fails after pulling, re-run: python3 -m pip install -e .)
 ```
 
 ## Quick Start
