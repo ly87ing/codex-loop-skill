@@ -659,7 +659,21 @@ def format_status_summary(project_dir: Path) -> str:
     if snapshot.get("overall_status") == "running":
         lines.append("hint: run 'codex-loop run' to resume (or 'codex-loop run --retry-blocked' if tasks are blocked)")
     if snapshot.get("overall_status") == "blocked":
-        lines.append("hint: run 'codex-loop run --retry-blocked' to retry, or 'codex-loop events --limit 20' for full details")
+        _bcode = snapshot.get("last_blocker_code", "")
+        if _bcode == "verification_failure_circuit_breaker":
+            lines.append("hint: check test output with 'codex-loop events --limit 20', fix the verification command in codex-loop.yaml if needed, then: codex-loop run --retry-blocked")
+        elif _bcode in ("runner_failure_circuit_breaker", "max_consecutive_runner_failures"):
+            lines.append("hint: check API key and network, then: codex-loop run --retry-blocked")
+        elif _bcode == "no_progress_limit":
+            lines.append("hint: edit the task file in tasks/ to be more specific, commit, then: codex-loop run --retry-blocked")
+        elif _bcode == "agent_blocked":
+            lines.append("hint: edit the blocked task file to give more context, commit, then: codex-loop run --retry-blocked")
+        elif _bcode == "task_failure_circuit_breaker":
+            lines.append("hint: one task hit the failure limit and was skipped; edit tasks/ to clarify it, commit, then: codex-loop run --retry-blocked")
+        elif _bcode == "max_iterations":
+            lines.append("hint: increase max_iterations in codex-loop.yaml, then: codex-loop run --retry-blocked")
+        else:
+            lines.append("hint: run 'codex-loop run --retry-blocked' to retry, or 'codex-loop events --limit 20' for full details")
     if snapshot.get("overall_status") == "completed" and snapshot.get("worktree_branch"):
         branch = snapshot["worktree_branch"]
         try:
