@@ -276,9 +276,9 @@ git add -A && git commit -m "add codex-loop files"
 # 4. Confirm ~/.codex/config.toml has the worktree trust entry
 #    (codex-loop run runs Codex in a worktree next to your project — that path must also be trusted)
 #    If you already completed Prerequisites step 5, skip this.
-#    Otherwise: open ~/.codex/config.toml and make sure this entry is present:
-#      [projects."$(dirname $(pwd))/.codex-loop-worktrees"]
-#      trust_level = "trusted"
+#    Otherwise, run this to print the exact line to add, then open and paste it:
+echo "[projects.\"$(dirname $(pwd))/.codex-loop-worktrees\"]" && echo 'trust_level = "trusted"'
+#    Open: open ~/.codex/config.toml  (macOS)  or: nano ~/.codex/config.toml  (Linux)
 #    Verify: cat ~/.codex/config.toml
 
 # 5. Run the loop — it will keep working until done or genuinely blocked
