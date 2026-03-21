@@ -954,7 +954,11 @@ If your project uses a virtual environment, use the full path to the interpreter
 
 After editing, verify the file is valid JSON (`python3 -m json.tool codex-loop.yaml`), then: `codex-loop run --retry-blocked`.
 
-**If your project has no tests yet:** set `verification.commands` to an empty list (`[]`). The loop will run until Codex declares all tasks done, with no pass/fail gate. This is fine for getting started, but without verification the loop cannot tell if the code actually works — add real tests when you can.
+**If your project has no tests yet:** set `verification.commands` to an empty list in `codex-loop.yaml`:
+```json
+"verification": { "commands": [] }
+```
+The loop will run until Codex declares all tasks done, with no pass/fail gate. This is fine for getting started, but without verification the loop cannot tell if the code actually works — add real tests when you can.
 
 ### The generated spec, plan, or tasks don't look right
 
