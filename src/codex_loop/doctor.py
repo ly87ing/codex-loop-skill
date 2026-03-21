@@ -68,9 +68,10 @@ def _append_watchdog_warnings(report: DoctorReport, project_dir: Path) -> None:
 def run_doctor(project_dir: Path, *, repair: bool) -> DoctorReport:
     report = DoctorReport()
     if shutil.which("codex") is None:
-        report.warnings.append(
+        report.errors.append(
             "'codex' command not found on PATH. "
-            "Install it from https://github.com/openai/codex and make sure it is on PATH before running 'codex-loop run'."
+            "Install it: npm install -g @openai/codex  (or: brew install --cask codex). "
+            "Then verify: codex --version"
         )
     config_path = project_dir / "codex-loop.yaml"
     if not config_path.exists():
@@ -207,7 +208,9 @@ def render_doctor_report(report: DoctorReport) -> str:
     if report.errors:
         lines.append("Errors:")
         lines.extend(f"- {item}" for item in report.errors)
-        if any("Missing config file" in e for e in report.errors):
+        if any("'codex' command not found" in e for e in report.errors):
+            pass  # error message already contains install instructions
+        elif any("Missing config file" in e for e in report.errors):
             lines.append("Hint: run 'codex-loop init --prompt \"your goal\"' first to set up the project.")
         elif any("No task files found" in e for e in report.errors):
             lines.append("Hint: tasks/ is empty. Run 'codex-loop init --prompt \"your goal\"' to generate task files, or add task files manually.")
