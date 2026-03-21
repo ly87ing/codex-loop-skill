@@ -953,10 +953,10 @@ codex-loop init --prompt "your more specific goal" --force
 
 ```bash
 # Check the syntax:
-python3 -c "import json; json.load(open('codex-loop.yaml'))"
+python3 -m json.tool codex-loop.yaml
 ```
 
-The error message will show the line number. Common mistakes: trailing commas, missing quotes around keys, single quotes instead of double quotes. If the file is beyond repair, re-generate it with:
+The error message will show the line number. Common mistakes: trailing commas, missing quotes around keys, single quotes instead of double quotes, comments (JSON does not support `//` or `#` comments). If the file is beyond repair, re-generate it with:
 
 ```bash
 codex-loop init --prompt "your goal" --force
