@@ -351,6 +351,7 @@ codex-loop cleanup --apply
 
 # 7. Check status at any time
 codex-loop status --summary
+# If something looks wrong: codex-loop doctor   (checks config, tasks, and state)
 ```
 
 Example output (while running):
@@ -495,6 +496,7 @@ To retry: codex-loop run --retry-blocked
 For more detail:
 
 ```bash
+codex-loop doctor              # checks config, tasks, and state — prints specific hints
 codex-loop status --summary   # current task, blocker code, blocker reason
 codex-loop events --limit 20  # full event timeline with verification output
 ```
